@@ -1,6 +1,6 @@
-Create an image consistent with our existing <p align="center"><img src=".github/readme/banner.svg" alt="Pixel-art banner: &quot;Sammy — An opossum vs. the zombie joggers of Central Park · working title · 16-bit platformer · prototype&quot;. At night in the park, Sammy the opossum tail-whips a zombie jogger whose head boings off on a spring, while hot dogs fly from a tipped hot dog cart and another zombie reaches out of the bushes." width="100%"></p>
+<p align="center"><img src=".github/readme/banner.svg" alt="Pixel-art banner: &quot;Sammy — An opossum vs. the zombie joggers of Central Park · working title · 16-bit platformer · prototype&quot;. At night in the park, Sammy the opossum tail-whips a zombie jogger whose head boings off on a spring, while hot dogs fly from a tipped hot dog cart and another zombie reaches out of the bushes." width="100%"></p>
 
-# SammyHow does 
+# Sammy
 
 **Sammy** is a small 2D platformer in the style of a 16-bit home console game. You play Sammy, an opossum who wakes up in Central Park with no memory of how he got there. Everyone in the city has turned into a zombie. Sammy fights his way through with his tail, a trash-can lid, a tipped-over hot dog cart, and his secret move: playing dead. The zombies are funny, not scary: heads pop off and bounce, and vendors deflate like balloons.
 
@@ -64,7 +64,7 @@ The game draws at 320×224 pixels, like a classic console, and scales up by whol
 
 Gamepads have not been tested by a real person yet.
 
-**Phones and tablets:** looking great and playing well on mobile as well as desktop is a **major priority**. The first step is done: the game is now bigger and sharper on phones and tablets (held sideways, it now fills 90–95% of an iPhone's height instead of under 60%). Touch controls aren't built yet, so you can't play on a phone yet. See the roadmap below.
+**Phones and tablets:** looking great and playing well on mobile as well as desktop is a **major priority**. The first step is done: the game is now bigger and sharper on phones and tablets (held sideways, in our checks it now fills 90–95% of an iPhone's height instead of under 60%). Touch controls aren't built yet, so you can't play on a phone yet. See the roadmap below.
 
 ## What's in level 1
 
