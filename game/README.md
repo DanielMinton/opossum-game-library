@@ -8,6 +8,8 @@ Every gameplay value comes from the examples in `templates/examples/`, which are
 
 - **Easiest:** double-click `game/index.html` (or `game/dist/index.html`). It should run in Chrome, Edge, Safari or Firefox (only Chromium has been tested). Nothing to install, and no internet needed.
 - **If a browser blocks local files:** in Terminal, from the library folder, run `python3 -m http.server 8000` and open <http://localhost:8000/game/>.
+- **Screen size:** the game fills as much of the window as it can in whole steps, counting the screen's real pixels, so every game pixel stays a sharp square. Black borders fill the rest.
+- **Phones and tablets:** the game is now bigger and sharper there (held sideways, it fills 83–95% of the height of the phones we checked, up from 54–60%). It can't be played on a phone yet: touch controls are the next step. Phones also can't open a file by double-clicking; the game will need to be put on a website for that (not done).
 
 ### Controls
 
@@ -147,8 +149,8 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | 38 game-rule checks (see the list below) |
-| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 22 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
+| `node --test tests/sim.test.mjs` | 41 game-rule checks (see the list below) |
+| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 28 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 
 **Game-rule checks** cover:
@@ -164,6 +166,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - the audio converter picks only `.wav` files missing an `.ogg` (or an `.mp3` with `--mp3`), and never overwrites
 - animation timings in `config.js` match the frame counts and speeds of the art strips
 - art versions (the newest wins), the license rules for the build, and the scanner's PNG checks (size, colour profile, semi-transparent pixels, off-grid colours, too many colours, broken files)
+- the screen-size maths (`layout.js`) for ten phones, tablets and computers: the right whole-number size, centred on whole real pixels, never cut off, never smaller than ×1, and space kept free for future touch buttons
 
 **Browser checks** cover:
 - the shareable copy is up to date: `dist/index.html` has the current code from `src/`, and `BUILD_INFO.txt` has the matching code. If not, it says "run node tools/build.mjs". (So after changing anything in `src/`, build before running this test.)
@@ -173,6 +176,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - art scanning: the newest version of a strip is picked, and a wrong-size file is warned about
 - art loading: correct test images load and are drawn, the hit flash works on real art, and a wrong-size test image is reported and not drawn
 - sound loading: a test sound effect and test music load, and real key presses play them instead of the beeps
+- screen size at a sideways phone (852×393, 3 real pixels per point) and a laptop (1366×768): the picture is the size `layout.js` works out, fills the phone's height (95%), the page doesn't scroll, and a screenshot shows every game pixel as one solid square (sharp, not blurred)
 
 The art and sound checks use a temporary copy of the library, never your `assets/` folder.
 
@@ -182,7 +186,7 @@ The art and sound checks use a temporary copy of the library, never your `assets
 - gamepads
 - whether the beeps sound right, and whether real sound files are audible (headless browsers have no speakers)
 - Safari and Firefox (only Chromium was run headless)
-- phones (touch controls aren't built)
+- real phones and tablets (phone sizes are only imitated in Chromium; touch controls aren't built)
 
 **Difficulty note:** the autopilot clears the level when it can't take damage. Taking normal damage, it reaches the gauntlet but loses at wave 2, because it never jumps away or plays possum. A human player can do both, but the gauntlet may still be too hard. This needs a playtest.
 
@@ -197,10 +201,11 @@ The art and sound checks use a temporary copy of the library, never your `assets
 | `src/render.js`, `src/font.js` | Drawing: real art when present, placeholders otherwise |
 | `src/assets.js`, `src/asset-files.js` | Planned art and sound lists, and the generated list of files that exist |
 | `src/audio.js` | Plays real sound files when present, placeholder beeps otherwise |
-| `src/input.js`, `src/main.js` | Controls, main loop and `?test=` self-checks |
+| `src/layout.js` | Works out how big to draw the game on this screen (whole steps of real pixels) |
+| `src/input.js`, `src/main.js` | Controls, screen fitting, main loop and `?test=` self-checks |
 | `src/bot.js` | Autopilot used only by the tests |
 | `tools/` | Art and sound scanner (with PNG checks in `png.mjs`), WAV-to-OGG converter, build script, and license rules (`licenses.mjs`) |
 | `tests/` | Game-rule tests and the browser check |
 | `dist/` | Latest shareable build (made by `tools/build.mjs`) |
 
-Engine: none. It's plain HTML5 canvas and JavaScript at the Genesis-style 320×224 resolution, scaled up by whole numbers. The reasons are in `design/DECISIONS.md`.
+Engine: none. It's plain HTML5 canvas and JavaScript at the Genesis-style 320×224 resolution, scaled up by whole numbers of the screen's real pixels (so phones get a bigger picture and every pixel stays sharp). The reasons are in `design/DECISIONS.md`.

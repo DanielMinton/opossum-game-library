@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Sammy (placeholder prototype)</title>
   <style>
-    html, body { margin: 0; height: 100%; background: #000; }
-    body { display: flex; align-items: center; justify-content: center; overflow: hidden; }
-    canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; overscroll-behavior: none; }
+    /* main.js sets the canvas size and position (src/layout.js does the maths) so its pixels line up with the screen's. */
+    canvas { position: absolute; left: 0; top: 0; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
     #test-result { position: absolute; left: 0; top: 0; margin: 0; color: #0f0; font: 10px monospace; white-space: pre-wrap; max-width: 100%; }
   </style>
 </head>
@@ -1866,6 +1866,37 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   };
 })(globalThis.SAMMY = globalThis.SAMMY || {});
 
+// ---- src/layout.js ----
+// Screen fitting: how big to draw the 320x224 game on this screen. Pure maths, no browser APIs (tested in Node).
+// Scaling counts whole steps of the screen's REAL pixels (device pixels), not CSS points. Phones have 2-3 real pixels
+// per point, so this fills far more of a phone screen while every game pixel stays an exact square block of real pixels.
+(function (S) {
+  // view: available size in CSS px; dpr: real pixels per CSS px; game: native size in game pixels.
+  // reserveTop/Bottom/Left/Right: CSS px kept free (for on-screen buttons later). Default 0.
+  S.computeFit = function computeFit(o) {
+    const dpr = o.dpr > 0 ? o.dpr : 1;
+    const rt = o.reserveTop || 0, rb = o.reserveBottom || 0, rl = o.reserveLeft || 0, rr = o.reserveRight || 0;
+    // Available area in device pixels (never negative).
+    const availW = Math.max(0, (o.viewW - rl - rr) * dpr);
+    const availH = Math.max(0, (o.viewH - rt - rb) * dpr);
+    // Tiny epsilon so 1920/320 = 6 isn't read as 5.999...
+    const fits = Math.floor(Math.min(availW / o.gameW, availH / o.gameH) + 1e-9);
+    const scale = Math.max(1, fits);
+    const devW = o.gameW * scale, devH = o.gameH * scale;
+    // Centre in the available area, rounded to whole device pixels so pixel edges line up with the screen's.
+    // If the screen is too small even at x1, pin to the top-left so the HUD stays visible.
+    const devLeft = Math.max(0, Math.round(rl * dpr + (availW - devW) / 2));
+    const devTop = Math.max(0, Math.round(rt * dpr + (availH - devH) / 2));
+    return {
+      scale, dpr,
+      cssW: devW / dpr, cssH: devH / dpr,
+      cssLeft: devLeft / dpr, cssTop: devTop / dpr,
+      deviceW: devW, deviceH: devH,
+      overflows: fits < 1, // the screen is smaller than the game even at its smallest size
+    };
+  };
+})(globalThis.SAMMY = globalThis.SAMMY || {});
+
 // ---- src/main.js ----
 // Starts the game in the browser: screen scaling, the fixed-step loop, sound, and the ?test= self-checks.
 (function (S) {
@@ -1878,13 +1909,32 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   const errors = [];
   window.addEventListener('error', (e) => errors.push(String(e.message || e)));
 
-  // Whole-number scaling keeps pixels square and sharp.
+  // Whole-number scaling in the screen's real pixels keeps every game pixel a sharp square (maths in layout.js).
   function fit() {
-    const scale = Math.max(1, Math.floor(Math.min(window.innerWidth / C.screenW, window.innerHeight / C.screenH)));
-    canvas.style.width = C.screenW * scale + 'px';
-    canvas.style.height = C.screenH * scale + 'px';
+    const vv = window.visualViewport;
+    // The visual viewport leaves out phone browser bars; ignore it while pinch-zoomed (it shrinks then).
+    const useVV = vv && Math.abs((vv.scale || 1) - 1) < 0.01;
+    const viewW = useVV ? vv.width : window.innerWidth, viewH = useVV ? vv.height : window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const f = S.computeFit({ viewW, viewH, dpr, gameW: C.screenW, gameH: C.screenH });
+    canvas.style.width = f.cssW + 'px'; canvas.style.height = f.cssH + 'px';
+    canvas.style.left = f.cssLeft + 'px'; canvas.style.top = f.cssTop + 'px';
+    window.__SAMMY_FIT = Object.assign({ viewW, viewH }, f);
   }
-  window.addEventListener('resize', fit); fit();
+  window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', fit);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', fit);
+  // Browser zoom or moving the window to another screen changes the real-pixel ratio; re-fit and watch the new one.
+  (function watchDpr() {
+    if (!window.matchMedia) return;
+    const mq = window.matchMedia('(resolution: ' + (window.devicePixelRatio || 1) + 'dppx)');
+    const onChange = () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', onChange); else if (mq.removeListener) mq.removeListener(onChange);
+      fit(); watchDpr();
+    };
+    if (mq.addEventListener) mq.addEventListener('change', onChange); else if (mq.addListener) mq.addListener(onChange);
+  })();
+  fit();
 
   const state = S.newGame();
   window.__SAMMY_STATE = state;
@@ -1939,6 +1989,13 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   }
 
   // ---------- self-checks for headless browsers ----------
+  // The current fit plus where the canvas really ended up, so tests can compare the two.
+  function fitReport() {
+    const b = canvas.getBoundingClientRect();
+    const de = document.documentElement;
+    return Object.assign({}, window.__SAMMY_FIT, { rect: { x: b.x, y: b.y, w: b.width, h: b.height },
+      scrollW: de.scrollWidth, scrollH: de.scrollHeight });
+  }
   // ?test=keys: real key presses through the normal loop (Enter to start, then hold Right).
   function keysTest() {
     const out = document.getElementById('test-result');
@@ -1954,7 +2011,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     run(2); key('keydown', 'KeyZ');
     run(8);
     } catch (e) { errors.push(String(e && e.stack || e)); }
-    const r = { test: 'keys', mode: state.mode, x: Math.round(state.player.x), airborne: !state.player.grounded, errors, sounds: { loaded: S.soundReport.loaded, plays: S.soundPlays } };
+    const r = { test: 'keys', fit: fitReport(), mode: state.mode, x: Math.round(state.player.x), airborne: !state.player.grounded, errors, sounds: { loaded: S.soundReport.loaded, plays: S.soundPlays } };
     r.ok = r.mode === 'playing' && r.x > state.level.start.x + 50 && r.airborne && errors.length === 0;
     out.textContent = JSON.stringify(r);
     requestAnimationFrame(loop); // keep running normally afterwards
@@ -1988,7 +2045,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   // ?test=full: autopilot plays the level; ?test=shot&frames=N: stop after N frames for a screenshot.
   function runTest(name) {
     const out = document.getElementById('test-result');
-    const result = { test: name, ok: false, errors, assets: { loaded: S.assetReport.loaded, warnings: S.assetReport.warnings, tried: S.assetReport.tried } };
+    const result = { test: name, ok: false, fit: fitReport(), errors, assets: { loaded: S.assetReport.loaded, warnings: S.assetReport.warnings, tried: S.assetReport.tried } };
     const SR = S.soundReport;
     result.sounds = { tried: SR.tried, loaded: SR.loaded, failed: SR.failed, unplayable: SR.unplayable };
     try {

@@ -9,24 +9,47 @@ Record date, decision, supporting asset or requirement, and unresolved questions
 - **What's still only proposed:** every gameplay number, size and rule. They come from the examples in `templates/examples/`, plus the choices listed below. Nothing has been approved.
 - **What's next:** the owner answers the questions in `design/OWNER_DECISIONS.md`, reviews the draft style guide in `design/STYLE_GUIDE.md`, and supplies the Tier 1 items in `design/ASSET_REQUEST_CHECKLIST.md`. Then a playtest, mainly of the gauntlet.
 - **Decisions only the owner can make:** `design/OWNER_DECISIONS.md`.
-- **Confirmed major priority, not built yet:** the game must look beautiful and play well on desktop **and** on phones and tablets. See "Desktop and mobile confirmed" below.
+- **Confirmed major priority, being built:** the game must look beautiful and play well on desktop **and** on phones and tablets. Step 1 (sharper, bigger scaling) is done; touch controls and the phone layout are not built yet. See "Desktop and mobile confirmed" below.
 
 ## 2026-10-19: Desktop and mobile confirmed as a major priority
 
 **Decision (Confirmed by the owner):** the game must render beautifully and be fully playable on desktop and on mobile devices (phones and tablets). The owner says this was intended from the start; earlier docs had wrongly proposed "touch later, if at all" and listed touch controls as excluded. Those lines are corrected in `design/GAME_BRIEF.md`.
 
 **Where the prototype stands today (checked with screenshots at 390×844 and 844×390, common phone sizes):**
-- **Too small on phones.** Scaling uses whole numbers of *screen points*, so on a phone the game is stuck at its smallest size (×1): a small strip with big black borders. In landscape it uses about 320 of 844 points of width.
+- **Too small on phones.** Scaling uses whole numbers of *screen points*, so on a phone the game is stuck at its smallest size (×1): a small strip with big black borders. In landscape it uses about 320 of 844 points of width. *(Fixed by step 1, below.)*
 - **Not playable on phones.** There are no touch controls, and phones have no keyboard.
 - **Phones can't double-click a file.** On mobile, the game has to be opened from a website (for example itch.io or GitHub Pages). Double-click still works on desktop.
 
-**Work this needs (Proposed order, none built yet):**
-1. Sharper, bigger scaling: count whole-number steps in the screen's real pixels (phones have 2–3 real pixels per point), so the game fills far more of the screen and stays crisp.
+**Work this needs (Proposed order):**
+1. Sharper, bigger scaling: count whole-number steps in the screen's real pixels (phones have 2–3 real pixels per point), so the game fills far more of the screen and stays crisp. *(Done 2026-10-19; see "Step 1 done" below.)*
 2. On-screen touch controls (move, jump, tail-whip, Play Possum, pause) that appear only on touch screens and sit outside or beside the picture where possible.
 3. Phone layout: landscape play, a "turn your phone sideways" prompt in portrait, full-screen button, respect for notches and rounded corners, no accidental scrolling or zooming.
 4. Sound: start sound on the first tap (phones block sound until the player touches the screen).
 5. Checks: automatic browser checks at phone sizes with touch, plus tests on a real iPhone and Android phone.
 6. Art impact: text and the HUD must stay readable at phone sizes (another reason for the planned 8×8 font).
+
+**Step 1 done: sharper, bigger scaling (2026-10-19).** Choices below are **Proposed (reversible)**.
+- **What changed:** the game now scales by whole steps of the screen's *real* pixels instead of screen points. Every game pixel is still an exact square block of real pixels, so it stays sharp, but phones and tablets get a much bigger picture. The maths is in `game/src/layout.js` (tested in Node); `game/src/main.js` uses it.
+- **Measured sizes (screen size in points, game size before → after, in points; "x5" means each game pixel is 5×5 real pixels):**
+
+  | Screen | Before | After | Height filled before → after |
+  |---|---|---|---|
+  | iPhone SE landscape 667×375 | 320×224 | 480×336 (x3) | 60% → 90% |
+  | iPhone 15 landscape 852×393 | 320×224 | 533×373 (x5) | 57% → 95% |
+  | Pixel 7 landscape 915×412 | 320×224 | 488×341 (x4) | 54% → 83% |
+  | iPad landscape 1180×820 | 960×672 | 1120×784 (x7) | 82% → 96% |
+  | iPad portrait 820×1180 | 640×448 | 800×560 (x5) | width 78% → 98% |
+  | iPhone SE / iPhone 15 portrait | 320×224 | 320×224 (x2 / x3) | same size |
+  | Laptop 1440×900 (Retina) | 1280×896 | 1280×896 (x8) | same |
+  | Desktop 1920×1080 and 1366×768 | 1280×896 and 960×672 | the same | same |
+
+  Desktop computers look exactly as before. Phones held sideways get the big gain. Phones held upright stay the same size (the screen is only 375–393 points wide), which is why step 3 plans a "turn your phone sideways" prompt.
+- **Whole steps, not any size:** the Pixel 7 sideways fills 83% of the height, because the next whole step (x5) wouldn't fit. The other option is stretching to fill the screen exactly, which makes some game pixels one real pixel wider than others (slightly uneven, a little soft). Sharp, even pixels were kept; this is easy to revisit after a look on a real phone.
+- **Exact placement:** the picture is centred, then nudged to the nearest whole real pixel, so its edges line up with the screen's pixels. Plain centring could land half a pixel off, which blurs every pixel. A browser check now takes a screenshot at phone size and confirms every game pixel is one solid block.
+- **When it re-fits:** on window resize, turning the phone, the phone browser's bars sliding in and out, and browser zoom or moving the window to another screen. While someone has pinch-zoomed, it uses the normal window size instead of the zoomed area (otherwise the game would shrink while they zoom in). Step 3 will decide about blocking zoom.
+- **Room for touch buttons:** the maths can keep space free at the bottom, left or right of the screen for on-screen buttons (step 2). It's built and tested but not used yet.
+- **Page settings:** the page can't scroll, the borders stay black, and the page may draw into the notch area (`viewport-fit=cover`). Keeping the picture clear of notches comes in step 3. Zoom is still allowed.
+- **Not checked:** real phones, Safari and Firefox. The sizes above come from Chromium pretending to be each device. Real phone browsers show address bars that take some height, so the real picture may be one step smaller in some cases.
 
 ## 2026-10-19: Library review and starter templates
 

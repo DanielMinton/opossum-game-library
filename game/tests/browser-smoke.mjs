@@ -11,14 +11,19 @@
 //     the hit flash uses real art, and a wrong-size file is reported and not drawn.
 //  4. Real-sound loading: the same copy gets two generated WAV files (a sound effect and the level music)
 //     — proves they are found, load in the browser, and play through real key presses without errors.
+//  5. Screen fitting: at a landscape phone size (852x393, 3 real pixels per point) and a common laptop size
+//     (1366x768), the canvas is the size layout.js works out, fills the phone's height, the page doesn't scroll,
+//     and a screenshot shows every game pixel as an exact square block of real pixels (sharp, not blurred).
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
+import vm from 'node:vm';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { scan } from '../tools/scan-assets.mjs';
 import { png } from './png-writer.mjs';
+import { readChunks, decodePixels } from '../tools/png.mjs';
 
 const gameDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const shotsArg = process.argv.indexOf('--shots');
@@ -47,17 +52,18 @@ function findChrome() {
   return found.find((p) => fs.existsSync(p));
 }
 
-function runPage(file, query) {
+// extraFlags: more Chrome flags, e.g. a window size and pixel ratio to act like a phone.
+function runPage(file, query, extraFlags = []) {
   const url = pathToFileURL(file).href + '?' + query;
-  const r = spawnSync(chrome, ['--headless', '--disable-gpu', '--no-first-run', '--virtual-time-budget=60000', '--dump-dom', url],
+  const r = spawnSync(chrome, ['--headless', '--disable-gpu', '--no-first-run', '--virtual-time-budget=60000', ...extraFlags, '--dump-dom', url],
     { encoding: 'utf8', timeout: 120000 });
   const m = /<pre id="test-result"[^>]*>([^<]*)<\/pre>/.exec(r.stdout || '');
   if (!m || !m[1]) return { ok: false, errors: ['no test result in page; stderr: ' + (r.stderr || '').slice(0, 300)] };
   return JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'));
 }
-function screenshot(file, query, out) {
+function screenshot(file, query, out, extraFlags = ['--window-size=960,672']) {
   const url = pathToFileURL(file).href + '?' + query;
-  spawnSync(chrome, ['--headless', '--disable-gpu', '--hide-scrollbars', '--window-size=960,672', '--virtual-time-budget=20000', '--screenshot=' + out, url], { timeout: 120000 });
+  spawnSync(chrome, ['--headless', '--disable-gpu', '--hide-scrollbars', ...extraFlags, '--virtual-time-budget=20000', '--screenshot=' + out, url], { timeout: 120000 });
 }
 
 // Tiny WAV writer (16-bit mono) for the generated test sounds.
@@ -142,6 +148,42 @@ const ks = runPage(path.join(tmp, 'game', 'index.html'), 'test=keys');
 check('real sounds play through real key presses without errors (start music, jump sound)',
   ks.ok && ks.sounds.loaded.length === 2 && ks.sounds.plays['sfx-jump'] > 0 && ks.sounds.plays['music-level-01-central-park'] > 0,
   `mode ${ks.mode}, errors ${JSON.stringify(ks.errors)}, sounds ${JSON.stringify(ks.sounds)}`);
+
+// 5: screen fitting at a phone and a laptop size. The expected numbers come from layout.js itself.
+const L = {}; vm.runInNewContext(fs.readFileSync(path.join(gameDir, 'src', 'layout.js'), 'utf8'), { globalThis: { SAMMY: L } });
+const fitTmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sammy-fit-test-'));
+for (const [label, w, h, dpr, minFill] of [['landscape phone 852x393, 3 real px per point', 852, 393, 3, 0.9], ['laptop 1366x768', 1366, 768, 1, 0.85]]) {
+  const flags = ['--window-size=' + w + ',' + h, '--force-device-scale-factor=' + dpr];
+  const want = L.computeFit({ viewW: w, viewH: h, dpr, gameW: 320, gameH: 224 });
+  const r = runPage(path.join(gameDir, 'index.html'), 'test=shot&frames=60', flags);
+  const f = r.fit || {}, rect = f.rect || {};
+  const close = (a, b) => Math.abs(a - b) < 0.01;
+  check(`${label}: canvas is x${want.scale} (${want.cssW.toFixed(1)}x${want.cssH.toFixed(1)}) and centred, as layout.js works out`,
+    r.ok && f.scale === want.scale && close(rect.w, want.cssW) && close(rect.h, want.cssH) && close(rect.x, want.cssLeft) && close(rect.y, want.cssTop),
+    `got ${JSON.stringify(f)}`);
+  check(`${label}: game fills at least ${minFill * 100}% of the screen height, nothing cut off, page doesn't scroll`,
+    rect.h / h >= minFill && rect.x >= 0 && rect.y >= 0 && rect.x + rect.w <= w + 0.01 && rect.y + rect.h <= h + 0.01 && f.scrollW <= w && f.scrollH <= h,
+    `height ${(rect.h / h * 100).toFixed(1)}%, page ${f.scrollW}x${f.scrollH}`);
+  // Sharpness: every game pixel must be one solid square of scale x scale real pixels, with a hard black edge outside.
+  const out = path.join(fitTmp, 'fit.png');
+  screenshot(path.join(gameDir, 'index.html'), 'test=shot&frames=1060', out, flags);
+  let detail = 'no screenshot', sharp = false;
+  if (fs.existsSync(out)) {
+    const info = readChunks(fs.readFileSync(out)), px = decodePixels(info), s = want.scale;
+    const x0 = Math.round(want.cssLeft * dpr), y0 = Math.round(want.cssTop * dpr);
+    const at = (x, y) => { const i = (y * info.width + x) * 4; return (px[i] << 16) | (px[i + 1] << 8) | px[i + 2]; };
+    let blurred = 0, colours = new Set();
+    for (let gy = 0; gy < 224; gy++) for (let gx = 0; gx < 320; gx++) {
+      const c = at(x0 + gx * s, y0 + gy * s); colours.add(c);
+      outer: for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) if (at(x0 + gx * s + dx, y0 + gy * s + dy) !== c) { blurred++; break outer; }
+    }
+    const black = [at(x0 - 1, y0 + 100), at(x0 + 320 * s, y0 + 100), at(x0 + 100, y0 + 224 * s)].every((c) => c === 0) && (y0 === 0 || at(x0 + 100, y0 - 1) === 0);
+    sharp = info.width === Math.round(w * dpr) && blurred === 0 && black && colours.size > 10;
+    detail = `screenshot ${info.width}x${info.height}, ${blurred} blurred game pixels of ${320 * 224}, ${colours.size} colours, black edges ${black}`;
+  }
+  check(`${label}: screenshot is sharp (each game pixel is an exact block of real pixels)`, sharp, detail);
+}
+fs.rmSync(fitTmp, { recursive: true, force: true });
 
 if (shots) {
   fs.mkdirSync(shots, { recursive: true });

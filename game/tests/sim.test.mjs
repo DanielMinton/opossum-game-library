@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const src = path.join(here, '..', 'src');
-for (const f of ['config', 'font', 'level', 'assets', 'sim', 'bot']) {
+for (const f of ['config', 'font', 'level', 'assets', 'sim', 'bot', 'layout']) {
   vm.runInThisContext(fs.readFileSync(path.join(src, f + '.js'), 'utf8'), { filename: f + '.js' });
 }
 const S = globalThis.SAMMY;
@@ -698,4 +698,71 @@ test('PNG checks: size, colour profile, semi-transparency, off-grid colours, and
   assert.equal(cut.length, 2); assert.match(cut[0], /wrong size: expected 192x48 px, got 100x48/); assert.match(cut[1], /could not read this PNG \(file is cut short\)/);
   assert.deepEqual(checkPng(good.subarray(0, 60), 32, 16), ['could not read this PNG (file is cut short)']);
   assert.ok(Array.isArray(checkPng(Buffer.alloc(0), 32, 16)));
+});
+
+// ---------- screen fitting (layout.js) ----------
+const fitFor = (viewW, viewH, dpr, extra = {}) => S.computeFit(Object.assign({ viewW, viewH, dpr, gameW: C.screenW, gameH: C.screenH }, extra));
+const near = (a, b, msg) => assert.ok(Math.abs(a - b) < 1e-6, `${msg}: ${a} vs ${b}`);
+
+test('screen fit: whole steps of real pixels on common phones, tablets and computers', () => {
+  // [name, css width, css height, real pixels per css px, expected scale, expected css width, expected css height]
+  const table = [
+    ['iPhone SE landscape', 667, 375, 2, 3, 480, 336],
+    ['iPhone SE portrait', 375, 667, 2, 2, 320, 224],
+    ['iPhone 15 landscape', 852, 393, 3, 5, 1600 / 3, 1120 / 3],
+    ['iPhone 15 portrait', 393, 852, 3, 3, 320, 224],
+    ['Pixel 7 landscape', 915, 412, 2.625, 4, 1280 / 2.625, 896 / 2.625],
+    ['iPad landscape', 1180, 820, 2, 7, 1120, 784],
+    ['iPad portrait', 820, 1180, 2, 5, 800, 560],
+    ['laptop', 1440, 900, 2, 8, 1280, 896],
+    ['desktop 1920x1080', 1920, 1080, 1, 4, 1280, 896],
+    ['desktop 1366x768', 1366, 768, 1, 3, 960, 672],
+  ];
+  for (const [name, w, h, dpr, scale, cssW, cssH] of table) {
+    const f = fitFor(w, h, dpr);
+    assert.equal(f.scale, scale, name + ' scale');
+    near(f.cssW, cssW, name + ' css width'); near(f.cssH, cssH, name + ' css height');
+    assert.equal(f.overflows, false, name);
+    // Crisp: size and position are whole real pixels; centred to within one real pixel; nothing cut off.
+    assert.equal(f.deviceW, C.screenW * scale); assert.equal(f.deviceH, C.screenH * scale);
+    assert.ok(Number.isInteger(Math.round(f.cssLeft * dpr * 1e6) / 1e6) && Number.isInteger(Math.round(f.cssTop * dpr * 1e6) / 1e6), name + ' whole-pixel position');
+    assert.ok(Math.abs((w - f.cssW) / 2 - f.cssLeft) <= 1 / dpr && Math.abs((h - f.cssH) / 2 - f.cssTop) <= 1 / dpr, name + ' centred');
+    assert.ok(f.cssLeft >= 0 && f.cssTop >= 0 && f.cssLeft + f.cssW <= w + 1e-9 && f.cssTop + f.cssH <= h + 1e-9, name + ' fits on screen');
+  }
+  // The old way (whole steps of CSS points) left a big phone at x1: 320x224 of 852x393.
+  const iphone = fitFor(852, 393, 3);
+  assert.ok(iphone.cssH / 393 > 0.9, 'fills over 90% of the height of a landscape iPhone 15');
+});
+
+test('screen fit: room kept for on-screen buttons shrinks the game, and it is never smaller than x1', () => {
+  // 100 css px kept free at the bottom of a landscape iPhone 15: 293 px tall left -> x3 (672 real px).
+  const b = fitFor(852, 393, 3, { reserveBottom: 100 });
+  assert.equal(b.scale, 3);
+  assert.ok(b.cssTop + b.cssH <= 393 - 100 + 1e-9, 'stays above the kept space');
+  near(b.cssTop, 104 / 3, 'centred in the space left');
+  // Space kept on the left only: the game moves right, past it.
+  const l = fitFor(852, 393, 3, { reserveLeft: 200 });
+  assert.equal(l.scale, 5);
+  assert.ok(l.cssLeft >= 200, 'right of the kept space');
+  near(l.cssLeft, 778 / 3, 'centred in what is left');
+  // Both sides: still centred on the screen.
+  const lr = fitFor(852, 393, 3, { reserveLeft: 150, reserveRight: 150 });
+  assert.equal(lr.scale, 5); near(lr.cssLeft, 478 / 3, 'centred');
+  // Desktop 1920x1080 with 200 px kept at the bottom: 880 tall -> x3.
+  assert.equal(fitFor(1920, 1080, 1, { reserveBottom: 200 }).scale, 3);
+  // Defaults: no reserve given is the same as zero.
+  assert.deepEqual(fitFor(852, 393, 3, { reserveBottom: 0, reserveLeft: 0, reserveRight: 0 }), fitFor(852, 393, 3));
+});
+
+test('screen fit: tiny or odd screens never go below x1 and keep the top-left (HUD) on screen', () => {
+  const tiny = fitFor(100, 50, 1);
+  assert.equal(tiny.scale, 1); assert.equal(tiny.overflows, true);
+  assert.equal(tiny.cssLeft, 0); assert.equal(tiny.cssTop, 0);
+  assert.equal(fitFor(0, 0, 2).scale, 1);
+  assert.equal(fitFor(852, 393, 3, { reserveBottom: 1000 }).scale, 1, 'reserve bigger than the screen');
+  assert.equal(fitFor(640, 448, 0).scale, 2, 'missing pixel ratio is read as 1');
+  // Exact fits are not lost to rounding: 320x224 at 1.5 real px per css px = 480x336 real px -> x1; 640x448@1 -> x2.
+  assert.equal(fitFor(320, 224, 1.5).scale, 1);
+  assert.equal(fitFor(1280, 896, 1).scale, 4);
+  assert.equal(fitFor(1920 / 3, 1344 / 3, 3).scale, 6);
 });

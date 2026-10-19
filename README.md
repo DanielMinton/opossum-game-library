@@ -1,6 +1,6 @@
 Create an image consistent with our existing <p align="center"><img src=".github/readme/banner.svg" alt="Pixel-art banner: &quot;Sammy — An opossum vs. the zombie joggers of Central Park · working title · 16-bit platformer · prototype&quot;. At night in the park, Sammy the opossum tail-whips a zombie jogger whose head boings off on a spring, while hot dogs fly from a tipped hot dog cart and another zombie reaches out of the bushes." width="100%"></p>
 
-# Sammy
+# SammyHow does 
 
 **Sammy** is a small 2D platformer in the style of a 16-bit home console game. You play Sammy, an opossum who wakes up in Central Park with no memory of how he got there. Everyone in the city has turned into a zombie. Sammy fights his way through with his tail, a trash-can lid, a tipped-over hot dog cart, and his secret move: playing dead. The zombies are funny, not scary: heads pop off and bounce, and vendors deflate like balloons.
 
@@ -46,7 +46,7 @@ Then open <http://localhost:8000/game/> in your browser.
 
 **Browsers:** the game is tested automatically in Chromium (the engine behind Chrome and Edge). It should also run in Safari and Firefox, but those have not been tested yet.
 
-The game draws at 320×224 pixels, like a classic console, and scales up by whole numbers (×2, ×3, ×4 and so on) to fill the window, so pixels stay sharp.
+The game draws at 320×224 pixels, like a classic console, and scales up by whole numbers (×2, ×3, ×4 and so on) to fill the window, so pixels stay sharp. The steps count the screen's real pixels, so phones and tablets (which pack 2–3 real pixels into each point) get a much bigger picture than before, and every game pixel is still a clean square.
 
 ## Controls
 
@@ -64,7 +64,7 @@ The game draws at 320×224 pixels, like a classic console, and scales up by whol
 
 Gamepads have not been tested by a real person yet.
 
-**Phones and tablets:** looking great and playing well on mobile as well as desktop is a **major priority**. It isn't built yet: today the game shows up small on a phone and has no touch controls. See the roadmap below.
+**Phones and tablets:** looking great and playing well on mobile as well as desktop is a **major priority**. The first step is done: the game is now bigger and sharper on phones and tablets (held sideways, it now fills 90–95% of an iPhone's height instead of under 60%). Touch controls aren't built yet, so you can't play on a phone yet. See the roadmap below.
 
 ## What's in level 1
 
@@ -107,7 +107,7 @@ These drawings were made for this page only. They are not the game's art. In the
 - Design docs, templates and worked examples for every kind of art and sound.
 
 **Next:**
-1. **Desktop and mobile (major priority):** make the game fill phone and tablet screens crisply, add on-screen touch controls, and test on real phones. The plan is in [design/DECISIONS.md](design/DECISIONS.md).
+1. **Desktop and mobile (major priority):** the game now fills phone and tablet screens crisply (done). Still to do: on-screen touch controls, the phone layout, and tests on real phones. The plan is in [design/DECISIONS.md](design/DECISIONS.md).
 2. **You (the owner) answer the open questions** in **[design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)**. There are 12, each with a suggested answer. Examples: the final title, how gory it gets, who makes the art and music, and what goes in the first release.
 3. You review the draft style guide, [design/STYLE_GUIDE.md](design/STYLE_GUIDE.md).
 4. Real art and sound arrive, starting with the most important files ("Tier 1") in [design/ASSET_REQUEST_CHECKLIST.md](design/ASSET_REQUEST_CHECKLIST.md).
@@ -222,8 +222,8 @@ node tests/browser-smoke.mjs
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | **38 game-rule tests:** every move, enemy and item in level 1, a full autopilot run, and the art, sound and license checks. |
-| `node tests/browser-smoke.mjs` | **22 browser checks:** opens the game in a hidden Chromium browser, plays the whole level in both the normal and the shareable copy, presses real keys, draws every screen, and loads test art and sound. Needs Chrome, Edge or another Chromium browser. |
+| `node --test tests/sim.test.mjs` | **41 game-rule tests:** every move, enemy and item in level 1, a full autopilot run, the screen-size maths, and the art, sound and license checks. |
+| `node tests/browser-smoke.mjs` | **28 browser checks:** opens the game in a hidden Chromium browser, plays the whole level in both the normal and the shareable copy, presses real keys, draws every screen, loads test art and sound, and checks the picture is big and sharp at a phone size and a laptop size. Needs Chrome, Edge or another Chromium browser. |
 | `?test=full` | Open `game/index.html`, click the address bar, type `?test=full` at the very end and press Enter. The game then plays itself ("autopilot") so you can watch a full run. |
 
 If you changed the game's code, run the build (see [Building a shareable copy](#building-a-shareable-copy)) before the browser check. Otherwise the check fails and asks you to run `node tools/build.mjs`.

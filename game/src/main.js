@@ -9,13 +9,32 @@
   const errors = [];
   window.addEventListener('error', (e) => errors.push(String(e.message || e)));
 
-  // Whole-number scaling keeps pixels square and sharp.
+  // Whole-number scaling in the screen's real pixels keeps every game pixel a sharp square (maths in layout.js).
   function fit() {
-    const scale = Math.max(1, Math.floor(Math.min(window.innerWidth / C.screenW, window.innerHeight / C.screenH)));
-    canvas.style.width = C.screenW * scale + 'px';
-    canvas.style.height = C.screenH * scale + 'px';
+    const vv = window.visualViewport;
+    // The visual viewport leaves out phone browser bars; ignore it while pinch-zoomed (it shrinks then).
+    const useVV = vv && Math.abs((vv.scale || 1) - 1) < 0.01;
+    const viewW = useVV ? vv.width : window.innerWidth, viewH = useVV ? vv.height : window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const f = S.computeFit({ viewW, viewH, dpr, gameW: C.screenW, gameH: C.screenH });
+    canvas.style.width = f.cssW + 'px'; canvas.style.height = f.cssH + 'px';
+    canvas.style.left = f.cssLeft + 'px'; canvas.style.top = f.cssTop + 'px';
+    window.__SAMMY_FIT = Object.assign({ viewW, viewH }, f);
   }
-  window.addEventListener('resize', fit); fit();
+  window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', fit);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', fit);
+  // Browser zoom or moving the window to another screen changes the real-pixel ratio; re-fit and watch the new one.
+  (function watchDpr() {
+    if (!window.matchMedia) return;
+    const mq = window.matchMedia('(resolution: ' + (window.devicePixelRatio || 1) + 'dppx)');
+    const onChange = () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', onChange); else if (mq.removeListener) mq.removeListener(onChange);
+      fit(); watchDpr();
+    };
+    if (mq.addEventListener) mq.addEventListener('change', onChange); else if (mq.addListener) mq.addListener(onChange);
+  })();
+  fit();
 
   const state = S.newGame();
   window.__SAMMY_STATE = state;
@@ -70,6 +89,13 @@
   }
 
   // ---------- self-checks for headless browsers ----------
+  // The current fit plus where the canvas really ended up, so tests can compare the two.
+  function fitReport() {
+    const b = canvas.getBoundingClientRect();
+    const de = document.documentElement;
+    return Object.assign({}, window.__SAMMY_FIT, { rect: { x: b.x, y: b.y, w: b.width, h: b.height },
+      scrollW: de.scrollWidth, scrollH: de.scrollHeight });
+  }
   // ?test=keys: real key presses through the normal loop (Enter to start, then hold Right).
   function keysTest() {
     const out = document.getElementById('test-result');
@@ -85,7 +111,7 @@
     run(2); key('keydown', 'KeyZ');
     run(8);
     } catch (e) { errors.push(String(e && e.stack || e)); }
-    const r = { test: 'keys', mode: state.mode, x: Math.round(state.player.x), airborne: !state.player.grounded, errors, sounds: { loaded: S.soundReport.loaded, plays: S.soundPlays } };
+    const r = { test: 'keys', fit: fitReport(), mode: state.mode, x: Math.round(state.player.x), airborne: !state.player.grounded, errors, sounds: { loaded: S.soundReport.loaded, plays: S.soundPlays } };
     r.ok = r.mode === 'playing' && r.x > state.level.start.x + 50 && r.airborne && errors.length === 0;
     out.textContent = JSON.stringify(r);
     requestAnimationFrame(loop); // keep running normally afterwards
@@ -119,7 +145,7 @@
   // ?test=full: autopilot plays the level; ?test=shot&frames=N: stop after N frames for a screenshot.
   function runTest(name) {
     const out = document.getElementById('test-result');
-    const result = { test: name, ok: false, errors, assets: { loaded: S.assetReport.loaded, warnings: S.assetReport.warnings, tried: S.assetReport.tried } };
+    const result = { test: name, ok: false, fit: fitReport(), errors, assets: { loaded: S.assetReport.loaded, warnings: S.assetReport.warnings, tried: S.assetReport.tried } };
     const SR = S.soundReport;
     result.sounds = { tried: SR.tried, loaded: SR.loaded, failed: SR.failed, unplayable: SR.unplayable };
     try {
