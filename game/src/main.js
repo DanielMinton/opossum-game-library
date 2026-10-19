@@ -165,11 +165,13 @@
       run(30); return Math.round(y0 - top);
     };
     try {
-      c.visibleOnTitle = ['pad', 'jump', 'whip', 'possum', 'pause'].every((n) => buttonReport()[n]) && !buttonReport().restart;
+      // On the title screen PAUSE is hidden (it would only start the game), and so is the pause menu.
+      c.visibleOnTitle = ['pad', 'jump', 'whip', 'possum'].every((n) => buttonReport()[n]) && !buttonReport().pause && !buttonReport().restart;
       run(5);
       const unlocksBefore = unlocks;
       tap('jump');
       c.jumpStarts = state.mode === 'playing';
+      run(1); c.pauseShownInPlay = !!buttonReport().pause;
       c.soundUnlocked = unlocks > unlocksBefore;
       run(5);
       // Hold the right half of the pad for a second.
@@ -211,7 +213,7 @@
       run(2); c.tapPictureStarts = state.mode === 'playing';
     } catch (e) { errors.push(String(e && e.stack || e)); }
     const r = { test: 'touch', fit: fitReport(), mode: state.mode, checks: c, errors };
-    r.ok = c.visibleOnTitle && c.jumpStarts && c.soundUnlocked && c.movedRight > 50 && c.slideLeft && c.releasedPad &&
+    r.ok = c.visibleOnTitle && c.jumpStarts && c.pauseShownInPlay && c.soundUnlocked && c.movedRight > 50 && c.slideLeft && c.releasedPad &&
       c.holdRise > c.tapRise + 10 && c.moveAndJump && c.whip && c.cancelClears && c.lostCaptureClears && c.blurClears &&
       c.hiddenClears && c.paused && c.muted && c.unmuted && c.restarted && c.tapPictureStarts && errors.length === 0;
     out.textContent = JSON.stringify(r);

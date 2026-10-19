@@ -29,9 +29,10 @@
   };
 
   // ---------- on-screen touch buttons ----------
-  // Parts of the picture (in game pixels) that buttons may cover: only the outer bottom corners.
-  // Everything else is kept clear: the HUD and tutorial prompt at the top, and the middle where Sammy usually is.
-  S.TOUCH_CORNERS = [{ x0: 0, x1: 64, y0: 128, y1: 224 }, { x0: 256, x1: 320, y0: 128, y1: 224 }];
+  // Parts of the picture (in game pixels) that buttons may cover: only the dirt below the grass line (row 192,
+  // CONFIG.groundY) in the outer 64 pixels on each side. Everything else is kept clear: the HUD and tutorial prompt at
+  // the top, and the grass lane where Sammy and the zombies walk.
+  S.TOUCH_CORNERS = [{ x0: 0, x1: 64, y0: 192, y1: 224 }, { x0: 256, x1: 320, y0: 192, y1: 224 }];
 
   // Where the picture and each button go when touch controls are on.
   // o: { viewW, viewH, dpr, gameW, gameH, safe: { top, right, bottom, left } } (sizes in CSS px; safe = notch/rounded-corner margins).
@@ -50,7 +51,8 @@
     const px = (n) => Math.ceil(n / u);               // CSS px -> button pixels (rounded up)
     const art = {
       pad: [2 * a, a], jump: [a + Math.round(a * 0.15), a + Math.round(a * 0.15)], whip: [a, a],
-      possum: [Math.max(Math.round(a * 0.8), 29, px(56)), Math.max(Math.round(a * 0.8), 29, px(56))],
+      // POSSUM is a little wider than tall so its 6-letter label has room on each side.
+      possum: [Math.max(Math.round(a * 0.8), 29, px(56)) + Math.max(4, Math.round(a * 0.12)), Math.max(Math.round(a * 0.8), 29, px(56))],
       pause: [Math.max(Math.round(a * 0.8), px(44)), Math.max(Math.round(a * 0.7), px(44))],
       restart: [Math.max(Math.round(a * 1.6), 40), Math.max(Math.round(a * 0.75), px(44))],
       mute: [Math.max(Math.round(a * 1.6), 40), Math.max(Math.round(a * 0.75), px(44))],
@@ -61,15 +63,22 @@
     const eL = edge(sf.left), eR = edge(sf.right), eT = edge(sf.top), eB = edge(sf.bottom);
     const size = (n) => ({ w: art[n][0] * k, h: art[n][1] * k });
 
-    // The action cluster at the bottom right: JUMP in the corner, WHIP to its left (a little higher), POSSUM above JUMP.
-    // bottom: real px from the screen's bottom edge to the lowest button.
-    function place(bottom) {
+    // The action buttons at the bottom right. bottom: real px from the screen's bottom edge to the lowest button.
+    // 'wide': JUMP in the corner, WHIP to its left (a little higher), POSSUM above JUMP.
+    // 'stacked': one column in the right-hand black strip: JUMP at the bottom, WHIP above it, POSSUM above that
+    // (used when the strip is too narrow for the wide cluster).
+    function place(bottom, arrange) {
       const c = {};
       const J = size('jump'), Wh = size('whip'), P = size('possum'), Pd = size('pad');
       c.pad = { x: eL, y: DH - bottom - Pd.h, w: Pd.w, h: Pd.h };
       c.jump = { x: DW - eR - J.w, y: DH - bottom - J.h, w: J.w, h: J.h };
-      c.whip = { x: c.jump.x - g - Wh.w, y: DH - bottom - Wh.h - Math.round(a * 0.35) * k, w: Wh.w, h: Wh.h };
-      c.possum = { x: c.jump.x + Math.round((J.w - P.w) / 2 / k) * k, y: c.jump.y - g - P.h, w: P.w, h: P.h };
+      if (arrange === 'stacked') {
+        c.whip = { x: DW - eR - Wh.w, y: c.jump.y - g - Wh.h, w: Wh.w, h: Wh.h };
+        c.possum = { x: DW - eR - P.w, y: c.whip.y - g - P.h, w: P.w, h: P.h };
+      } else {
+        c.whip = { x: c.jump.x - g - Wh.w, y: DH - bottom - Wh.h - Math.round(a * 0.35) * k, w: Wh.w, h: Wh.h };
+        c.possum = { x: c.jump.x + Math.round((J.w - P.w) / 2 / k) * k, y: c.jump.y - g - P.h, w: P.w, h: P.h };
+      }
       return c;
     }
     const inGame = (r, pic) => { // a control's rectangle in game pixels, clipped to the picture (null if outside)
@@ -90,28 +99,31 @@
 
     if (!portrait) {
       // Landscape: buttons in the bottom corners. Use the biggest picture whose overlap with the buttons stays in the
-      // allowed corners; try it centred first, then moved to the top. Otherwise shrink one step and try again.
-      c = place(eB);
+      // allowed corners; try it centred first, then moved to the top, with the wide action cluster first, then the
+      // stacked column. Otherwise shrink one step and try again.
       const P = size('pause');
-      const pauseSpots = [
-        { x: DW - eR - P.w, y: eT }, { x: eL, y: eT },                            // top corners of the screen
-        { x: eL, y: c.pad.y - g - P.h }, { x: DW - eR - P.w, y: c.possum.y - g - P.h }, // above the pad / above POSSUM
+      const pauseSpots = (cc) => [
+        { x: DW - eR - P.w, y: eT }, { x: eL, y: eT },                              // top corners of the screen
+        { x: eL, y: cc.pad.y - g - P.h }, { x: DW - eR - P.w, y: cc.possum.y - g - P.h }, // above the pad / above POSSUM
       ].map((p) => Object.assign(p, P));
       search: for (let s = maxScale; s >= 1; s--) {
         for (const top of [null, Math.ceil((sf.top || 0) * dpr)]) {
-          const cand = picAt(s, top);
-          if (!['pad', 'jump', 'whip', 'possum'].every((n) => allowed(c[n], cand))) continue;
-          const spot = pauseSpots.find((p) => allowed(p, cand));
-          if (!spot) continue;
-          pic = cand; c.pause = spot; break search;
+          for (const arrange of ['wide', 'stacked']) {
+            const cand = picAt(s, top), cc = place(eB, arrange);
+            if (cc.possum.y < eT) continue;
+            if (!['pad', 'jump', 'whip', 'possum'].every((n) => allowed(cc[n], cand))) continue;
+            const spot = pauseSpots(cc).find((p) => allowed(p, cand) && !(p.y + p.h > cc.possum.y - g && p.x + p.w > cc.possum.x - g));
+            if (!spot) continue;
+            pic = cand; c = cc; c.pause = spot; break search;
+          }
         }
       }
-      if (!pic) { pic = picAt(1); c.pause = pauseSpots[0]; }
+      if (!pic) { pic = picAt(1); c = place(eB, 'wide'); c.pause = pauseSpots(c)[0]; }
     } else {
       // Portrait: picture at the top, buttons in the space below it, raised a tenth of the screen above the bottom
       // edge so thumbs rest on them comfortably.
       const bottom = Math.max(eB, Math.round(DH * 0.1));
-      c = place(bottom);
+      c = place(bottom, 'wide');
       const clusterTop = Math.min(c.pad.y, c.whip.y, c.possum.y);
       const P = size('pause');
       const below = P.h + 2 * g + (DH - clusterTop);    // room the buttons need under the picture (real px)
@@ -121,18 +133,28 @@
       c.pause = Object.assign({ x: DW - eR - P.w, y: pic.y + pic.h + g }, P);
     }
 
-    // Pause menu (shown only while paused): RESTART and SOUND side by side over the picture, under the PAUSED panel.
+    // Pause menu (shown only while paused): RESTART and MUTE side by side.
+    // Sideways: over the picture, under the PAUSED panel. Upright: in the empty band below the picture, on the same
+    // row as the PAUSE button (to its left), so the small picture stays visible.
     const R = size('restart'), Mu = size('mute');
     const rowW = R.w + g + Mu.w;
-    const rowY = pic.y + Math.round(140 * pic.s);
-    c.restart = Object.assign({ x: Math.round((DW - rowW) / 2), y: rowY }, R);
+    let rowX = Math.round((DW - rowW) / 2), rowY = pic.y + Math.round(140 * pic.s);
+    if (portrait) {
+      rowY = c.pause.y;
+      rowX = Math.max(eL, Math.round((c.pause.x - g - rowW) / 2));
+      if (rowX + rowW > c.pause.x - g) { rowX = Math.round((DW - rowW) / 2); rowY = c.pause.y + c.pause.h + g; } // too narrow: below PAUSE
+    }
+    c.restart = Object.assign({ x: rowX, y: rowY }, R);
     c.mute = Object.assign({ x: c.restart.x + R.w + g, y: rowY }, Mu);
 
     const controls = {};
     for (const n in c) {
       const r = c[n];
+      // overArt: the part of the button that sits over the picture, in button pixels (only that part is see-through).
+      const ox0 = Math.max(r.x, pic.x), oy0 = Math.max(r.y, pic.y), ox1 = Math.min(r.x + r.w, pic.x + pic.w), oy1 = Math.min(r.y + r.h, pic.y + pic.h);
+      const overArt = ox0 < ox1 && oy0 < oy1 ? { x0: Math.round((ox0 - r.x) / k), y0: Math.round((oy0 - r.y) / k), x1: Math.round((ox1 - r.x) / k), y1: Math.round((oy1 - r.y) / k) } : null;
       controls[n] = { x: r.x / dpr, y: r.y / dpr, w: r.w / dpr, h: r.h / dpr, artW: r.w / k, artH: r.h / k,
-        over: !!inGame(r, pic), dev: { x: r.x, y: r.y, w: r.w, h: r.h } };
+        over: !!inGame(r, pic), overArt, dev: { x: r.x, y: r.y, w: r.w, h: r.h } };
     }
     return {
       orientation: portrait ? 'portrait' : 'landscape', unit: u, k, maxScale,

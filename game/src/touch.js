@@ -63,14 +63,19 @@
     g.clearRect(0, 0, w, h);
     const lift = down ? 2 : 0, base = 4; // content sits above the 3-4 px bottom lip
     if (name === 'pad') {
-      // One rounded pad with a dividing line; each half pushes in on its own.
-      const half = Math.floor(w / 2);
-      body(g, 0, 0, half + 1, h, COLORS.pad, extra.left);
-      body(g, half - 1, 0, w - half + 1, h, COLORS.pad, extra.right);
+      // One rounded pad with a groove down the middle; the half under the thumb pushes in.
+      const half = Math.floor(w / 2), [, hi, lo] = COLORS.pad;
+      body(g, 0, 0, w, h, COLORS.pad, false);
+      for (const [x0, x1, on] of [[2, half - 1, extra.left], [half + 1, w - 2, extra.right]]) {
+        if (!on) continue;
+        R(g, lo, x0, 1, x1 - x0, h - 2); R(g, K.black, x0, 1, x1 - x0, 1); // pushed in: darker, shadow along the top
+      }
+      R(g, K.black, half - 1, 1, 2, h - 2); R(g, hi, half + 1, 2, 1, h - 7); // the groove, lit on its right edge
       for (const [side, x0, on] of [['left', 0, extra.left], ['right', half, extra.right]]) {
         const s = Math.max(2, Math.floor(h / 18)), iw = iconW(side, s), ih = iconH(side, s);
         icon(g, side, x0 + Math.round((half - iw) / 2), Math.round((h - base - ih) / 2) + (on ? 2 : 0), K.white, s);
       }
+      fadeOver(g, extra.overArt);
       return;
     }
     body(g, 0, 0, w, h, COLORS[B.color], down);
@@ -81,6 +86,14 @@
     let y = Math.round((h - base - (ih + gap + th)) / 2) + lift;
     if (ic) { icon(g, ic, Math.round((w - iconW(ic, s)) / 2), y, K.white, s); y += ih + gap; }
     if (text) S.drawText(g, text, Math.round((w - S.textWidth(text)) / 2), y, K.white, 1, K.black);
+    if (!B.menu) fadeOver(g, extra.overArt);
+  }
+  // Only the part of a button that sits over the game picture is see-through (75%), so the picture shows through
+  // there; the part over the black border stays solid.
+  function fadeOver(g, r) {
+    if (!r) return;
+    g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = 'rgba(0,0,0,0.25)';
+    g.fillRect(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0); g.restore();
   }
 
   // input: from S.createInput. canvas: the game screen (tapping it on the title screen starts the game).
@@ -98,11 +111,11 @@
     root.appendChild(probe);
 
     const els = {}, down = {}; // down[name] = true while pushed in
-    let mode = 'title', muted = false, padDir = { left: false, right: false };
+    let mode = 'title', muted = false, padDir = { left: false, right: false }, overArt = {};
     const pointers = new Map(); // pointerId -> { name, dir }
     for (const name in BUTTONS) {
       const el = document.createElement('div');
-      el.className = 'tbtn tbtn-' + name + (BUTTONS[name].menu ? ' hide' : '');
+      el.className = 'tbtn tbtn-' + name + (BUTTONS[name].menu || name === 'pause' ? ' hide' : '');
       el.setAttribute('role', 'button'); el.setAttribute('aria-label', BUTTONS[name].label);
       const cv = document.createElement('canvas');
       el.appendChild(cv); root.appendChild(el);
@@ -116,7 +129,7 @@
     function redraw(name) {
       const cv = els[name].cv;
       if (!cv.width) return;
-      drawButton(cv, name, !!down[name], { left: padDir.left, right: padDir.right, muted, paused: mode === 'paused' });
+      drawButton(cv, name, !!down[name], { left: padDir.left, right: padDir.right, muted, paused: mode === 'paused', overArt: overArt[name] });
       els[name].el.classList.toggle('down', name === 'pad' ? padDir.left || padDir.right : !!down[name]);
     }
     // Left or right from where the finger is on the pad. Near the middle line it keeps the current direction,
@@ -192,18 +205,20 @@
           const c = L.controls[name], { el, cv } = els[name];
           if (!c) continue;
           el.style.left = c.x + 'px'; el.style.top = c.y + 'px'; el.style.width = c.w + 'px'; el.style.height = c.h + 'px';
-          el.classList.toggle('over', c.over && !BUTTONS[name].menu);
+          overArt[name] = c.overArt;
           if (cv.width !== c.artW || cv.height !== c.artH) { cv.width = c.artW; cv.height = c.artH; }
           redraw(name);
         }
         api.layout = L;
       },
-      // Called every frame: show RESTART and MUTE only while paused, and keep the PAUSE and MUTE pictures current.
+      // Called every frame: show PAUSE only during play (on the title and level-clear screens it would just start the
+      // game), RESTART and MUTE only while paused, and keep the PAUSE and MUTE pictures current.
       update(state, isMuted) {
         if (state.mode !== mode) {
           const wasPaused = mode === 'paused';
           mode = state.mode;
           for (const n of ['restart', 'mute']) els[n].el.classList.toggle('hide', mode !== 'paused');
+          els.pause.el.classList.toggle('hide', mode !== 'playing' && mode !== 'paused');
           if (wasPaused !== (mode === 'paused')) redraw('pause');
           if (mode !== 'paused') { for (const [id, p] of pointers) if (BUTTONS[p.name].menu) pointers.delete(id); sync(); }
         }

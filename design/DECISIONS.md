@@ -1,4 +1,4 @@
-# Decisions and assumptions
+ultra# Decisions and assumptions
 
 Record date, decision, supporting asset or requirement, and unresolved questions here. Engine: none — the game is plain HTML5 canvas and JavaScript (see "Placeholder prototype of level 1 built" below). *(Updated 2026-10-19; this line used to say "No engine selected yet".)*
 
@@ -17,14 +17,14 @@ Record date, decision, supporting asset or requirement, and unresolved questions
 
 **Where the prototype stands today (checked with screenshots at 390×844 and 844×390, common phone sizes):**
 - **Too small on phones.** Scaling uses whole numbers of *screen points*, so on a phone the game is stuck at its smallest size (×1): a small strip with big black borders. In landscape it uses about 320 of 844 points of width. *(Fixed by step 1, below.)*
-- **Not playable on phones.** There are no touch controls, and phones have no keyboard.
+- **Not playable on phones.** There are no touch controls, and phones have no keyboard. *(Fixed by step 2, below.)*
 - **Phones can't double-click a file.** On mobile, the game has to be opened from a website (for example itch.io or GitHub Pages). Double-click still works on desktop.
 
 **Work this needs (Proposed order):**
 1. Sharper, bigger scaling: count whole-number steps in the screen's real pixels (phones have 2–3 real pixels per point), so the game fills far more of the screen and stays crisp. *(Done 2026-10-19; see "Step 1 done" below.)*
 2. On-screen touch controls (move, jump, tail-whip, Play Possum, pause) that appear only on touch screens and sit outside or beside the picture where possible. *(Done 2026-10-19; see "Step 2 done" below.)*
 3. Phone layout: landscape play, a "turn your phone sideways" prompt in portrait, full-screen button, respect for notches and rounded corners, no accidental scrolling or zooming.
-4. Sound: start sound on the first tap (phones block sound until the player touches the screen).
+4. Sound: start sound on the first tap (phones block sound until the player touches the screen). *(Partly done in step 2: sound also starts when the finger lifts; still needs a check on a real phone.)*
 5. Checks: automatic browser checks at phone sizes with touch, plus tests on a real iPhone and Android phone.
 6. Art impact: text and the HUD must stay readable at phone sizes (another reason for the planned 8×8 font).
 
@@ -47,7 +47,7 @@ Record date, decision, supporting asset or requirement, and unresolved questions
 - **Whole steps, not any size:** the Pixel 7 sideways fills 83% of the height, because the next whole step (x5) wouldn't fit. The other option is stretching to fill the screen exactly, which makes some game pixels one real pixel wider than others (slightly uneven, a little soft). Sharp, even pixels were kept; this is easy to revisit after a look on a real phone.
 - **Exact placement:** the picture is centred, then nudged to the nearest whole real pixel, so its edges line up with the screen's pixels. Plain centring could land half a pixel off, which blurs every pixel. A browser check now takes a screenshot at phone size and confirms every game pixel is one solid block.
 - **When it re-fits:** on window resize, turning the phone, the phone browser's bars sliding in and out, and browser zoom or moving the window to another screen. While someone has pinch-zoomed, it uses the normal window size instead of the zoomed area (otherwise the game would shrink while they zoom in). Step 3 will decide about blocking zoom.
-- **Room for touch buttons:** the maths can keep space free at the bottom, left or right of the screen for on-screen buttons (step 2). It's built and tested but not used yet.
+- **Room for touch buttons:** the maths can keep space free at the bottom, left or right of the screen for on-screen buttons (step 2). It's built and tested but not used yet. *(Superseded: step 2's upright layout now uses it.)*
 - **Page settings:** the page can't scroll, the borders stay black, and the page may draw into the notch area (`viewport-fit=cover`). Keeping the picture clear of notches comes in step 3. Zoom is still allowed.
 - **Not checked:** real phones, Safari and Firefox. The sizes above come from Chromium pretending to be each device. Real phone browsers show address bars that take some height, so the real picture may be one step smaller in some cases.
 
@@ -55,14 +55,23 @@ Record date, decision, supporting asset or requirement, and unresolved questions
 - **What's there:** a left/right arrow pad (bottom left), JUMP, WHIP and POSSUM (bottom right), a pause button, and RESTART and MUTE while paused. Code: `game/src/touch.js` (the buttons) and `S.touchLayout` in `game/src/layout.js` (where they go; tested in Node). They feed the same buttons as the keyboard, so holding JUMP gives the higher jump and two fingers (move + jump) work.
 - **When they show:** when the browser says the main pointer is a finger, or on the first touch, or with `?touch=1` in the address. Never on a normal computer. On a laptop with a touch screen, touching shows them and pressing a key hides them again.
 - **Button layout:** right thumb gets JUMP in the corner, WHIP to its left and a little higher, POSSUM above JUMP (the most-used buttons are closest to the thumb). The left thumb's pad is one piece: sliding across the middle turns Sammy round without lifting. Buttons are 56–84 points (POSSUM at least 56, pause at least 44), about a sixth of the screen's short side. Other options: a round joystick (harder to make crisp in pixel art; left/right is all the game needs), or one row of three action buttons (wider, covers more of the picture).
-- **Where they go, sideways:** in the black space beside the picture. Where that space is too narrow, they may cover only the outer bottom corners of the picture (the outer 64 game pixels on each side, lower 96 rows), never the top bar, the tutorial message or the middle where Sammy usually is. If even that isn't possible, the picture first moves to the top of the screen, then shrinks one step. In our checks no device had to shrink: iPhone SE, iPhone 15, Pixel 7 and iPad all keep their biggest picture. Buttons over the picture are see-through (60%).
-- **Pause button:** top right of the screen when there's room. On an iPad held sideways the picture leaves only 30 points at the sides, so the pause button goes above the arrow pad instead of shrinking the whole picture for one small button.
+- **Where they go, sideways:** in the black space beside the picture. Where that space is too narrow, they may cover only the outer bottom corners of the picture (the outer 64 game pixels on each side, lower 96 rows), never the top bar, the tutorial message or the middle where Sammy usually is. If even that isn't possible, the picture first moves to the top of the screen, then shrinks one step. In our checks no device had to shrink: iPhone SE, iPhone 15, Pixel 7 and iPad all keep their biggest picture. Buttons over the picture are see-through (60%). *(Superseded by the review fixes below: only the brown dirt strip may be covered, iPad and notched iPhones shrink one step, and only the covered part is see-through.)*
+- **Pause button:** top right of the screen when there's room. On an iPad held sideways the picture leaves only 30 points at the sides, so the pause button goes above the arrow pad instead of shrinking the whole picture for one small button. *(Superseded by the review fixes below: the iPad picture is now one step smaller, so PAUSE fits top right.)*
 - **Upright:** picture at the top, buttons below it, raised a tenth of the screen from the bottom for comfortable thumbs. This leaves a black gap in the middle; step 3's "turn your phone sideways" message is meant to deal with upright play.
 - **Notches:** only the buttons keep clear of notches and rounded corners (`env(safe-area-inset-*)`); the picture doesn't move for them yet (step 3).
 - **Look:** chunky pixel-art buttons drawn with the game's own font and 9-bit colours (green JUMP, red WHIP, pink POSSUM to match the HUD's "PP", blue menu buttons, grey pad), black outline, a light top edge and a dark lip that disappears when pressed. Each button pixel is a whole number of real pixels, so they stay as sharp as the game.
 - **Game text:** with the buttons on, the title says "TAP JUMP TO START", the tutorial messages name the buttons ("WHIP BUTTON: TAIL-WHIP"), pause says "TAP PLAY TO RESUME". Tapping the picture on the title or level-clear screen also starts. The "PLACEHOLDER ART" label moves to the bottom middle and "MUTED" to the top bar, so the buttons never hide them. Keyboard wording is unchanged on desktop.
 - **Sound:** phones only allow sound after a touch, and a finger only counts when it *lifts*. So sound now also starts on finger-up (`pointerup`, `touchend`), not only finger-down. The automatic check confirms the first tap reaches this code; whether a real phone then plays sound is **untested**.
 - **Not checked:** real phones and tablets, Safari, Firefox, how the buttons feel under real thumbs, and real notches (headless Chromium reports none; a Node test covers an iPhone-sized notch).
+
+**Step 2 review fixes (2026-10-19).** Choices below are **Proposed (reversible)**.
+- **Buttons keep off the grass lane:** buttons may now cover only the brown dirt strip below the grass (game rows 192–224) in the outer 64 game pixels on each side, so they can't hide Sammy or a zombie walking in. Where the side strip is too narrow for the usual action cluster, JUMP, WHIP and POSSUM stack in one column (JUMP at the bottom). Other option: keep the larger corner (rows 128–224) and the bigger picture, but then a button could hide a zombie.
+- **Some screens now get a one-step-smaller picture:** iPad held sideways goes from x7 to x6 (all buttons in or near the black sides instead of faded over the picture), and an iPhone 15 held sideways *with its notch margins* goes from x5 to x4. iPhone SE, iPhone 15 (no notch margins, as headless Chrome reports), Pixel 7 and every upright screen keep their biggest picture. This follows the rule "shrink one step rather than cover the picture".
+- **See-through only where it covers the picture:** the part of a button over the black border stays solid; only the part over the picture is faded (to 75%), so the buttons keep their bright colours.
+- **PAUSE shows only during play** (on the title and level-clear screens it would just start the game).
+- **Upright pause menu:** RESTART and MUTE sit in the black space below the picture, next to the play button, instead of covering the small picture.
+- **Look:** POSSUM is a little wider than tall so its label has room; the arrow pad is one body with a groove down the middle, so it reads as one control you can slide across.
+- **Not changed:** the black gap between picture and buttons when upright stays until step 3 (turn-your-phone message).
 
 ## 2026-10-19: Library review and starter templates
 

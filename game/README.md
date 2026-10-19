@@ -9,7 +9,7 @@ Every gameplay value comes from the examples in `templates/examples/`, which are
 - **Easiest:** double-click `game/index.html` (or `game/dist/index.html`). It should run in Chrome, Edge, Safari or Firefox (only Chromium has been tested). Nothing to install, and no internet needed.
 - **If a browser blocks local files:** in Terminal, from the library folder, run `python3 -m http.server 8000` and open <http://localhost:8000/game/>.
 - **Screen size:** the game fills as much of the window as it can in whole steps, counting the screen's real pixels, so every game pixel stays a sharp square. Black borders fill the rest.
-- **Phones and tablets:** the game is bigger and sharper there (held sideways, it fills 83–95% of the height of the phones we checked, up from 54–60%), and it has on-screen touch buttons (see **Controls**). They show up only on touch screens. Held sideways, they sit beside the picture and may just cover its bottom corners (never the top bar or the middle); held upright, the picture is at the top and the buttons below. Not yet tried on a real phone. Phones also can't open a file by double-clicking; the game will need to be put on a website for that (not done). To see the buttons on a computer, add `?touch=1` to the address.
+- **Phones and tablets:** the game is bigger and sharper there (held sideways, it fills 83–95% of the height of the phones we checked, up from 54–60%), and it has on-screen touch buttons (see **Controls**). They show up only on touch screens. Held sideways, they sit beside the picture and may just cover the brown dirt strip at its bottom corners (never the top bar or the grass where Sammy and the zombies walk); held upright, the picture is at the top and the buttons below. Not yet tried on a real phone. Phones also can't open a file by double-clicking; the game will need to be put on a website for that (not done). To see the buttons on a computer, add `?touch=1` to the address.
 
 ### Controls
 
@@ -170,7 +170,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - animation timings in `config.js` match the frame counts and speeds of the art strips
 - art versions (the newest wins), the license rules for the build, and the scanner's PNG checks (size, colour profile, semi-transparent pixels, off-grid colours, too many colours, broken files)
 - the screen-size maths (`layout.js`) for ten phones, tablets and computers: the right whole-number size, centred on whole real pixels, never cut off, never smaller than ×1, and space kept free for touch buttons
-- the touch-button layout for seven phones and tablets (plus notches and a narrow screen): every button at least 56 points (pause 44), on screen and clear of notches, not on top of each other, sharp, and covering only the bottom corners of the picture, never the top bar or the middle; upright, all buttons below the picture
+- the touch-button layout for seven phones and tablets (plus notches and a narrow screen): every button at least 56 points (pause 44), on screen and clear of notches, not on top of each other, sharp, and covering only the dirt strip at the bottom corners of the picture, never the top bar or the grass lane; upright, all buttons below the picture
 - the touch wording fits on screen
 
 **Browser checks** cover:

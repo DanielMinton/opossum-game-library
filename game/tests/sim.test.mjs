@@ -773,7 +773,7 @@ const TOUCH_DEVICES = [
   // [name, css width, css height, real px per css px, expected picture scale]
   ['iPhone SE landscape', 667, 375, 2, 3], ['iPhone SE portrait', 375, 667, 2, 2],
   ['iPhone 15 landscape', 852, 393, 3, 5], ['iPhone 15 portrait', 393, 852, 3, 3],
-  ['Pixel 7 landscape', 915, 412, 2.625, 4], ['iPad landscape', 1180, 820, 2, 7], ['iPad portrait', 820, 1180, 2, 5],
+  ['Pixel 7 landscape', 915, 412, 2.625, 4], ['iPad landscape', 1180, 820, 2, 6], ['iPad portrait', 820, 1180, 2, 5],
 ];
 // Checks every rule for one layout: thumb-sized, on screen and clear of notches, not on top of each other,
 // and covering only the allowed bottom corners of the picture (never the HUD or the middle).
@@ -802,8 +802,19 @@ function checkTouchLayout(name, L, w, h, dpr, safe = {}) {
   }
   // Left thumb: the pad on the left half; right thumb: the action buttons on the right half.
   assert.ok(c.pad.x + c.pad.w <= w / 2 && ['jump', 'whip', 'possum'].every((n) => c[n].x >= w / 2), `${name}: pad left, actions right`);
-  // Pause menu buttons sit over the picture, under the PAUSED panel, side by side.
-  assert.ok(c.restart.y >= f.cssTop + 131 * s && c.restart.y + c.restart.h <= f.cssTop + f.cssH + 1e-9 && c.mute.x >= c.restart.x + c.restart.w, `${name}: pause menu under the panel`);
+  // Pause menu: sideways, RESTART and MUTE sit over the picture under the PAUSED panel; upright, they sit in the empty
+  // band below the picture (the small picture stays visible) without touching PAUSE. Always side by side.
+  assert.ok(c.mute.x >= c.restart.x + c.restart.w, `${name}: RESTART and MUTE side by side`);
+  if (L.orientation === 'landscape') {
+    assert.ok(c.restart.y >= f.cssTop + 131 * s && c.restart.y + c.restart.h <= f.cssTop + f.cssH + 1e-9, `${name}: pause menu under the panel`);
+  } else {
+    for (const n of ['restart', 'mute']) {
+      const r = c[n], p = c.pause;
+      assert.ok(r.y >= f.cssTop + f.cssH - 1e-9, `${name}: ${n} below the picture`);
+      assert.ok(r.x >= 0 && r.x + r.w <= w + 1e-9, `${name}: ${n} on screen`);
+      assert.ok(r.x + r.w <= p.x + 1e-9 || p.x + p.w <= r.x + 1e-9 || r.y + r.h <= p.y + 1e-9 || p.y + p.h <= r.y + 1e-9, `${name}: ${n} doesn't cover PAUSE`);
+    }
+  }
   // Picture still sharp: whole steps, whole real-pixel position.
   assert.ok(Number.isInteger(Math.round(f.cssLeft * dpr * 1e6) / 1e6) && Number.isInteger(Math.round(f.cssTop * dpr * 1e6) / 1e6), `${name}: picture on whole real pixels`);
 }
@@ -819,9 +830,9 @@ test('touch layout: thumb-sized buttons that cover only the bottom corners, at t
       for (const n of ['pad', 'jump', 'whip', 'possum', 'pause']) assert.ok(L.controls[n].y >= L.fit.cssTop + L.fit.cssH, `${name}: ${n} below the picture`);
     }
   }
-  // Landscape iPhone 15: nothing but WHIP touches the picture, and only its bottom-right corner.
+  // Landscape iPhone 15: no play button touches the picture at all (the action buttons stack in the right-hand strip).
   const i15 = touchFor(852, 393, 3);
-  assert.deepEqual(['pad', 'jump', 'possum', 'pause'].filter((n) => i15.controls[n].over), []);
+  assert.deepEqual(['pad', 'jump', 'whip', 'possum', 'pause'].filter((n) => i15.controls[n].over), []);
 });
 
 test('touch layout: notches push buttons inward, and too-narrow sides shrink the picture one step instead of covering it', () => {
@@ -829,7 +840,9 @@ test('touch layout: notches push buttons inward, and too-narrow sides shrink the
   const safe = { left: 59, right: 59, bottom: 21 };
   const n = touchFor(852, 393, 3, safe);
   checkTouchLayout('iPhone 15 landscape with notch', n, 852, 393, 3, safe);
-  assert.equal(n.fit.scale, 5);
+  // The notch margins leave too little black at the sides for a thumb-sized pad at x5 without covering the grass lane,
+  // so the picture is one step smaller.
+  assert.equal(n.fit.scale, 4);
   // Upright with a notch at the top: the picture moves below the notch.
   const p = touchFor(393, 852, 3, { top: 59, bottom: 34 });
   checkTouchLayout('iPhone 15 portrait with notch', p, 393, 852, 3, { top: 59, bottom: 34 });
