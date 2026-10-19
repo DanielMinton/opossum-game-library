@@ -825,11 +825,28 @@ test('touch layout: thumb-sized buttons that cover only the bottom corners, at t
     checkTouchLayout(name, L, w, h, dpr);
     assert.equal(L.fit.scale, scale, name + ' keeps the biggest picture');
     if (L.orientation === 'portrait') {
-      // Portrait: picture at the top, every button below it.
-      assert.equal(L.fit.cssTop, 0, name + ' picture at the top');
+      // Portrait: picture centred in the space above the buttons (not stuck to the top with a big empty gap under it),
+      // every button below it.
+      // (Space above the picture = space between PAUSE, just under the picture, and the other buttons.)
+      const clusterTop = Math.min(...['pad', 'whip', 'possum'].map((n) => L.controls[n].y)), P = L.controls.pause;
+      const below = clusterTop - (P.y + P.h) - (P.y - L.fit.cssTop - L.fit.cssH);
+      assert.ok(L.fit.cssTop > 0 && Math.abs(L.fit.cssTop - below) <= 2, `${name}: picture centred above the buttons (${L.fit.cssTop} vs ${below})`);
       for (const n of ['pad', 'jump', 'whip', 'possum', 'pause']) assert.ok(L.controls[n].y >= L.fit.cssTop + L.fit.cssH, `${name}: ${n} below the picture`);
     }
   }
+  // Sideways, the PAUSED box grows to hold RESTART and MUTE, staying inside the picture.
+  for (const [name, w, h, dpr] of TOUCH_DEVICES) {
+    const L = touchFor(w, h, dpr), mp = L.menuPanel;
+    if (L.orientation === 'portrait') { assert.equal(mp, null); continue; }
+    const s = L.fit.scale / dpr, gx = (v) => (v - L.fit.cssLeft) / s, gy = (v) => (v - L.fit.cssTop) / s;
+    assert.ok(mp.x0 >= 1 && mp.x1 <= C.screenW - 1 && mp.y1 <= C.screenH - 1 && mp.x0 <= 100 && mp.x1 >= 220 && mp.y0 === 80, name + ' menu panel');
+    for (const n of ['restart', 'mute']) {
+      const r = L.controls[n];
+      assert.ok(gx(r.x) >= mp.x0 && gx(r.x + r.w) <= mp.x1 && gy(r.y + r.h) <= mp.y1, `${name}: ${n} inside the PAUSED box`);
+    }
+  }
+  // iPhone SE sideways: the picture sits as low as the corner rule allows rather than stuck to the top edge.
+  assert.ok(touchFor(667, 375, 2).fit.cssTop > 0, 'SE landscape picture not pinned to the top');
   // Landscape iPhone 15: no play button touches the picture at all (the action buttons stack in the right-hand strip).
   const i15 = touchFor(852, 393, 3);
   assert.deepEqual(['pad', 'jump', 'whip', 'possum', 'pause'].filter((n) => i15.controls[n].over), []);

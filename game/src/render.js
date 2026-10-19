@@ -403,7 +403,9 @@
     ctx.restore();
     drawHud(ctx, s);
     if (s.mode === 'paused') {
-      panel(ctx, 100, 80, 120, 50);
+      // With touch buttons held sideways, the box also holds the RESTART and MUTE buttons (layout.js menuPanel).
+      const mp = S.touchActive && S.touchMenuPanel;
+      if (mp) panel(ctx, mp.x0, mp.y0, mp.x1 - mp.x0, mp.y1 - mp.y0); else panel(ctx, 100, 80, 120, 50);
       S.drawTextCentered(ctx, 'PAUSED', W / 2, 90, K.white, 2, K.black);
       S.drawTextCentered(ctx, S.TEXT[S.touchActive ? 'touch' : 'keys'].paused, W / 2, 112, K.grey);
     }

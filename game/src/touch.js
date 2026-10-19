@@ -75,7 +75,6 @@
         const s = Math.max(2, Math.floor(h / 18)), iw = iconW(side, s), ih = iconH(side, s);
         icon(g, side, x0 + Math.round((half - iw) / 2), Math.round((h - base - ih) / 2) + (on ? 2 : 0), K.white, s);
       }
-      fadeOver(g, extra.overArt);
       return;
     }
     body(g, 0, 0, w, h, COLORS[B.color], down);
@@ -86,15 +85,9 @@
     let y = Math.round((h - base - (ih + gap + th)) / 2) + lift;
     if (ic) { icon(g, ic, Math.round((w - iconW(ic, s)) / 2), y, K.white, s); y += ih + gap; }
     if (text) S.drawText(g, text, Math.round((w - S.textWidth(text)) / 2), y, K.white, 1, K.black);
-    if (!B.menu) fadeOver(g, extra.overArt);
   }
-  // Only the part of a button that sits over the game picture is see-through (75%), so the picture shows through
-  // there; the part over the black border stays solid.
-  function fadeOver(g, r) {
-    if (!r) return;
-    g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = 'rgba(0,0,0,0.25)';
-    g.fillRect(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0); g.restore();
-  }
+  // Buttons are always solid, even where one dips over the picture: they only ever cover the plain dirt strip at its
+  // bottom corners (layout.js), and a see-through button showed a seam where the picture's edge crossed it.
 
   // input: from S.createInput. canvas: the game screen (tapping it on the title screen starts the game).
   // forced: ?touch=1. onChange: called when the buttons appear or disappear (main.js then re-fits the screen).
@@ -111,7 +104,7 @@
     root.appendChild(probe);
 
     const els = {}, down = {}; // down[name] = true while pushed in
-    let mode = 'title', muted = false, padDir = { left: false, right: false }, overArt = {};
+    let mode = 'title', muted = false, padDir = { left: false, right: false };
     const pointers = new Map(); // pointerId -> { name, dir }
     for (const name in BUTTONS) {
       const el = document.createElement('div');
@@ -129,7 +122,7 @@
     function redraw(name) {
       const cv = els[name].cv;
       if (!cv.width) return;
-      drawButton(cv, name, !!down[name], { left: padDir.left, right: padDir.right, muted, paused: mode === 'paused', overArt: overArt[name] });
+      drawButton(cv, name, !!down[name], { left: padDir.left, right: padDir.right, muted, paused: mode === 'paused' });
       els[name].el.classList.toggle('down', name === 'pad' ? padDir.left || padDir.right : !!down[name]);
     }
     // Left or right from where the finger is on the pad. Near the middle line it keeps the current direction,
@@ -205,11 +198,11 @@
           const c = L.controls[name], { el, cv } = els[name];
           if (!c) continue;
           el.style.left = c.x + 'px'; el.style.top = c.y + 'px'; el.style.width = c.w + 'px'; el.style.height = c.h + 'px';
-          overArt[name] = c.overArt;
           if (cv.width !== c.artW || cv.height !== c.artH) { cv.width = c.artW; cv.height = c.artH; }
           redraw(name);
         }
         api.layout = L;
+        S.touchMenuPanel = L.menuPanel || null;
       },
       // Called every frame: show PAUSE only during play (on the title and level-clear screens it would just start the
       // game), RESTART and MUTE only while paused, and keep the PAUSE and MUTE pictures current.

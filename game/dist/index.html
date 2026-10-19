@@ -1588,7 +1588,9 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     ctx.restore();
     drawHud(ctx, s);
     if (s.mode === 'paused') {
-      panel(ctx, 100, 80, 120, 50);
+      // With touch buttons held sideways, the box also holds the RESTART and MUTE buttons (layout.js menuPanel).
+      const mp = S.touchActive && S.touchMenuPanel;
+      if (mp) panel(ctx, mp.x0, mp.y0, mp.x1 - mp.x0, mp.y1 - mp.y0); else panel(ctx, 100, 80, 120, 50);
       S.drawTextCentered(ctx, 'PAUSED', W / 2, 90, K.white, 2, K.black);
       S.drawTextCentered(ctx, S.TEXT[S.touchActive ? 'touch' : 'keys'].paused, W / 2, 112, K.grey);
     }
@@ -2009,7 +2011,12 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         { x: eL, y: cc.pad.y - g - P.h }, { x: DW - eR - P.w, y: cc.possum.y - g - P.h }, // above the pad / above POSSUM
       ].map((p) => Object.assign(p, P));
       search: for (let s = maxScale; s >= 1; s--) {
-        for (const top of [null, Math.ceil((sf.top || 0) * dpr)]) {
+        // Picture heights to try: centred first, then nudged up a little at a time towards the top edge, so the
+        // picture stays as close to centred as the corner rule allows.
+        const centre = picAt(s).y, topMin = Math.ceil((sf.top || 0) * dpr), tops = [centre];
+        for (let t = centre - k; t > topMin; t -= k) tops.push(t);
+        if (topMin !== centre) tops.push(topMin);
+        for (const top of tops) {
           for (const arrange of ['wide', 'stacked']) {
             const cand = picAt(s, top), cc = place(eB, arrange);
             if (cc.possum.y < eT) continue;
@@ -2022,8 +2029,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       }
       if (!pic) { pic = picAt(1); c = place(eB, 'wide'); c.pause = pauseSpots(c)[0]; }
     } else {
-      // Portrait: picture at the top, buttons in the space below it, raised a tenth of the screen above the bottom
-      // edge so thumbs rest on them comfortably.
+      // Portrait: buttons near the bottom, raised a tenth of the screen above the bottom edge so thumbs rest on them
+      // comfortably; the picture is centred in the space above them (below any notch), with PAUSE just under it.
       const bottom = Math.max(eB, Math.round(DH * 0.1));
       c = place(bottom, 'wide');
       const clusterTop = Math.min(c.pad.y, c.whip.y, c.possum.y);
@@ -2031,7 +2038,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       const below = P.h + 2 * g + (DH - clusterTop);    // room the buttons need under the picture (real px)
       const top = Math.ceil((sf.top || 0) * dpr);
       const f = S.computeFit({ viewW: o.viewW, viewH: o.viewH, dpr, gameW: gw, gameH: gh, reserveTop: top / dpr, reserveBottom: below / dpr });
-      pic = picAt(f.scale, top);
+      pic = picAt(f.scale, Math.round(f.cssTop * dpr));
       c.pause = Object.assign({ x: DW - eR - P.w, y: pic.y + pic.h + g }, P);
     }
 
@@ -2048,18 +2055,26 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     }
     c.restart = Object.assign({ x: rowX, y: rowY }, R);
     c.mute = Object.assign({ x: c.restart.x + R.w + g, y: rowY }, Mu);
+    // Sideways, the game draws its PAUSED box big enough to hold RESTART and MUTE too (in game pixels; render.js),
+    // so the scene doesn't peek out around the buttons.
+    let menuPanel = null;
+    if (!portrait) {
+      const gx = (v) => (v - pic.x) / pic.s, gy = (v) => (v - pic.y) / pic.s;
+      menuPanel = {
+        x0: Math.max(1, Math.min(100, Math.floor(gx(c.restart.x - g)))), y0: 80,
+        x1: Math.min(gw - 1, Math.max(220, Math.ceil(gx(c.mute.x + Mu.w + g)))),
+        y1: Math.min(gh - 1, Math.max(130, Math.ceil(gy(rowY + Math.max(R.h, Mu.h) + g)))),
+      };
+    }
 
     const controls = {};
     for (const n in c) {
       const r = c[n];
-      // overArt: the part of the button that sits over the picture, in button pixels (only that part is see-through).
-      const ox0 = Math.max(r.x, pic.x), oy0 = Math.max(r.y, pic.y), ox1 = Math.min(r.x + r.w, pic.x + pic.w), oy1 = Math.min(r.y + r.h, pic.y + pic.h);
-      const overArt = ox0 < ox1 && oy0 < oy1 ? { x0: Math.round((ox0 - r.x) / k), y0: Math.round((oy0 - r.y) / k), x1: Math.round((ox1 - r.x) / k), y1: Math.round((oy1 - r.y) / k) } : null;
       controls[n] = { x: r.x / dpr, y: r.y / dpr, w: r.w / dpr, h: r.h / dpr, artW: r.w / k, artH: r.h / k,
-        over: !!inGame(r, pic), overArt, dev: { x: r.x, y: r.y, w: r.w, h: r.h } };
+        over: !!inGame(r, pic), dev: { x: r.x, y: r.y, w: r.w, h: r.h } };
     }
     return {
-      orientation: portrait ? 'portrait' : 'landscape', unit: u, k, maxScale,
+      orientation: portrait ? 'portrait' : 'landscape', unit: u, k, maxScale, menuPanel,
       fit: { scale: pic.s, dpr, cssW: pic.w / dpr, cssH: pic.h / dpr, cssLeft: pic.x / dpr, cssTop: pic.y / dpr,
         deviceW: pic.w, deviceH: pic.h, overflows: pic.w > DW || pic.h > DH },
       controls,
@@ -2145,7 +2160,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         const s = Math.max(2, Math.floor(h / 18)), iw = iconW(side, s), ih = iconH(side, s);
         icon(g, side, x0 + Math.round((half - iw) / 2), Math.round((h - base - ih) / 2) + (on ? 2 : 0), K.white, s);
       }
-      fadeOver(g, extra.overArt);
       return;
     }
     body(g, 0, 0, w, h, COLORS[B.color], down);
@@ -2156,15 +2170,9 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     let y = Math.round((h - base - (ih + gap + th)) / 2) + lift;
     if (ic) { icon(g, ic, Math.round((w - iconW(ic, s)) / 2), y, K.white, s); y += ih + gap; }
     if (text) S.drawText(g, text, Math.round((w - S.textWidth(text)) / 2), y, K.white, 1, K.black);
-    if (!B.menu) fadeOver(g, extra.overArt);
   }
-  // Only the part of a button that sits over the game picture is see-through (75%), so the picture shows through
-  // there; the part over the black border stays solid.
-  function fadeOver(g, r) {
-    if (!r) return;
-    g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = 'rgba(0,0,0,0.25)';
-    g.fillRect(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0); g.restore();
-  }
+  // Buttons are always solid, even where one dips over the picture: they only ever cover the plain dirt strip at its
+  // bottom corners (layout.js), and a see-through button showed a seam where the picture's edge crossed it.
 
   // input: from S.createInput. canvas: the game screen (tapping it on the title screen starts the game).
   // forced: ?touch=1. onChange: called when the buttons appear or disappear (main.js then re-fits the screen).
@@ -2181,7 +2189,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     root.appendChild(probe);
 
     const els = {}, down = {}; // down[name] = true while pushed in
-    let mode = 'title', muted = false, padDir = { left: false, right: false }, overArt = {};
+    let mode = 'title', muted = false, padDir = { left: false, right: false };
     const pointers = new Map(); // pointerId -> { name, dir }
     for (const name in BUTTONS) {
       const el = document.createElement('div');
@@ -2199,7 +2207,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     function redraw(name) {
       const cv = els[name].cv;
       if (!cv.width) return;
-      drawButton(cv, name, !!down[name], { left: padDir.left, right: padDir.right, muted, paused: mode === 'paused', overArt: overArt[name] });
+      drawButton(cv, name, !!down[name], { left: padDir.left, right: padDir.right, muted, paused: mode === 'paused' });
       els[name].el.classList.toggle('down', name === 'pad' ? padDir.left || padDir.right : !!down[name]);
     }
     // Left or right from where the finger is on the pad. Near the middle line it keeps the current direction,
@@ -2275,11 +2283,11 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
           const c = L.controls[name], { el, cv } = els[name];
           if (!c) continue;
           el.style.left = c.x + 'px'; el.style.top = c.y + 'px'; el.style.width = c.w + 'px'; el.style.height = c.h + 'px';
-          overArt[name] = c.overArt;
           if (cv.width !== c.artW || cv.height !== c.artH) { cv.width = c.artW; cv.height = c.artH; }
           redraw(name);
         }
         api.layout = L;
+        S.touchMenuPanel = L.menuPanel || null;
       },
       // Called every frame: show PAUSE only during play (on the title and level-clear screens it would just start the
       // game), RESTART and MUTE only while paused, and keep the PAUSE and MUTE pictures current.

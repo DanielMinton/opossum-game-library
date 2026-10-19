@@ -107,7 +107,12 @@
         { x: eL, y: cc.pad.y - g - P.h }, { x: DW - eR - P.w, y: cc.possum.y - g - P.h }, // above the pad / above POSSUM
       ].map((p) => Object.assign(p, P));
       search: for (let s = maxScale; s >= 1; s--) {
-        for (const top of [null, Math.ceil((sf.top || 0) * dpr)]) {
+        // Picture heights to try: centred first, then nudged up a little at a time towards the top edge, so the
+        // picture stays as close to centred as the corner rule allows.
+        const centre = picAt(s).y, topMin = Math.ceil((sf.top || 0) * dpr), tops = [centre];
+        for (let t = centre - k; t > topMin; t -= k) tops.push(t);
+        if (topMin !== centre) tops.push(topMin);
+        for (const top of tops) {
           for (const arrange of ['wide', 'stacked']) {
             const cand = picAt(s, top), cc = place(eB, arrange);
             if (cc.possum.y < eT) continue;
@@ -120,8 +125,8 @@
       }
       if (!pic) { pic = picAt(1); c = place(eB, 'wide'); c.pause = pauseSpots(c)[0]; }
     } else {
-      // Portrait: picture at the top, buttons in the space below it, raised a tenth of the screen above the bottom
-      // edge so thumbs rest on them comfortably.
+      // Portrait: buttons near the bottom, raised a tenth of the screen above the bottom edge so thumbs rest on them
+      // comfortably; the picture is centred in the space above them (below any notch), with PAUSE just under it.
       const bottom = Math.max(eB, Math.round(DH * 0.1));
       c = place(bottom, 'wide');
       const clusterTop = Math.min(c.pad.y, c.whip.y, c.possum.y);
@@ -129,7 +134,7 @@
       const below = P.h + 2 * g + (DH - clusterTop);    // room the buttons need under the picture (real px)
       const top = Math.ceil((sf.top || 0) * dpr);
       const f = S.computeFit({ viewW: o.viewW, viewH: o.viewH, dpr, gameW: gw, gameH: gh, reserveTop: top / dpr, reserveBottom: below / dpr });
-      pic = picAt(f.scale, top);
+      pic = picAt(f.scale, Math.round(f.cssTop * dpr));
       c.pause = Object.assign({ x: DW - eR - P.w, y: pic.y + pic.h + g }, P);
     }
 
@@ -146,18 +151,26 @@
     }
     c.restart = Object.assign({ x: rowX, y: rowY }, R);
     c.mute = Object.assign({ x: c.restart.x + R.w + g, y: rowY }, Mu);
+    // Sideways, the game draws its PAUSED box big enough to hold RESTART and MUTE too (in game pixels; render.js),
+    // so the scene doesn't peek out around the buttons.
+    let menuPanel = null;
+    if (!portrait) {
+      const gx = (v) => (v - pic.x) / pic.s, gy = (v) => (v - pic.y) / pic.s;
+      menuPanel = {
+        x0: Math.max(1, Math.min(100, Math.floor(gx(c.restart.x - g)))), y0: 80,
+        x1: Math.min(gw - 1, Math.max(220, Math.ceil(gx(c.mute.x + Mu.w + g)))),
+        y1: Math.min(gh - 1, Math.max(130, Math.ceil(gy(rowY + Math.max(R.h, Mu.h) + g)))),
+      };
+    }
 
     const controls = {};
     for (const n in c) {
       const r = c[n];
-      // overArt: the part of the button that sits over the picture, in button pixels (only that part is see-through).
-      const ox0 = Math.max(r.x, pic.x), oy0 = Math.max(r.y, pic.y), ox1 = Math.min(r.x + r.w, pic.x + pic.w), oy1 = Math.min(r.y + r.h, pic.y + pic.h);
-      const overArt = ox0 < ox1 && oy0 < oy1 ? { x0: Math.round((ox0 - r.x) / k), y0: Math.round((oy0 - r.y) / k), x1: Math.round((ox1 - r.x) / k), y1: Math.round((oy1 - r.y) / k) } : null;
       controls[n] = { x: r.x / dpr, y: r.y / dpr, w: r.w / dpr, h: r.h / dpr, artW: r.w / k, artH: r.h / k,
-        over: !!inGame(r, pic), overArt, dev: { x: r.x, y: r.y, w: r.w, h: r.h } };
+        over: !!inGame(r, pic), dev: { x: r.x, y: r.y, w: r.w, h: r.h } };
     }
     return {
-      orientation: portrait ? 'portrait' : 'landscape', unit: u, k, maxScale,
+      orientation: portrait ? 'portrait' : 'landscape', unit: u, k, maxScale, menuPanel,
       fit: { scale: pic.s, dpr, cssW: pic.w / dpr, cssH: pic.h / dpr, cssLeft: pic.x / dpr, cssTop: pic.y / dpr,
         deviceW: pic.w, deviceH: pic.h, overflows: pic.w > DW || pic.h > DH },
       controls,
