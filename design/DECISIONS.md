@@ -4,10 +4,11 @@ Record date, decision, supporting asset or requirement, and unresolved questions
 
 ## Current state (2026-10-19)
 
-- **What exists:** a playable placeholder version of level 1 (Sheep Meadow) in `game/`. Open `game/index.html` to play. It has Sammy, two zombie types (jogger and hot dog vendor), the hot dog cart, the trash-lid shield, Play Possum, a pond, two checkpoints and a 3-wave gauntlet. A shareable one-file copy is in `game/dist/`.
+- **What exists:** a playable placeholder version of level 1 (Sheep Meadow) in `game/`. Open `game/index.html` to play. It has Sammy, two zombie types (jogger and hot dog vendor), the hot dog cart, the trash-lid shield, Play Possum, a pond, two checkpoints and a 3-wave gauntlet. It scales crisply to fill desktop, tablet and phone screens, and has on-screen touch buttons on touch screens. A shareable copy (page plus cleared art) is in `game/dist/`.
 - **What's placeholder:** almost all art (coloured boxes) and all sound (code-made beeps). The first real art, Sammy's 8-frame run (`assets/characters/character-sammy/sammy-run-strip-v01.png`), was added on 2026-10-19. Real files replace placeholders one at a time when added (see `game/README.md`).
 - **What's still only proposed:** every gameplay number, size and rule. They come from the examples in `templates/examples/`, plus the choices listed below. Nothing has been approved.
-- **What's next:** the owner answers the questions in `design/OWNER_DECISIONS.md`, reviews the draft style guide in `design/STYLE_GUIDE.md`, and supplies the Tier 1 items in `design/ASSET_REQUEST_CHECKLIST.md`. Then a playtest, mainly of the gauntlet.
+- **What's next:** (1) mobile step 3, the phone layout ("turn your phone sideways" message, full screen, notches, no accidental zoom), and step 4, a check that sound starts on the first tap; (2) put the game on a website (owner's go-ahead needed) so it can be tested on a real iPhone and Android phone; (3) the owner answers the questions in `design/OWNER_DECISIONS.md`, reviews the draft style guide in `design/STYLE_GUIDE.md`, confirms the drawing tool's terms allow selling the game with Sammy's run art, and supplies the rest of the Tier 1 items in `design/ASSET_REQUEST_CHECKLIST.md`; (4) a playtest, mainly of the gauntlet.
+- **Last updated:** 2026-10-19, after commit 6979af4 (touch controls and Sammy's run merged).
 - **Decisions only the owner can make:** `design/OWNER_DECISIONS.md`.
 - **Confirmed major priority, being built:** the game must look beautiful and play well on desktop **and** on phones and tablets. Step 1 (sharper, bigger scaling) and step 2 (on-screen touch buttons) are done; the phone layout (step 3) is not built yet, and nothing has been tried on a real phone. See "Desktop and mobile confirmed" below.
 

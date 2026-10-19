@@ -100,9 +100,11 @@ These drawings were made for this page only. They are not the game's art. In the
 
 **Done:**
 - A complete, playable level 1 with placeholder art and sound.
+- The first real art: **Sammy's run animation**.
+- Bigger, sharper scaling on phones and tablets, and **on-screen touch buttons** (shown only on touch screens).
 - An automatic art and sound loader: put a correctly named file into `assets/`, run the scanner, and it replaces its placeholder.
 - Checks for art files (size, colors, see-through pixels).
-- A shareable build (one file today, plus an `assets/` folder once real art is cleared) with license rules and a credits list.
+- A shareable build (`game/dist/`: the game page plus an `assets/` folder with the cleared real art) with license rules and a credits list.
 - Automatic game-rule tests and browser checks (see [Tests](#tests)).
 - Design docs, templates and worked examples for every kind of art and sound.
 
