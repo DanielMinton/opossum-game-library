@@ -56,7 +56,7 @@ Strip width = frame count × 48 px (with no padding). The one exception is tail-
 - Grid columns / rows: one row per file; columns = frame count (e.g. run = 8 columns × 1 row).
 - Frame count and reading order: left to right, starting at frame 0. Counts in the table below.
 - Padding / spacing: Proposed: none (frames touch). If you prefer 1 px gaps between frames, say "1 px padding" here.
-- Pivot / feet baseline: Proposed: bottom-center of the frame, pixel (24, 47) counting from 0 at the top-left. In every grounded frame the feet touch row 47 (the bottom row). Jump/fall frames may lift off that row. Tail-whip (64 × 48 cells): pivot **(32, 47)**, so Sammy's body sits in the same place and the extra 16 px give the tail room on both sides.
+- Pivot / feet baseline: Proposed: pixel (28, 47) counting from 0 at the top-left (4 px right of centre, so the tail has room behind him; set from the first real run strip, 2026-10-19). In every grounded frame the feet touch row 47 (the bottom row). Jump/fall frames may lift off that row. Tail-whip (64 × 48 cells): pivot **(36, 47)**, so Sammy's body sits in the same place and the extra 16 px give the tail room on both sides.
 - Animation names and frame ranges (state whether zero- or one-based): zero-based — see table.
 - Frames per second per animation: see table.
 - Looping / one-shot: see table.
@@ -71,7 +71,7 @@ Strip width = frame count × 48 px (with no padding). The one exception is tail-
 | jump-rise | 0–1 | 2 | 10 | one-shot, hold last frame | Holds frame 1 while going up. |
 | fall | 0–1 | 2 | 10 | loop | Tail/fur flutter. |
 | land | 0–1 | 2 | 15 | one-shot | Squash on frame 0. Returns to idle/run. |
-| tail-whip (attack) | 0–3 | 4 | 15 | one-shot | **Hit frame = 2** (the frame where damage happens). 0–1 wind-up, 3 recovery. 64×48 cells, pivot (32, 47). |
+| tail-whip (attack) | 0–3 | 4 | 15 | one-shot | **Hit frame = 2** (the frame where damage happens). 0–1 wind-up, 3 recovery. 64×48 cells, pivot (36, 47). |
 | hurt | 0–1 | 2 | 10 | one-shot | Knock-back flinch; a white/flash frame can be done in code. |
 | play-dead | 0–3 | 4 | 8 | one-shot, then hold frame 3 | Drops, rolls over, tongue out (Example). Used by the "Play Possum" ability. |
 | ko (defeat) | 0–5 | 6 | 10 | one-shot | Comic faint, stars/birds optional as separate effect. |

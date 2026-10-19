@@ -118,7 +118,9 @@ for (const [label, file] of [['source game (game/index.html)', path.join(gameDir
   const t = runPage(file, 'test=touch&touch=1', ['--window-size=852,393', '--force-device-scale-factor=3']);
   check(label + ': touch buttons on a sideways phone play the game (move, jump, whip, pause, mute, restart)', t.ok,
     `checks ${JSON.stringify(t.checks)}, errors ${JSON.stringify(t.errors)}`);
-  check(label + ': no art files expected yet, so none loaded', r.assets && r.assets.tried === 0, 'tried ' + (r.assets && r.assets.tried));
+  // Real art in assets/ (if any) must all load, at the right size.
+  check(label + ': every real art file loads with no size warnings', r.assets && r.assets.loaded.length === r.assets.tried && r.assets.warnings.length === 0,
+    `tried ${r.assets && r.assets.tried}, loaded ${JSON.stringify(r.assets && r.assets.loaded)}, warnings ${JSON.stringify(r.assets && r.assets.warnings)}`);
   check(label + ': no sound files expected yet, so none loaded', r.sounds && r.sounds.tried === 0, 'tried ' + (r.sounds && r.sounds.tried));
 }
 

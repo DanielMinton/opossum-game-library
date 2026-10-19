@@ -282,6 +282,9 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   const strip = (key, path, frames, fps, loop, extra) =>
     Object.assign({ key, path, fw: 48, fh: 48, frames, fps, loop, px: 24, py: 47, feet: true }, extra || {});
   const SAM = 'characters/character-sammy/';
+  // Sammy's feet point sits at x 28 (not the usual 24): his tail needs the extra room behind him.
+  // Set from the first real strip (run, 2026-10-19). All Sammy strips use it so he doesn't jump when switching animations.
+  const sam = (extra) => Object.assign({ px: 28 }, extra || {});
   const JOG = 'enemies/enemy-zombie-jogger/';
   const VEN = 'enemies/enemy-zombie-hot-dog-vendor/';
   const CART = 'props/prop-hot-dog-cart/';
@@ -292,17 +295,17 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   const mid = { fw: 16, fh: 16, px: 8, py: 8, feet: false };
 
   S.ASSET_MANIFEST = [
-    strip('sammy:idle', SAM + 'sammy-idle-strip-v01.png', 4, 6, 'loop'),
-    strip('sammy:run', SAM + 'sammy-run-strip-v01.png', 8, 12, 'loop'),
-    strip('sammy:jump-rise', SAM + 'sammy-jump-rise-strip-v01.png', 2, 10, 'hold'),
-    strip('sammy:fall', SAM + 'sammy-fall-strip-v01.png', 2, 10, 'loop'),
-    strip('sammy:land', SAM + 'sammy-land-strip-v01.png', 2, 15, 'once'),
-    // Wider 64x48 cell, pivot (32, 47): the whip reaches 26 px in front of Sammy, more than a 48 px cell allows.
-    strip('sammy:tail-whip', SAM + 'sammy-tail-whip-strip-v01.png', 4, 15, 'once', { fw: 64, px: 32, hitFrame: 2 }),
-    strip('sammy:hurt', SAM + 'sammy-hurt-strip-v01.png', 2, 10, 'once'),
-    strip('sammy:play-dead', SAM + 'sammy-play-dead-strip-v01.png', 4, 8, 'hold'),
-    strip('sammy:ko', SAM + 'sammy-ko-strip-v01.png', 6, 10, 'once'),
-    strip('sammy:victory', SAM + 'sammy-victory-strip-v01.png', 4, 8, 'loop'),
+    strip('sammy:idle', SAM + 'sammy-idle-strip-v01.png', 4, 6, 'loop', sam()),
+    strip('sammy:run', SAM + 'sammy-run-strip-v01.png', 8, 12, 'loop', sam()),
+    strip('sammy:jump-rise', SAM + 'sammy-jump-rise-strip-v01.png', 2, 10, 'hold', sam()),
+    strip('sammy:fall', SAM + 'sammy-fall-strip-v01.png', 2, 10, 'loop', sam()),
+    strip('sammy:land', SAM + 'sammy-land-strip-v01.png', 2, 15, 'once', sam()),
+    // Wider 64x48 cell, pivot (36, 47) (Sammy's 28 plus 8): the whip reaches 26 px in front of Sammy, more than a 48 px cell allows.
+    strip('sammy:tail-whip', SAM + 'sammy-tail-whip-strip-v01.png', 4, 15, 'once', { fw: 64, px: 36, hitFrame: 2 }),
+    strip('sammy:hurt', SAM + 'sammy-hurt-strip-v01.png', 2, 10, 'once', sam()),
+    strip('sammy:play-dead', SAM + 'sammy-play-dead-strip-v01.png', 4, 8, 'hold', sam()),
+    strip('sammy:ko', SAM + 'sammy-ko-strip-v01.png', 6, 10, 'once', sam()),
+    strip('sammy:victory', SAM + 'sammy-victory-strip-v01.png', 4, 8, 'loop', sam()),
 
     strip('jogger:walk', JOG + 'zombie-jogger-walk-strip-v01.png', 6, 8, 'loop'),
     strip('jogger:attack', JOG + 'zombie-jogger-attack-strip-v01.png', 4, 10, 'once', { hitFrame: 2 }),
@@ -429,7 +432,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 })(globalThis.SAMMY = globalThis.SAMMY || {});
 
 // ---- src/asset-files.js ----
-(function (S) { S.PRESENT_ASSET_FILES = {}; S.PRESENT_SOUND_FILES = {}; })(globalThis.SAMMY = globalThis.SAMMY || {});
+(function (S) { S.PRESENT_ASSET_FILES = {"characters/character-sammy/sammy-run-strip-v01.png":"characters/character-sammy/sammy-run-strip-v01.png"}; S.PRESENT_SOUND_FILES = {}; })(globalThis.SAMMY = globalThis.SAMMY || {});
 
 // ---- src/sim.js ----
 // Game rules for the Sammy prototype. No drawing, no browser APIs: it runs the same in Node tests.

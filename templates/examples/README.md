@@ -12,7 +12,7 @@ For what to send first, see `design/ASSET_REQUEST_CHECKLIST.md`.
 
 | Example folder | Template(s) shown | Demonstrates |
 |---|---|---|
-| `character-sammy/` | `ASSET.md` | The player character: 48×48 frame cells, feet baseline (24, 47), facing right, one strip per animation with frame counts, fps, loop/one-shot, hit frames |
+| `character-sammy/` | `ASSET.md` | The player character: 48×48 frame cells, feet point (28, 47), facing right, one strip per animation with frame counts, fps, loop/one-shot, hit frames |
 | `enemy-zombie-jogger/` | `ASSET.md` | The main enemy example: walk/attack/hit-react/comedic defeat strips plus behavior values (speed, damage, how it notices Sammy) |
 | `enemy-zombie-hot-dog-vendor/` | `ASSET.md` | A brief second enemy — how little you need to write when it reuses the first enemy's layout |
 | `prop-hot-dog-cart/` | `ASSET.md` + `INTERACTION.md` | An interactive object with every visual state and the transitions between them |

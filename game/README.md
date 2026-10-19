@@ -68,7 +68,7 @@ The level is 12 screens long, about 1 minute for a fast run and 3–5 minutes fo
 
 **Licenses:** art only goes into the shareable build when its row in `design/ASSET_SOURCES.csv` clears it (see **Build a shareable copy**). The game on your own computer uses every file either way.
 
-Frame sizes, frame counts, speeds and the feet point (24, 47) follow the draft style guide (`design/STYLE_GUIDE.md`) and each example's animation table. One exception: Sammy's tail-whip strip uses wider 64×48 frames with the feet point at (32, 47), so the tail has room. Background band rows, scroll speeds and loop widths are in the `bg:` lines of `game/src/assets.js`.
+Frame sizes, frame counts, speeds and the feet point (24, 47) follow the draft style guide (`design/STYLE_GUIDE.md`) and each example's animation table. Exceptions for Sammy: his feet point is (28, 47), not (24, 47), so his tail has room behind him; and his tail-whip strip uses wider 64×48 frames with the feet point at (36, 47). Background band rows, scroll speeds and loop widths are in the `bg:` lines of `game/src/assets.js`.
 
 ### Requested art the game can't show yet
 
