@@ -37,7 +37,8 @@ To answer, edit this file, or just tell Claude (for example, "go with the sugges
 - **Why it matters:** an 8×8 font fits only 40 letters across the screen. Four lines of game text are longer than that today. The other choice is a second, smaller font for long text, which is one more thing to draw.
 
 ### 8. Double-click to play, or only on a website?
-- **Suggested:** keep double-click working. You can open the game straight from the folder with no internet and no setup.
+- **Update (2026-10-19):** desktop and mobile are now a confirmed major priority. Phones and tablets can't open a game by double-clicking a file, so the mobile version must be played from a website (for example itch.io or GitHub Pages).
+- **Suggested:** both. Keep double-click working on desktop, and also put the game on a website for phones and tablets.
 - **Why it matters:** when the game is opened by double-click, the browser blocks the sound method needed to play a music track's opening once and then loop only the rest smoothly. So, for now, each music track must loop whole, from end to start. If the game only ever runs on a website, music with a separate opening becomes possible.
 
 ### 9. Keep the ready-to-share copy in the project history?
@@ -51,3 +52,7 @@ To answer, edit this file, or just tell Claude (for example, "go with the sugges
 ### 11. Is the final zombie fight too hard?
 - **Suggested:** keep it as it is (3 waves: 2 zombies, then 3, then 4) until someone plays it, then decide.
 - **Why it matters:** nobody has tested it with real players yet. The computer player that tests the game loses at the second wave when it can be hurt. A person who jumps away and plays dead may do fine, or may find it too hard. Easy fixes are fewer zombies, longer gaps between waves, or a hot dog in the arena.
+
+### 12. How should phones be held?
+- **Suggested:** sideways (landscape) only. If a phone is held upright, show a friendly "turn your phone sideways" message.
+- **Why it matters:** the game screen is wider than it is tall, like a TV. Upright, it would be tiny with the touch buttons crowded below it. Supporting upright play means a different layout to design and test.

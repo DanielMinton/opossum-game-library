@@ -9,6 +9,24 @@ Record date, decision, supporting asset or requirement, and unresolved questions
 - **What's still only proposed:** every gameplay number, size and rule. They come from the examples in `templates/examples/`, plus the choices listed below. Nothing has been approved.
 - **What's next:** the owner answers the questions in `design/OWNER_DECISIONS.md`, reviews the draft style guide in `design/STYLE_GUIDE.md`, and supplies the Tier 1 items in `design/ASSET_REQUEST_CHECKLIST.md`. Then a playtest, mainly of the gauntlet.
 - **Decisions only the owner can make:** `design/OWNER_DECISIONS.md`.
+- **Confirmed major priority, not built yet:** the game must look beautiful and play well on desktop **and** on phones and tablets. See "Desktop and mobile confirmed" below.
+
+## 2026-10-19: Desktop and mobile confirmed as a major priority
+
+**Decision (Confirmed by the owner):** the game must render beautifully and be fully playable on desktop and on mobile devices (phones and tablets). The owner says this was intended from the start; earlier docs had wrongly proposed "touch later, if at all" and listed touch controls as excluded. Those lines are corrected in `design/GAME_BRIEF.md`.
+
+**Where the prototype stands today (checked with screenshots at 390×844 and 844×390, common phone sizes):**
+- **Too small on phones.** Scaling uses whole numbers of *screen points*, so on a phone the game is stuck at its smallest size (×1): a small strip with big black borders. In landscape it uses about 320 of 844 points of width.
+- **Not playable on phones.** There are no touch controls, and phones have no keyboard.
+- **Phones can't double-click a file.** On mobile, the game has to be opened from a website (for example itch.io or GitHub Pages). Double-click still works on desktop.
+
+**Work this needs (Proposed order, none built yet):**
+1. Sharper, bigger scaling: count whole-number steps in the screen's real pixels (phones have 2–3 real pixels per point), so the game fills far more of the screen and stays crisp.
+2. On-screen touch controls (move, jump, tail-whip, Play Possum, pause) that appear only on touch screens and sit outside or beside the picture where possible.
+3. Phone layout: landscape play, a "turn your phone sideways" prompt in portrait, full-screen button, respect for notches and rounded corners, no accidental scrolling or zooming.
+4. Sound: start sound on the first tap (phones block sound until the player touches the screen).
+5. Checks: automatic browser checks at phone sizes with touch, plus tests on a real iPhone and Android phone.
+6. Art impact: text and the HUD must stay readable at phone sizes (another reason for the planned 8×8 font).
 
 ## 2026-10-19: Library review and starter templates
 

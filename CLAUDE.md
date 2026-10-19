@@ -22,6 +22,7 @@ A 16-bit Genesis-style 2D platformer prototype: Sammy the opossum fights cartoon
 - **Proposed vs Confirmed:** in design docs, only owner-stated facts are "Confirmed". Everything else is "Proposed (not approved)". Record any choice between two defensible options in `design/DECISIONS.md` under a dated heading, marked Proposed (reversible). Mark superseded lines; don't delete history.
 - **Licenses:** a file ships in `dist/` only when its `design/ASSET_SOURCES.csv` row has `commercial_use` = `yes` and a license that is filled in (not blank/TBD/unknown/none) and isn't non-commercial (`NC`, "non-commercial") or reference-only. Rules: `game/tools/licenses.mjs`. `attribution_required` = `yes` adds a line to `dist/CREDITS.txt`. **Never ship `assets/references/`.**
 - No "Sega"/"Genesis" in titles or branding; homage through feel only, never copied art or audio.
+- **Desktop + mobile is a confirmed major priority.** The game must look beautiful and be fully playable on desktop and on phones and tablets (touch controls, landscape layout, crisp scaling that fills the screen). Check every visual, layout or input change at phone sizes (e.g. 844×390 and 390×844) as well as desktop. Mobile isn't built yet; see `design/DECISIONS.md` "Desktop and mobile confirmed".
 
 ## How to…
 

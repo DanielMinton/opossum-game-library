@@ -1,4 +1,4 @@
-<p align="center"><img src=".github/readme/banner.svg" alt="Pixel-art banner: &quot;Sammy — An opossum vs. the zombie joggers of Central Park · working title · 16-bit platformer · prototype&quot;. At night in the park, Sammy the opossum tail-whips a zombie jogger whose head boings off on a spring, while hot dogs fly from a tipped hot dog cart and another zombie reaches out of the bushes." width="100%"></p>
+Create an image consistent with our existing <p align="center"><img src=".github/readme/banner.svg" alt="Pixel-art banner: &quot;Sammy — An opossum vs. the zombie joggers of Central Park · working title · 16-bit platformer · prototype&quot;. At night in the park, Sammy the opossum tail-whips a zombie jogger whose head boings off on a spring, while hot dogs fly from a tipped hot dog cart and another zombie reaches out of the bushes." width="100%"></p>
 
 # Sammy
 
@@ -62,7 +62,9 @@ The game draws at 320×224 pixels, like a classic console, and scales up by whol
 
 (Down is read too, but nothing uses it yet.)
 
-Gamepads have not been tested by a real person yet. Touch controls for phones are not built.
+Gamepads have not been tested by a real person yet.
+
+**Phones and tablets:** looking great and playing well on mobile as well as desktop is a **major priority**. It isn't built yet: today the game shows up small on a phone and has no touch controls. See the roadmap below.
 
 ## What's in level 1
 
@@ -105,10 +107,11 @@ These drawings were made for this page only. They are not the game's art. In the
 - Design docs, templates and worked examples for every kind of art and sound.
 
 **Next:**
-1. **You (the owner) answer the open questions** in **[design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)**. There are 11, each with a suggested answer. Examples: the final title, how gory it gets, who makes the art and music, and what goes in the first release.
-2. You review the draft style guide, [design/STYLE_GUIDE.md](design/STYLE_GUIDE.md).
-3. Real art and sound arrive, starting with the most important files ("Tier 1") in [design/ASSET_REQUEST_CHECKLIST.md](design/ASSET_REQUEST_CHECKLIST.md).
-4. A playtest by real people, mainly of the final gauntlet. It may be too hard.
+1. **Desktop and mobile (major priority):** make the game fill phone and tablet screens crisply, add on-screen touch controls, and test on real phones. The plan is in [design/DECISIONS.md](design/DECISIONS.md).
+2. **You (the owner) answer the open questions** in **[design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)**. There are 12, each with a suggested answer. Examples: the final title, how gory it gets, who makes the art and music, and what goes in the first release.
+3. You review the draft style guide, [design/STYLE_GUIDE.md](design/STYLE_GUIDE.md).
+4. Real art and sound arrive, starting with the most important files ("Tier 1") in [design/ASSET_REQUEST_CHECKLIST.md](design/ASSET_REQUEST_CHECKLIST.md).
+5. A playtest by real people, mainly of the final gauntlet. It may be too hard.
 
 There is no release date. Publishing (for example on itch.io) has not been done and needs your go-ahead.
 

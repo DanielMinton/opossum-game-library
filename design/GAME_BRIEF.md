@@ -8,6 +8,7 @@
 - Sammy's tools: interactive objects, power-ups, and special abilities.
 - Presentation: the game will eventually look and feel like a 16-bit Sega Genesis–era game, with several nostalgic nods to popular games of that era. (Nods mean homage through mechanics, feel, palette, structure, and humor. No copied sprites, music, sound effects, logos, or named characters, and no "Sega"/"Genesis" in the title or branding.)
 - Priority: a fun, compact indie game that can be deployed quickly. (from the original brief)
+- **Major priority: desktop AND mobile.** The game must look beautiful and be fully playable on desktop computers and on mobile devices (phones and tablets): sharp pixels that fill the screen well at any size, and on-screen touch controls on phones and tablets. (Confirmed by the owner on 2026-10-19, who says this was intended from the start.)
 - Art and contact sheets will be supplied through this library. (from the original brief; as of 2026-10-19, `assets/` is empty.)
 
 ## Decisions to fill in (TBD is okay)
@@ -16,10 +17,11 @@ Lines marked **Proposed (not approved)** are suggestions to react to, not decisi
 - Working title: TBD (avoid "Sega", "Genesis", or other trademarks in the name)
 - Camera: TBD
   - Proposed (not approved): side-view 2D action-platformer, scrolling left to right.
-- First platform: TBD
-  - Proposed (not approved): browser first (desktop), with a native canvas of 320×224 px scaled up by whole numbers (×3 = 960×672, ×4 = 1280×896) with no smoothing.
+- First platform: **web browsers on desktop and on mobile (phones and tablets): Confirmed major priority** (see above).
+  - Proposed (not approved): a native canvas of 320×224 px scaled up by whole numbers (×3 = 960×672, ×4 = 1280×896) with no smoothing.
 - Controls: TBD
-  - Proposed (not approved): keyboard + gamepad. Example layout: move, jump, attack (tail-whip), ability (Play Possum). Touch later, if at all.
+  - Confirmed: on-screen touch controls on phones and tablets (part of the desktop + mobile priority).
+  - Proposed (not approved): keyboard + gamepad on desktop. Example layout: move, jump, attack (tail-whip), ability (Play Possum). *(Superseded 2026-10-19: this line used to end "Touch later, if at all.")*
 - Player fantasy: TBD
   - Proposed (not approved): a scrappy, confused little opossum improvising his way through a zombie-filled New York.
 - Core action repeated by the player: TBD
@@ -38,7 +40,7 @@ Lines marked **Proposed (not approved)** are suggestions to react to, not decisi
 - Must-have features: TBD
   - Proposed (not approved): one complete level loop with start, play, victory, failure, and restart; Play Possum; 2–3 zombie types; 2–3 power-ups.
 - Excluded from first release: TBD
-  - Proposed (not approved): extra levels beyond Central Park, cutscenes beyond a short wake-up intro, online features, touch controls.
+  - Proposed (not approved): extra levels beyond Central Park, cutscenes beyond a short wake-up intro, online features. *(Updated 2026-10-19: touch controls removed from this list; they are now required.)*
 - First-release scope: TBD
   - Proposed (not approved): one Central Park level (example name `level-01-sheep-meadow`), one signature ability, 2–3 zombie types, 2–3 power-ups, an optional short end-of-level boss or gauntlet. More levels come later.
 - Desired release date: TBD
