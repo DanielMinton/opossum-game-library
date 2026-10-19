@@ -1,6 +1,6 @@
 # Sammy: placeholder prototype (level 1, Sheep Meadow)
 
-This is a playable first level that uses **placeholder art and sound**. Sammy is a grey box with ears and a pink nose, zombies are green boxes, and every sound is a code-generated beep. The on-screen label "PLACEHOLDER ART – NOT FINAL" stays visible the whole time. Your real art replaces the boxes automatically, one file at a time, as you add it (see **Adding art** below).
+This is a playable first level that uses **placeholder art and sound**. Sammy is a grey box with ears and a pink nose, zombies are green boxes, and every sound is a code-generated beep. The on-screen label "PLACEHOLDER ART – NOT FINAL" stays visible the whole time. Your real art and sound replace the placeholders automatically, one file at a time, as you add them (see **Adding art** and **Adding sound** below).
 
 Every gameplay value comes from the examples in `templates/examples/`, which are **proposals, not approved design**. Changes the prototype made are listed in `design/DECISIONS.md`.
 
@@ -57,6 +57,31 @@ Frame sizes, frame counts, speeds and the feet point (24, 47) follow `templates/
 
 To try every planned file without scanning, add `?probe=1` to the address. Missing files will show as errors in the browser console.
 
+## Adding sound
+
+1. Put each sound in its own folder under `assets/audio/`, named after the folder plus a version:
+   - Sound effects: `assets/audio/sfx/sfx-jump/sfx-jump-v01.ogg`
+   - Music: `assets/audio/music/music-level-01-central-park/music-level-01-central-park-v01.ogg`
+2. Run `node game/tools/scan-assets.mjs`. It lists the sounds it found and flags any audio file with a name it doesn't recognize.
+3. Reload the game and press a key (browsers stay silent until you do). Each sound with a file uses it; the rest keep their beep.
+
+**Sound names.** The full list is `S.SOUND_MANIFEST` in `game/src/assets.js`:
+- The 11 core sounds from `templates/examples/audio/AUDIO.md` (`sfx-jump`, `sfx-land`, `sfx-tail-whip`, `sfx-hit-zombie`, `sfx-zombie-groan`, `sfx-pickup`, `sfx-hurt`, `sfx-play-dead`, `sfx-zombie-defeat-comedic`, `sfx-cart-crash`, `sfx-ko`).
+- 10 extra sounds the prototype uses: `sfx-cart-rock`, `sfx-shield-block`, `sfx-shield-break`, `sfx-throw`, `sfx-splat`, `sfx-splash`, `sfx-checkpoint`, `sfx-gate-open`, `sfx-level-clear`, `sfx-start`.
+- Music: `music-level-01-central-park` plays during the level. `music-level-01-gauntlet` plays during the gauntlet; without it, the level music keeps playing there without restarting. Real music also carries on (rather than restarting) after a checkpoint respawn or **R**; a K.O. starts it over.
+
+**Formats and versions:**
+- Use `.ogg` (what `AUDIO.md` asks for). `.mp3` and `.wav` also work. If a sound has more than one format, the game uses the first one the browser can play, in the order ogg → mp3 → wav. Adding an `.mp3` next to each `.ogg` covers older Safari, which can't play `.ogg`.
+- A `.wav` next to an `.ogg` or `.mp3` of the same sound is treated as the master copy. It isn't loaded or copied into the build.
+- Variations: `sfx-land-v01-a.ogg`, `sfx-land-v01-b.ogg`, and so on. One is picked at random each time.
+- New version: save `sfx-jump-v02.ogg` beside `v01`. The highest version wins.
+
+**Volume:** `sound.musicVolume` and `sound.sfxVolume` in `game/src/config.js` (0 to 1). **M** mutes everything.
+
+**Level-clear jingle:** if `sfx-level-clear` has a file, it replaces the placeholder jingle.
+
+**Not supported yet: loop points.** Music loops the whole file from start to end. An intro that plays once before the loop needs loop-point support, which isn't built. Until then, make the file loop cleanly end-to-start.
+
 ## Build a shareable copy
 
 ```
@@ -68,7 +93,7 @@ This makes `game/dist/`:
 - `index.html`: the whole game in one file.
 - `BUILD_INFO.txt`: what art was included or left out.
 
-Art is copied **only if** `design/ASSET_SOURCES.csv` records a license for it, and nothing from `assets/references/` is ever copied. Today no art exists, so the build is placeholders only.
+Art and sound are copied **only if** `design/ASSET_SOURCES.csv` records a license for them, and nothing from `assets/references/` is ever copied. Today no art or sound exists, so the build is placeholders only.
 
 **Publishing (not done; needs your go-ahead).** The `dist/` folder is a static website, so it can be zipped and uploaded as an HTML game to itch.io, or hosted with GitHub Pages or Netlify. Before any public release:
 - Replace the placeholders.
@@ -81,8 +106,8 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | 23 game-rule checks (see the list below) |
-| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 13 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
+| `node --test tests/sim.test.mjs` | 26 game-rule checks (see the list below) |
+| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 18 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 
 **Game-rule checks** cover:
@@ -93,18 +118,22 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - K.O. and checkpoints; the gauntlet and exit
 - pause, restart and play again
 - a full autopilot playthrough, repeatable results, and the art list vs. the example docs
+- the sound list: every sound the game triggers has a planned name and a beep; file names, versions and variations are read correctly
 
 **Browser checks** cover:
 - the source game and the built game each play title → level → gauntlet → clear → restart with no errors
 - real key presses through the normal game loop start the game and move Sammy
 - every screen the autopilot never reaches draws without errors: hurt, K.O., play-dead, shield, confused zombies, pause and mute
-- art loading: a correct test image loads and is drawn, and a wrong-size test image is reported. This uses a temporary copy of the library, never your `assets/` folder.
+- art loading: a correct test image loads and is drawn, and a wrong-size test image is reported
+- sound loading: a test sound effect and test music load, and real key presses play them instead of the beeps
+
+These two checks use a temporary copy of the library, never your `assets/` folder.
 
 **Not tested by machine:**
 - how the controls feel in human hands
 - the difficulty balance (see below)
 - gamepads
-- whether the beeps sound right
+- whether the beeps sound right, and whether real sound files are audible (headless browsers have no speakers)
 - Safari and Firefox (only Chromium was run headless)
 - phones (touch controls aren't built)
 
@@ -119,10 +148,11 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 | `src/level.js` | Level 1 layout: ground, pond, rocks, benches, lampposts, enemies, pickups, checkpoints, arena, prompts |
 | `src/sim.js` | Game rules (no drawing, so it can be tested in Node) |
 | `src/render.js`, `src/font.js` | Drawing: real art when present, placeholders otherwise |
-| `src/assets.js`, `src/asset-files.js` | Planned art list, and the generated list of files that exist |
-| `src/input.js`, `src/audio.js`, `src/main.js` | Controls, placeholder sound, main loop and `?test=` self-checks |
+| `src/assets.js`, `src/asset-files.js` | Planned art and sound lists, and the generated list of files that exist |
+| `src/audio.js` | Plays real sound files when present, placeholder beeps otherwise |
+| `src/input.js`, `src/main.js` | Controls, main loop and `?test=` self-checks |
 | `src/bot.js` | Autopilot used only by the tests |
-| `tools/` | Art scanner and build script |
+| `tools/` | Art and sound scanner, and build script |
 | `tests/` | Game-rule tests and the browser check |
 | `dist/` | Latest shareable build (made by `tools/build.mjs`) |
 

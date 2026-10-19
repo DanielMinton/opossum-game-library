@@ -381,3 +381,56 @@ test('asset manifest: every planned file name appears in the example docs, with 
     assert.ok(!m.path.startsWith('references/'), 'never load reference-only art');
   }
 });
+
+// ---------- sound list ----------
+test('sound manifest: every sound the game triggers has a planned file name and a placeholder beep', () => {
+  const simSrc = fs.readFileSync(path.join(src, 'sim.js'), 'utf8');
+  const audioSrc = fs.readFileSync(path.join(src, 'audio.js'), 'utf8');
+  const ids = new Set(S.SOUND_MANIFEST.map((m) => m.id));
+  assert.equal(ids.size, S.SOUND_MANIFEST.length, 'no duplicate sound ids');
+  const used = [...new Set([...simSrc.matchAll(/'(sfx-[a-z0-9-]+)'/g)].map((m) => m[1]))];
+  assert.ok(used.length > 15, 'found the sound calls in sim.js');
+  for (const id of used) {
+    assert.ok(ids.has(id), id + ' is in SOUND_MANIFEST');
+    assert.ok(audioSrc.includes("'" + id + "':"), id + ' has a placeholder beep');
+  }
+  for (const m of S.SOUND_MANIFEST) assert.equal(m.dir, 'audio/' + m.kind + '/' + m.id + '/');
+  for (const [key, list] of Object.entries(S.MUSIC_TRACKS)) for (const id of list) assert.ok(ids.has(id), key + ' music ' + id + ' is planned');
+  const music = [...simSrc.matchAll(/music\(s, ?'([^']+)'\)/g)].map((m) => m[1]).filter((k) => !['stop', 'pause', 'resume', 'clear'].includes(k));
+  for (const k of music) assert.ok(S.MUSIC_TRACKS[k], 'music "' + k + '" has a track list');
+});
+
+test('sound file names: versions, variations and formats are read correctly', () => {
+  assert.deepEqual(S.soundFileInfo('sfx-land', 'sfx-land-v01.ogg'), { version: 1, variant: '', format: 'ogg' });
+  assert.deepEqual(S.soundFileInfo('sfx-land', 'sfx-land-v02-b.WAV'), { version: 2, variant: 'b', format: 'wav' });
+  assert.equal(S.soundFileInfo('sfx-land', 'sfx-land.ogg'), null);
+  assert.equal(S.soundFileInfo('sfx-land', 'sfx-landing-v01.ogg'), null);
+  assert.equal(S.soundFileInfo('sfx-land', 'sfx-land-v01.m4a'), null);
+});
+
+test('sound scan: picks the newest version, skips .wav masters, and flags misnamed files', async () => {
+  const os = await import('node:os');
+  const { scan } = await import('../tools/scan-assets.mjs');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sammy-sound-scan-'));
+  try {
+    const put = (rel) => { const f = path.join(tmp, 'assets', rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, ''); };
+    put('audio/sfx/sfx-jump/sfx-jump-v01.ogg');
+    put('audio/sfx/sfx-jump/sfx-jump-v01.wav');          // master copy: skipped
+    put('audio/sfx/sfx-land/sfx-land-v01-a.ogg');
+    put('audio/sfx/sfx-land/sfx-land-v02-a.ogg');        // newer version wins
+    put('audio/sfx/sfx-land/sfx-land-v01-b.wav');        // only copy of variation b: kept
+    put('audio/sfx/sfx-hurt/hurt.ogg');                  // misnamed
+    put('audio/music/music-level-01-central-park/music-level-01-central-park-v01.mp3');
+    const out = path.join(tmp, 'asset-files.js');
+    const r = scan(tmp, out);
+    assert.deepEqual(r.sounds, {
+      'sfx-jump': ['audio/sfx/sfx-jump/sfx-jump-v01.ogg'],
+      'sfx-land': ['audio/sfx/sfx-land/sfx-land-v01-b.wav', 'audio/sfx/sfx-land/sfx-land-v02-a.ogg'],
+      'music-level-01-central-park': ['audio/music/music-level-01-central-park/music-level-01-central-park-v01.mp3'],
+    });
+    assert.deepEqual(r.masters, ['audio/sfx/sfx-jump/sfx-jump-v01.wav']);
+    assert.deepEqual(r.unusedSounds, ['audio/sfx/sfx-hurt/hurt.ogg']);
+    assert.equal(r.found.length, 0, 'art list unaffected');
+    assert.ok(fs.readFileSync(out, 'utf8').includes('PRESENT_SOUND_FILES'));
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});

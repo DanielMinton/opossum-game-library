@@ -77,7 +77,16 @@ Record date, decision, supporting asset or requirement, and unresolved questions
 - Real files load automatically once they exist under the planned names. Run `node game/tools/scan-assets.mjs` after adding them.
 - The tile sheet isn't wired up; it needs a tile map first.
 
+**Sound file support (added 2026-10-19):**
+- Real sound files replace placeholder beeps one at a time, the same way art does. Each sound lives in `assets/audio/<sfx|music>/<id>/<id>-v01.ogg`, following `AUDIO.md`.
+- Files play through plain `<audio>` elements, not WebAudio buffers. Browsers block the WebAudio loading route when `index.html` is opened by double-click, and double-click is the main way to play.
+- Formats: `.ogg` preferred, then `.mp3`, then `.wav`. A `.wav` beside an `.ogg`/`.mp3` of the same sound is the master copy and is skipped.
+- Variations use `-a`, `-b`, … after the version (`sfx-land-v01-a.ogg`). This reads `AUDIO.md`'s "variations as -a, -b, -c" literally. A higher version number replaces a lower one.
+- New planned music ID, not in `AUDIO.md`: `music-level-01-gauntlet` (AUDIO.md says the gauntlet "may switch to a faster track — TBD"). Without it the level music continues through the gauntlet.
+- Music loops the whole file. `AUDIO.md`'s intro + loop-point layout is not supported yet.
+- Volumes are new config values: music 0.6, sound effects 0.8 (music under the effects, per `AUDIO.md`).
+
 **Not done / open:**
 - Difficulty is untested with people. An autopilot taking normal damage loses in the gauntlet.
-- Gamepad, audio quality, Safari, Firefox and touch weren't tested.
+- Gamepad, audio quality, Safari, Firefox and touch weren't tested. Real sound files were tested for loading and playing in headless Chromium, not by ear.
 - Nothing was published or uploaded.

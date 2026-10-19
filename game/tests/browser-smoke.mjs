@@ -7,6 +7,8 @@
 //  2. game/dist/index.html (run `node tools/build.mjs` first): the same.
 //  3. Real-art loading: a temporary copy of the library with two generated test images
 //     (one correct, one the wrong size) — proves files load, are drawn, and size mistakes are reported.
+//  4. Real-sound loading: the same copy gets two generated WAV files (a sound effect and the level music)
+//     — proves they are found, load in the browser, and play through real key presses without errors.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -74,6 +76,17 @@ function png(w, h, pixel) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
 }
 
+// Tiny WAV writer (16-bit mono) for the generated test sounds.
+function wav(seconds, hz) {
+  const rate = 22050, n = Math.round(seconds * rate), data = Buffer.alloc(n * 2);
+  for (let i = 0; i < n; i++) data.writeInt16LE(Math.round(Math.sin(i / rate * hz * 2 * Math.PI) * 8000), i * 2);
+  const h = Buffer.alloc(44);
+  h.write('RIFF', 0); h.writeUInt32LE(36 + data.length, 4); h.write('WAVE', 8); h.write('fmt ', 12);
+  h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(1, 22); h.writeUInt32LE(rate, 24);
+  h.writeUInt32LE(rate * 2, 28); h.writeUInt16LE(2, 32); h.writeUInt16LE(16, 34); h.write('data', 36); h.writeUInt32LE(data.length, 40);
+  return Buffer.concat([h, data]);
+}
+
 const results = [];
 function check(name, cond, detail) { results.push({ name, ok: !!cond, detail }); console.log((cond ? 'PASS ' : 'FAIL ') + name + (detail ? '  — ' + detail : '')); }
 
@@ -89,6 +102,7 @@ for (const [label, file] of [['source game (game/index.html)', path.join(gameDir
   const k = runPage(file, 'test=keys');
   check(label + ': real key presses start the game and move Sammy', k.ok, `mode ${k.mode}, x ${k.x}, errors ${JSON.stringify(k.errors)}`);
   check(label + ': no art files expected yet, so none loaded', r.assets && r.assets.tried === 0, 'tried ' + (r.assets && r.assets.tried));
+  check(label + ': no sound files expected yet, so none loaded', r.sounds && r.sounds.tried === 0, 'tried ' + (r.sounds && r.sounds.tried));
 }
 
 // 3: real-art loading in a temporary copy of the library
@@ -101,13 +115,22 @@ fs.mkdirSync(sam, { recursive: true });
 fs.writeFileSync(path.join(sam, 'sammy-run-strip-v01.png'), png(384, 48, (x, y) => ((x % 48) > 12 && (x % 48) < 36 && y > 14 ? [36, 72, 216, 255] : [0, 0, 0, 0])));
 // Wrong size on purpose: idle strip 100x48 instead of 192x48.
 fs.writeFileSync(path.join(sam, 'sammy-idle-strip-v01.png'), png(100, 48, () => [216, 36, 36, 255]));
+const put = (rel, buf) => { const f = path.join(tmp, 'assets', rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, buf); };
+put('audio/sfx/sfx-jump/sfx-jump-v01.wav', wav(0.15, 660));
+put('audio/music/music-level-01-central-park/music-level-01-central-park-v01.wav', wav(1.0, 220));
 const scanned = scan(tmp, path.join(tmp, 'game', 'src', 'asset-files.js'));
 check('art scan finds the 2 test images', scanned.found.length === 2, scanned.found.join(', '));
+check('sound scan finds the 2 test sounds', Object.keys(scanned.sounds).length === 2, JSON.stringify(scanned.sounds));
 const a = runPage(path.join(tmp, 'game', 'index.html'), 'test=smoke&frames=600');
 check('test images load in the browser', a.assets && a.assets.loaded.length === 2, JSON.stringify(a.assets && a.assets.loaded));
 check('wrong-size image is reported', a.assets && a.assets.warnings.length === 1 && /sammy-idle-strip/.test(a.assets.warnings[0]), JSON.stringify(a.assets && a.assets.warnings));
 check('real art is drawn instead of the placeholder', a.realArtDraws && a.realArtDraws['sammy:run'] > 0, JSON.stringify(a.realArtDraws));
 check('no errors with real art', a.ok && a.errors.length === 0, JSON.stringify(a.errors));
+check('test sounds load in the browser', a.sounds && a.sounds.loaded.length === 2 && a.sounds.failed.length === 0, JSON.stringify(a.sounds));
+const ks = runPage(path.join(tmp, 'game', 'index.html'), 'test=keys');
+check('real sounds play through real key presses without errors (start music, jump sound)',
+  ks.ok && ks.sounds.loaded.length === 2 && ks.sounds.plays['sfx-jump'] > 0 && ks.sounds.plays['music-level-01-central-park'] > 0,
+  `mode ${ks.mode}, errors ${JSON.stringify(ks.errors)}, sounds ${JSON.stringify(ks.sounds)}`);
 
 if (shots) {
   fs.mkdirSync(shots, { recursive: true });

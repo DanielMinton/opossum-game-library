@@ -60,6 +60,34 @@
   ];
   // Not wired yet: central-park-tiles-v01.png needs a tile map (which metatile goes where) before it can be drawn.
 
+  // Sound the game will use as soon as it exists (names from templates/examples/audio/AUDIO.md).
+  // Each sound lives in its own folder: assets/audio/sfx/<id>/<id>-v01.ogg (or .mp3 / .wav).
+  // Variations: <id>-v01-a.ogg, <id>-v01-b.ogg, … — one is picked at random each time.
+  // Sounds without a file keep their placeholder beep.
+  const SFX_IDS = [
+    // Core set from AUDIO.md
+    'sfx-jump', 'sfx-land', 'sfx-tail-whip', 'sfx-hit-zombie', 'sfx-zombie-groan', 'sfx-pickup', 'sfx-hurt',
+    'sfx-play-dead', 'sfx-zombie-defeat-comedic', 'sfx-cart-crash', 'sfx-ko',
+    // Extra sounds the prototype uses (see design/DECISIONS.md)
+    'sfx-cart-rock', 'sfx-shield-block', 'sfx-shield-break', 'sfx-throw', 'sfx-splat', 'sfx-splash',
+    'sfx-checkpoint', 'sfx-gate-open', 'sfx-level-clear', 'sfx-start',
+  ];
+  S.SOUND_MANIFEST = SFX_IDS.map((id) => ({ id, kind: 'sfx', dir: 'audio/sfx/' + id + '/' })).concat([
+    { id: 'music-level-01-central-park', kind: 'music', dir: 'audio/music/music-level-01-central-park/' },
+    { id: 'music-level-01-gauntlet', kind: 'music', dir: 'audio/music/music-level-01-gauntlet/' },
+  ]);
+  // Which music file each part of the game plays, in order of preference. If none exist, the placeholder loop plays.
+  S.MUSIC_TRACKS = {
+    level: ['music-level-01-central-park'],
+    arena: ['music-level-01-gauntlet', 'music-level-01-central-park'],
+  };
+  S.SOUND_FORMATS = ['ogg', 'mp3', 'wav']; // preferred first; the browser skips formats it can't play
+  // Matches a sound file name: <id>-v<version>[-<variation letter>].<format>
+  S.soundFileInfo = function (id, name) {
+    const m = new RegExp('^' + id.replace(/[-]/g, '\\-') + '-v(\\d+)(?:-([a-z]))?\\.(ogg|mp3|wav)$', 'i').exec(name);
+    return m ? { version: parseInt(m[1], 10), variant: (m[2] || '').toLowerCase(), format: m[3].toLowerCase() } : null;
+  };
+
   S.images = {};
   S.assetReport = { expected: S.ASSET_MANIFEST.length, tried: 0, loaded: [], failed: [], warnings: [], base: '' };
 

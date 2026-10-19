@@ -8,6 +8,11 @@
     step: 1 / 60,              // fixed simulation step (seconds)
     groundY: 192,              // top of the grass in level 1
 
+    sound: {                   // volume of real sound files, 0 to 1 (placeholder beeps are unchanged)
+      musicVolume: 0.6,        // AUDIO.md: music sits under the sound effects
+      sfxVolume: 0.8,
+    },
+
     gravity: 900,              // px/s^2
     maxFall: 320,
 

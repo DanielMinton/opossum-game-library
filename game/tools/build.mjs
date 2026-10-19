@@ -1,6 +1,6 @@
-// Builds a shareable copy of the game in game/dist/ (one index.html plus cleared art).
+// Builds a shareable copy of the game in game/dist/ (one index.html plus cleared art and sound).
 // Run:  node tools/build.mjs
-// Art is only copied when design/ASSET_SOURCES.csv records a known license for it.
+// Art and sound are only copied when design/ASSET_SOURCES.csv records a known license for them.
 // Nothing from assets/references/ is ever copied. Nothing is uploaded or published.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -44,9 +44,22 @@ for (const p of scanResult.found) {
   else excluded.push(p + (row ? `  (license "${row.license || 'blank'}", commercial use "${row.commercial_use || 'blank'}")` : '  (no row in design/ASSET_SOURCES.csv)'));
 }
 
+function licenseNote(p) {
+  const row = byPath.get('assets/' + p);
+  return p + (row ? `  (license "${row.license || 'blank'}", commercial use "${row.commercial_use || 'blank'}")` : '  (no row in design/ASSET_SOURCES.csv)');
+}
+const soundsIncluded = {}, soundsExcluded = [];
+for (const [id, files] of Object.entries(scanResult.sounds)) {
+  for (const p of files) {
+    if (cleared(byPath.get('assets/' + p))) (soundsIncluded[id] = soundsIncluded[id] || []).push(p);
+    else soundsExcluded.push(licenseNote(p));
+  }
+}
+const soundFiles = [].concat(...Object.values(soundsIncluded));
+
 fs.rmSync(dist, { recursive: true, force: true });
 fs.mkdirSync(dist, { recursive: true });
-for (const p of included) {
+for (const p of included.concat(soundFiles)) {
   const to = path.join(dist, 'assets', p);
   fs.mkdirSync(path.dirname(to), { recursive: true });
   fs.copyFileSync(path.join(root, 'assets', p), to);
@@ -59,7 +72,8 @@ let js = "globalThis.SAMMY_ASSET_BASE = 'assets/';\n";
 for (const rel of order) {
   let code = fs.readFileSync(path.join(gameDir, rel), 'utf8');
   if (rel.endsWith('asset-files.js')) {
-    code = '(function (S) { S.PRESENT_ASSET_FILES = ' + JSON.stringify(included) + '; })(globalThis.SAMMY = globalThis.SAMMY || {});\n';
+    code = '(function (S) { S.PRESENT_ASSET_FILES = ' + JSON.stringify(included) + '; S.PRESENT_SOUND_FILES = ' +
+      JSON.stringify(soundsIncluded) + '; })(globalThis.SAMMY = globalThis.SAMMY || {});\n';
   }
   if (/<\/script/i.test(code)) throw new Error(rel + ' contains "</script" and cannot be inlined');
   js += `\n// ---- ${rel} ----\n` + code;
@@ -75,6 +89,8 @@ const info = [
   '',
   `Art included (${included.length}):`, ...included.map((p) => '  ' + p),
   `Art left out (${excluded.length}):`, ...excluded.map((p) => '  ' + p),
+  `Sound files included (${soundFiles.length}):`, ...soundFiles.map((p) => '  ' + p),
+  `Sound files left out (${soundsExcluded.length}):`, ...soundsExcluded.map((p) => '  ' + p),
   '',
   'Placeholder shapes and code-generated beeps are used for everything not included.',
 ].join('\n');
@@ -83,4 +99,6 @@ fs.writeFileSync(path.join(dist, 'BUILD_INFO.txt'), info + '\n');
 console.log(`Built ${path.relative(process.cwd(), path.join(dist, 'index.html'))} (${(out.length / 1024).toFixed(0)} KB)`);
 console.log(`Art included: ${included.length}. Art left out: ${excluded.length}.`);
 for (const p of excluded) console.log('  - ' + p);
+console.log(`Sound files included: ${soundFiles.length}. Sound files left out: ${soundsExcluded.length}.`);
+for (const p of soundsExcluded) console.log('  - ' + p);
 if (!scanResult.found.length) console.log('No art files exist yet, so the build uses placeholders only.');

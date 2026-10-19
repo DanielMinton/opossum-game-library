@@ -1,5 +1,6 @@
-// PLACEHOLDER SOUND: beeps and a short chiptune loop made in code with WebAudio.
-// Replace with the real files listed in templates/examples/audio/AUDIO.md.
+// Sound: real files when they exist (see S.SOUND_MANIFEST in assets.js), placeholder beeps otherwise.
+// Real files play through plain <audio> elements, which also work when index.html is opened by double-click.
+// The placeholder beeps and chiptune loop are made in code with WebAudio.
 (function (S) {
   // type, start Hz, end Hz, seconds, volume
   const SFX = {
@@ -33,9 +34,107 @@
       lead: [84, 0, 82, 0, 79, 0, 82, 84, 86, 0, 84, 0, 82, 79, 77, 79] },
   };
 
+  // ---------- loading real sound files ----------
+  const MIME = { ogg: 'audio/ogg', mp3: 'audio/mpeg', wav: 'audio/wav' };
+  S.sounds = {};       // id -> [<audio> element per variation]
+  S.soundPlays = {};   // id -> times a real file was played (used by the tests)
+  S.soundReport = { expected: 0, tried: 0, loaded: [], failed: [], unplayable: [], base: '' };
+
+  // Groups an id's files by variation and picks the first format this browser can play.
+  function pickFiles(id, files) {
+    const groups = {};
+    for (const f of files) {
+      const name = f.split('/').pop();
+      const info = S.soundFileInfo(id, name);
+      if (!info) continue;
+      (groups[info.variant] = groups[info.variant] || {})[info.format] = f;
+    }
+    const probe = typeof Audio !== 'undefined' ? new Audio() : null;
+    const picked = [], unplayable = [];
+    for (const key of Object.keys(groups).sort()) {
+      const fmt = S.SOUND_FORMATS.find((x) => groups[key][x] && probe && probe.canPlayType(MIME[x]));
+      if (fmt) picked.push(groups[key][fmt]); else unplayable.push(...Object.values(groups[key]));
+    }
+    return { picked, unplayable };
+  }
+
+  // Loads every sound that exists. Calls done(report) when all have loaded or failed, or after `timeout` ms,
+  // so a large or broken file can't hold up the game. Sounds still loading after that keep loading.
+  S.loadSounds = function (opts, done) {
+    const R = S.soundReport;
+    const present = S.PRESENT_SOUND_FILES || {};
+    R.base = opts.base; R.expected = S.SOUND_MANIFEST.length;
+    const want = [];
+    for (const m of S.SOUND_MANIFEST) {
+      const files = opts.probe ? [m.dir + m.id + '-v01.ogg'] : (present[m.id] || []);
+      if (!files.length) continue;
+      const { picked, unplayable } = pickFiles(m.id, files);
+      R.unplayable.push(...unplayable);
+      for (const f of picked) want.push({ id: m.id, path: f });
+    }
+    R.tried = want.length;
+    if (!want.length || typeof Audio === 'undefined') { done(R); return; }
+    let left = want.length, finished = false;
+    const finish = () => { if (!finished) { finished = true; done(R); } };
+    const timer = setTimeout(finish, opts.timeout || 4000);
+    for (const w of want) {
+      const el = new Audio();
+      let settled = false;
+      const settle = (ok) => {
+        if (settled) return; settled = true;
+        if (ok) { (S.sounds[w.id] = S.sounds[w.id] || []).push(el); R.loaded.push(w.path); } else R.failed.push(w.path);
+        left -= 1; if (left === 0) { clearTimeout(timer); finish(); }
+      };
+      el.preload = 'auto';
+      el.addEventListener('canplaythrough', () => settle(true), { once: true });
+      el.addEventListener('loadeddata', () => settle(true), { once: true });
+      el.addEventListener('error', () => settle(false), { once: true });
+      el.src = opts.base + w.path;
+      el.load();
+    }
+  };
+
   S.createAudio = function () {
     let ctx = null, master = null, noiseBuf = null, timer = null, track = null, step = 0, nextT = 0;
     const api = { muted: false, ok: false };
+    const V = Object.assign({ musicVolume: 0.6, sfxVolume: 0.8 }, (S.CONFIG && S.CONFIG.sound) || {});
+    const quiet = (p) => { if (p && p.catch) p.catch(() => {}); }; // play() is refused until the player presses a key
+
+    // Real sound effects: a few copies of each file so the same sound can overlap itself.
+    const pools = new Map();
+    function playFile(id) {
+      S.soundPlays[id] = (S.soundPlays[id] || 0) + 1;
+      const list = S.sounds[id];
+      const el = list[Math.floor(Math.random() * list.length)];
+      let pool = pools.get(el);
+      if (!pool) { pool = [el]; pools.set(el, pool); }
+      let use = pool.find((a) => a.paused || a.ended);
+      if (!use && pool.length < 4) { use = el.cloneNode(); pool.push(use); }
+      if (!use) use = pool[0];
+      use.volume = V.sfxVolume;
+      try { use.currentTime = 0; } catch (e) { /* not seekable yet */ }
+      quiet(use.play());
+    }
+
+    // Real music: one <audio> element per track, looped. Pause keeps the position.
+    let musicEl = null, musicOn = false;
+    function fileTrack(name) {
+      for (const id of (S.MUSIC_TRACKS && S.MUSIC_TRACKS[name]) || []) if (S.sounds[id]) { S.sounds[id][0].soundId = id; return S.sounds[id][0]; }
+      return null;
+    }
+    function startFile(el) {
+      S.soundPlays[el.soundId] = (S.soundPlays[el.soundId] || 0) + 1;
+      musicEl = el; musicOn = true;
+      el.loop = true; el.volume = V.musicVolume; el.muted = api.muted;
+      try { el.currentTime = 0; } catch (e) { /* not seekable yet */ }
+      quiet(el.play());
+    }
+    function stopFile(keepPlace) {
+      musicOn = false;
+      if (!musicEl) return;
+      musicEl.pause();
+      if (!keepPlace) { try { musicEl.currentTime = 0; } catch (e) { /* ignore */ } musicEl = null; }
+    }
     function init() {
       if (ctx) return;
       try {
@@ -76,27 +175,47 @@
         nextT += sd; step += 1;
       }
     }
-    function stopMusic() { track = null; if (timer) { clearInterval(timer); timer = null; } }
+    function stopMusic(keepPlace) { track = null; if (timer) { clearInterval(timer); timer = null; } stopFile(keepPlace); }
     function playMusic(name) {
+      const el = fileTrack(name);
+      if (el && musicOn && el === musicEl) return; // same file already playing (e.g. no gauntlet track): keep going
       stopMusic();
+      if (el) { startFile(el); return; }
       if (!ctx || !TRACKS[name]) return;
       track = TRACKS[name]; step = 0; nextT = ctx.currentTime + 0.05;
       timer = setInterval(schedule, 25);
     }
     let current = null;
-    api.unlock = function () { init(); if (ctx && ctx.state === 'suspended') ctx.resume(); };
-    api.sfx = function (id) { const d = SFX[id]; if (d && ctx && !api.muted) tone(d[0], d[1], d[2], d[3], d[4]); };
+    api.unlock = function () {
+      init(); if (ctx && ctx.state === 'suspended') ctx.resume();
+      if (musicOn && musicEl && musicEl.paused) quiet(musicEl.play()); // music asked for before the first key press
+    };
+    api.sfx = function (id) {
+      if (api.muted) return;
+      if (S.sounds[id] && S.sounds[id].length) { playFile(id); return; }
+      const d = SFX[id]; if (d && ctx) tone(d[0], d[1], d[2], d[3], d[4]);
+    };
     api.music = function (cmd) {
-      if (cmd === 'stop' || cmd === 'pause') { stopMusic(); if (cmd === 'stop') current = null; return; }
-      if (cmd === 'resume') { if (current) playMusic(current); return; }
+      if (cmd === 'stop') { stopMusic(); current = null; return; }
+      if (cmd === 'pause') { stopMusic(true); return; }
+      if (cmd === 'resume') {
+        if (musicEl) { musicOn = true; quiet(musicEl.play()); } else if (current) playMusic(current);
+        return;
+      }
       if (cmd === 'clear') {
         stopMusic(); current = null;
-        if (ctx) [72, 76, 79, 84].forEach((n, i) => tone('square', midi(n), midi(n), 0.18, 0.15, ctx.currentTime + i * 0.12));
+        // A real level-clear sound replaces the placeholder jingle (sfx-level-clear plays at the same moment).
+        if (ctx && !S.sounds['sfx-level-clear']) [72, 76, 79, 84].forEach((n, i) => tone('square', midi(n), midi(n), 0.18, 0.15, ctx.currentTime + i * 0.12));
         return;
       }
       current = cmd; playMusic(cmd);
     };
-    api.toggleMute = function () { api.muted = !api.muted; if (master) master.gain.value = api.muted ? 0 : 0.5; return api.muted; };
+    api.toggleMute = function () {
+      api.muted = !api.muted;
+      if (master) master.gain.value = api.muted ? 0 : 0.5;
+      if (musicEl) musicEl.muted = api.muted;
+      return api.muted;
+    };
     return api;
   };
 })(globalThis.SAMMY = globalThis.SAMMY || {});

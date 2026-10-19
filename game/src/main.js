@@ -34,11 +34,22 @@
 
   let last = 0, acc = 0; // frame timing (declared before loading starts)
   const base = params.get('assetBase') || globalThis.SAMMY_ASSET_BASE || '../assets/';
-  S.loadAssets({ base, probe: params.has('probe') }, (report) => {
-    console.info('[sammy] art loaded:', report.loaded.length, 'of', report.expected, report.warnings.length ? report.warnings : '');
+  // Art must load before the game starts. Sound loads alongside it, but never waits more than a few seconds.
+  let pending = 2;
+  const ready = () => {
+    pending -= 1; if (pending) return;
     if (params.get('test') === 'keys') keysTest();
     else if (params.has('test')) runTest(params.get('test'));
     else requestAnimationFrame(loop);
+  };
+  S.loadAssets({ base, probe: params.has('probe') }, (report) => {
+    console.info('[sammy] art loaded:', report.loaded.length, 'of', report.expected, report.warnings.length ? report.warnings : '');
+    ready();
+  });
+  S.loadSounds({ base, probe: params.has('probe') }, (report) => {
+    console.info('[sammy] sounds loaded:', report.loaded.length, 'of', report.tried, 'files found',
+      report.failed.length ? { failed: report.failed } : '', report.unplayable.length ? { unplayable: report.unplayable } : '');
+    ready();
   });
 
   function loop(now) { frame(now); requestAnimationFrame(loop); }
@@ -73,7 +84,7 @@
     run(2); key('keydown', 'KeyZ');
     run(8);
     } catch (e) { errors.push(String(e && e.stack || e)); }
-    const r = { test: 'keys', mode: state.mode, x: Math.round(state.player.x), airborne: !state.player.grounded, errors };
+    const r = { test: 'keys', mode: state.mode, x: Math.round(state.player.x), airborne: !state.player.grounded, errors, sounds: { loaded: S.soundReport.loaded, plays: S.soundPlays } };
     r.ok = r.mode === 'playing' && r.x > state.level.start.x + 50 && r.airborne && errors.length === 0;
     out.textContent = JSON.stringify(r);
     requestAnimationFrame(loop); // keep running normally afterwards
@@ -108,6 +119,8 @@
   function runTest(name) {
     const out = document.getElementById('test-result');
     const result = { test: name, ok: false, errors, assets: { loaded: S.assetReport.loaded, warnings: S.assetReport.warnings, tried: S.assetReport.tried } };
+    const SR = S.soundReport;
+    result.sounds = { tried: SR.tried, loaded: SR.loaded, failed: SR.failed, unplayable: SR.unplayable };
     try {
       const bot = S.makeBot();
       const frames = parseInt(params.get('frames') || '0', 10);
