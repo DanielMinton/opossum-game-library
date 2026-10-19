@@ -693,5 +693,9 @@ test('PNG checks: size, colour profile, semi-transparency, off-grid colours, and
   assert.match(checkPng(Buffer.from('not a png at all'), 32, 16)[0], /could not read/);
   const good = png(32, 16, art);
   assert.ok(Array.isArray(checkPng(good.subarray(0, good.length - 30), 32, 16)));
+  // Cut short after a good header: size is still checked, then the damage is reported.
+  const cut = checkPng(png(100, 48, () => [36, 36, 36, 255]).subarray(0, 60), 192, 48);
+  assert.equal(cut.length, 2); assert.match(cut[0], /wrong size: expected 192x48 px, got 100x48/); assert.match(cut[1], /could not read this PNG \(file is cut short\)/);
+  assert.deepEqual(checkPng(good.subarray(0, 60), 32, 16), ['could not read this PNG (file is cut short)']);
   assert.ok(Array.isArray(checkPng(Buffer.alloc(0), 32, 16)));
 });

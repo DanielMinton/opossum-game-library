@@ -74,11 +74,13 @@ export function decodePixels(info) {
 
 export function checkPng(buf, wantW, wantH) {
   const warn = [];
+  // Size first, straight from the header bytes, so a file damaged later on still gets its size checked.
+  const head = buf.length >= 24 && SIG.every((b, i) => buf[i] === b) && buf.toString('latin1', 12, 16) === 'IHDR';
+  if (!head) return ['could not read this PNG (not a PNG file)'];
+  const w = buf.readUInt32BE(16), h = buf.readUInt32BE(20);
+  if (w !== wantW || h !== wantH) warn.push(`wrong size: expected ${wantW}x${wantH} px, got ${w}x${h} (the game will not use it)`);
   let info;
-  try { info = readChunks(buf); } catch (e) { return ['could not read this PNG (' + e.message + ')']; }
-  if (info.width !== wantW || info.height !== wantH) {
-    warn.push(`wrong size: expected ${wantW}x${wantH} px, got ${info.width}x${info.height} (the game will not use it)`);
-  }
+  try { info = readChunks(buf); } catch (e) { warn.push('could not read this PNG (' + e.message + ')'); return warn; }
   const colour = COLOUR_CHUNKS.filter((t) => info.chunks.some((c) => c.type === t));
   if (colour.length) warn.push('has colour-profile data (' + colour.join(', ') + '); colours may shift. Export without a profile or gamma.');
   let px;

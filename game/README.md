@@ -60,7 +60,7 @@ The level is 12 screens long, about 1 minute for a fast run and 3–5 minutes fo
 - **Semi-transparent pixels.** Every pixel must be fully clear or fully solid.
 - **Colours off the 9-bit grid.** Each red, green and blue value must be one of 0, 36, 72, 108, 144, 180, 216, 252.
 - **More than 15 solid colours** in one file (one palette line).
-- Some PNG types (16-bit, interlaced, greyscale) can't have their pixels checked; the scanner says "pixel checks skipped". Size is always checked.
+- Some PNG types (16-bit, interlaced, greyscale) can't have their pixels checked; the scanner says "pixel checks skipped". Size is still checked, even when the rest of the file is damaged.
 
 **Licenses:** art only goes into the shareable build when its row in `design/ASSET_SOURCES.csv` clears it (see **Build a shareable copy**). The game on your own computer uses every file either way.
 
