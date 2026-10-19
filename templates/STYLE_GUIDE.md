@@ -1,6 +1,6 @@
 # Style guide: 16-bit console-style art & audio spec
 
-One guide for the whole project. Copy to `design/STYLE_GUIDE.md` and fill in the `TBD` fields.
+One guide for the whole project. This is the blank template. **Sammy's filled-in draft is `design/STYLE_GUIDE.md`** — read and edit that one for this game.
 
 > These are **aesthetic targets for a browser build** that should look and sound like a classic 16-bit home console game. They are not hardware limits the game enforces. Values marked **Proposed** are suggestions, not decisions.
 

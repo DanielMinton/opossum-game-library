@@ -1,6 +1,14 @@
 # Decisions and assumptions
 
-Record date, decision, supporting asset or requirement, and unresolved questions here. No engine selected yet.
+Record date, decision, supporting asset or requirement, and unresolved questions here. Engine: none — the game is plain HTML5 canvas and JavaScript (see "Placeholder prototype of level 1 built" below). *(Updated 2026-10-19; this line used to say "No engine selected yet".)*
+
+## Current state (2026-10-19)
+
+- **What exists:** a playable placeholder version of level 1 (Sheep Meadow) in `game/`. Open `game/index.html` to play. It has Sammy, two zombie types (jogger and hot dog vendor), the hot dog cart, the trash-lid shield, Play Possum, a pond, two checkpoints and a 3-wave gauntlet. A shareable one-file copy is in `game/dist/`.
+- **What's placeholder:** all art (coloured boxes) and all sound (code-made beeps). No real art or sound has been supplied yet; `assets/` holds empty folders only. Real files replace placeholders one at a time when added (see `game/README.md`).
+- **What's still only proposed:** every gameplay number, size and rule. They come from the examples in `templates/examples/`, plus the choices listed below. Nothing has been approved.
+- **What's next:** the owner answers the questions in `design/OWNER_DECISIONS.md`, reviews the draft style guide in `design/STYLE_GUIDE.md`, and supplies the Tier 1 items in `design/ASSET_REQUEST_CHECKLIST.md`. Then a playtest, mainly of the gauntlet.
+- **Decisions only the owner can make:** `design/OWNER_DECISIONS.md`.
 
 ## 2026-10-19: Library review and starter templates
 
@@ -14,10 +22,10 @@ Record date, decision, supporting asset or requirement, and unresolved questions
 - Nostalgic nods are limited to homage through mechanics, feel, palette, structure, and humor. No ripped or traced commercial assets, and no "Sega"/"Genesis" in branding.
 
 **Deliberately not done**
-- `design/asset-index.json` was left empty because there are no assets to index.
+- `design/asset-index.json` was left empty because there are no assets to index. *(Superseded 2026-10-19: removed, with its schema, during the review fixes. Nothing read them; the art and sound list now lives in `game/src/assets.js`.)*
 - `design/ASSET_SOURCES.csv` is unchanged because there are no sources to record.
-- No engine was chosen. A small 2D browser game is the likely default (per `CLAUDE.md`) once assets arrive.
-- A placeholder-art prototype was offered but not built.
+- No engine was chosen. A small 2D browser game is the likely default once assets arrive. *(Superseded: later the same day the game was built with no engine, in plain canvas; see below. This line first said "per `CLAUDE.md`", but there was no `CLAUDE.md` in the library then. The current `CLAUDE.md` was written on 2026-10-19 as part of the review fixes.)*
+- A placeholder-art prototype was offered but not built. *(Superseded: it was built later that day; see "Placeholder prototype of level 1 built".)*
 
 **Open questions for the user**
 1. Camera: is side-view 2D action-platformer (proposed) right?
@@ -27,6 +35,8 @@ Record date, decision, supporting asset or requirement, and unresolved questions
 5. Working title.
 6. Signature ability: is Play Possum (proposed) the one you want?
 7. Controls / platform: keyboard + gamepad, browser-first (proposed) — OK?
+
+*(2026-10-19: the up-to-date list of open owner questions is now `design/OWNER_DECISIONS.md`.)*
 
 ## 2026-10-19 — Character name correction
 - The opossum's name is **Sammy** (user correction; an earlier draft said "Sanny"). Updated in every design doc, template and example; the example folder is now `templates/examples/character-sammy/`.
@@ -124,3 +134,13 @@ Bug fixes from a code review. Each choice below is **Proposed (reversible)**.
 - **Hit frames in the art list:** the tail-whip and jogger attack strips have `hitFrame: 2` and the vendor throw strip `releaseFrame: 2`, counted from 0 (so the hit lands on the third frame, as `config.js` already assumed). The hit lasts one frame. A test now checks every animation timing in `config.js` against frames ÷ fps; no gameplay values changed.
 - **Scanner PNG checks are warnings only.** Size, colour-profile chunks, semi-transparent pixels, off-grid colours and more than 15 colours are reported, but the file is still listed. Pixels are checked only for 8-bit RGB, RGBA and palette PNGs that aren't interlaced; other kinds get "pixel checks skipped". The 15-colour limit is counted per file, ignoring transparent pixels.
 - **Browser test images:** the real-art test now also has a hurt strip in two versions (v01 the wrong size, v02 correct), so it checks versions and the hit flash in a real browser. Two correct images load (run and hurt v02), not one.
+
+**Step 5: docs and build**
+- **`CLAUDE.md`** added at the top of the library: a short guide for future Claude sessions (layout, rules, how to add art, sound, an enemy type or a level, and the test commands).
+- **Draft style guide:** `design/STYLE_GUIDE.md` is the project's filled-in copy of `templates/STYLE_GUIDE.md`. Every answer is Proposed. The colour limits are written as targets to aim for (15 colours or fewer per sprite or tile set), not hard rules. This matches the scanner, which warns but never blocks. The other option was keeping them as strict limits, which real art might not meet.
+- **Style guide links:** docs that send people to the style guide for the project's answers (`game/README.md`, `design/GAME_BRIEF.md`, the checklist) now point to `design/STYLE_GUIDE.md`. `templates/STYLE_GUIDE.md` stays as the blank template. The comments in `font.js` and `config.js` still name the template; the rules they mention are the same in both.
+- **Owner decisions:** `design/OWNER_DECISIONS.md` lists the questions only the owner can answer, each with a suggested default. The older "Open questions for the user" list above is kept as history.
+- **Removed** `design/asset-index.json` and `design/asset-index.schema.json`. Nothing read them.
+- **Repeatable build:** `game/dist/BUILD_INFO.txt` now starts with a 12-character code (a hash of `dist/index.html`) instead of the build time. Rebuilding with nothing changed leaves `dist/` unchanged in git.
+- **Stale-build check:** the browser test now first checks that `dist/index.html` contains the current code of every `game/src/` file (except `asset-files.js`, which the build replaces) and that `BUILD_INFO.txt` names the right hash. If not, it says "run node tools/build.mjs". This check runs before the browser is needed. The other option was putting it in the game-rule tests, but then those would fail after every code edit until a rebuild.
+- **`.gitignore` unchanged:** it already ignores only `.DS_Store`, `.idea/` and `node_modules/`. `game/dist/` stays in git until the owner decides (see `OWNER_DECISIONS.md`).

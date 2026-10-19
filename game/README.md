@@ -2,7 +2,7 @@
 
 This is a playable first level that uses **placeholder art and sound**. Sammy is a grey box with ears and a pink nose, zombies are green boxes, and every sound is a code-generated beep. The on-screen label "PLACEHOLDER ART – NOT FINAL" stays visible the whole time. Your real art and sound replace the placeholders automatically, one file at a time, as you add them (see **Adding art** and **Adding sound** below).
 
-Every gameplay value comes from the examples in `templates/examples/`, which are **proposals, not approved design**. Changes the prototype made are listed in `design/DECISIONS.md`.
+Every gameplay value comes from the examples in `templates/examples/`, which are **proposals, not approved design**. Changes the prototype made are listed in `design/DECISIONS.md`. The questions only you can answer (title, art style, how gory, and more) are in `design/OWNER_DECISIONS.md`, each with a suggested answer.
 
 ## Play it
 
@@ -64,7 +64,7 @@ The level is 12 screens long, about 1 minute for a fast run and 3–5 minutes fo
 
 **Licenses:** art only goes into the shareable build when its row in `design/ASSET_SOURCES.csv` clears it (see **Build a shareable copy**). The game on your own computer uses every file either way.
 
-Frame sizes, frame counts, speeds and the feet point (24, 47) follow `templates/STYLE_GUIDE.md` and each example's animation table. One exception: Sammy's tail-whip strip uses wider 64×48 frames with the feet point at (32, 47), so the tail has room. Background band rows, scroll speeds and loop widths are in the `bg:` lines of `game/src/assets.js`.
+Frame sizes, frame counts, speeds and the feet point (24, 47) follow the draft style guide (`design/STYLE_GUIDE.md`) and each example's animation table. One exception: Sammy's tail-whip strip uses wider 64×48 frames with the feet point at (32, 47), so the tail has room. Background band rows, scroll speeds and loop widths are in the `bg:` lines of `game/src/assets.js`.
 
 ### Requested art the game can't show yet
 
@@ -118,7 +118,7 @@ node tools/build.mjs
 
 This makes `game/dist/`:
 - `index.html`: the whole game in one file.
-- `BUILD_INFO.txt`: what art and sound was included, and why anything was left out.
+- `BUILD_INFO.txt`: what art and sound was included, and why anything was left out. Its first line has a 12-character code that only changes when the game itself changes, so building again with nothing new leaves `dist/` exactly as it was.
 - `CREDITS.txt`: the credit line for every included file that needs one.
 
 **License rules.** Each art or sound file needs its own row in `design/ASSET_SOURCES.csv` (a new version, like `-v02`, needs a new row). Columns:
@@ -148,7 +148,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 | Command | What it checks |
 |---|---|
 | `node --test tests/sim.test.mjs` | 38 game-rule checks (see the list below) |
-| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 20 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
+| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 22 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 
 **Game-rule checks** cover:
@@ -166,6 +166,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - art versions (the newest wins), the license rules for the build, and the scanner's PNG checks (size, colour profile, semi-transparent pixels, off-grid colours, too many colours, broken files)
 
 **Browser checks** cover:
+- the shareable copy is up to date: `dist/index.html` has the current code from `src/`, and `BUILD_INFO.txt` has the matching code. If not, it says "run node tools/build.mjs". (So after changing anything in `src/`, build before running this test.)
 - the source game and the built game each play title → level → gauntlet → clear → restart with no errors
 - real key presses through the normal game loop start the game and move Sammy
 - every screen the autopilot never reaches draws without errors: hurt, K.O., play-dead, shield, confused zombies, pause and mute

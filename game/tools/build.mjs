@@ -4,6 +4,7 @@
 // CREDITS.txt lists every copied file whose row says attribution_required "yes".
 // Nothing from assets/references/ is ever copied. Nothing is uploaded or published.
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scan } from './scan-assets.mjs';
@@ -62,8 +63,10 @@ const out = html
   .replace(/(\s*<script src="[^"]+"><\/script>)+/, () => '\n  <script>\n' + js + '\n  </script>'); // function form: no $-pattern surprises
 fs.writeFileSync(path.join(dist, 'index.html'), out);
 
+// A short hash of index.html, not the time, so rebuilding unchanged code leaves dist/ unchanged in git.
+const hash = crypto.createHash('sha256').update(out).digest('hex').slice(0, 12);
 const info = [
-  'Sammy placeholder prototype — build ' + new Date().toISOString(),
+  'Sammy placeholder prototype — code ' + hash + ' (changes only when index.html changes)',
   'Open index.html in a browser. Everything is in this folder; nothing is fetched from the internet.',
   '',
   `Art included (${artFiles.length}):`, ...artFiles.map((p) => '  ' + p),

@@ -44,7 +44,7 @@ Lines marked **Proposed (not approved)** are suggestions to react to, not decisi
 - Desired release date: TBD
 - Audio direction: TBD
   - Proposed (not approved): an FM-synth + chiptune feel (in the style of the era's YM2612 + PSG sound), delivered as OGG files (plus MP3 for older Safari) with WAV/source masters; Claude can convert WAV masters. Music loops cleanly end-to-start with no separate intro (loop points aren't supported yet).
-- Visual direction: 16-bit Genesis-era look (confirmed). The exact targets are proposed (not approved): 320×224 canvas, 8×8 tiles, 9-bit color (8 levels per channel), 4 palette lines × 15 usable colors, hard pixel edges, no semi-transparency. See `templates/STYLE_GUIDE.md`.
+- Visual direction: 16-bit Genesis-era look (confirmed). The exact targets are proposed (not approved): 320×224 canvas, 8×8 tiles, 9-bit color (8 levels per channel), 4 palette lines × 15 usable colors, hard pixel edges, no semi-transparency. See the draft style guide, `design/STYLE_GUIDE.md` (all Proposed).
 - Accessibility needs: TBD
   - Proposed (not approved): remappable keys, a reduced screen-shake option, and the option to tone down gore effects.
 

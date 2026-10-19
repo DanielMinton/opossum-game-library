@@ -3,6 +3,7 @@
 // Needs a Chromium-based browser. Set CHROME_PATH if it isn't found automatically.
 //
 // Checks:
+//  0. game/dist/ is up to date with game/src/ (fails with "run node tools/build.mjs" if not).
 //  1. game/index.html: autopilot plays title -> level -> gauntlet -> clear -> restart, with no errors.
 //  2. game/dist/index.html (run `node tools/build.mjs` first): the same.
 //  3. Real-art loading: a temporary copy of the library with generated test images (a correct run strip,
@@ -11,6 +12,7 @@
 //  4. Real-sound loading: the same copy gets two generated WAV files (a sound effect and the level music)
 //     — proves they are found, load in the browser, and play through real key presses without errors.
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -45,9 +47,6 @@ function findChrome() {
   return found.find((p) => fs.existsSync(p));
 }
 
-const chrome = findChrome();
-if (!chrome) { console.error('No Chromium-based browser found. Set CHROME_PATH.'); process.exit(2); }
-
 function runPage(file, query) {
   const url = pathToFileURL(file).href + '?' + query;
   const r = spawnSync(chrome, ['--headless', '--disable-gpu', '--no-first-run', '--virtual-time-budget=60000', '--dump-dom', url],
@@ -75,6 +74,23 @@ function wav(seconds, hz) {
 const results = [];
 function check(name, cond, detail) { results.push({ name, ok: !!cond, detail }); console.log((cond ? 'PASS ' : 'FAIL ') + name + (detail ? '  — ' + detail : '')); }
 
+// 0: dist/ is fresh (no browser needed). Every source file except asset-files.js (which the build replaces)
+// must appear unchanged in dist/index.html, and BUILD_INFO.txt must carry that file's hash.
+const distHtml = path.join(gameDir, 'dist', 'index.html');
+if (fs.existsSync(distHtml)) {
+  const built = fs.readFileSync(distHtml, 'utf8');
+  const stale = fs.readdirSync(path.join(gameDir, 'src')).filter((f) => f.endsWith('.js') && f !== 'asset-files.js')
+    .filter((f) => !built.includes(fs.readFileSync(path.join(gameDir, 'src', f), 'utf8')));
+  check('dist/index.html has the current code of every src/ file', !stale.length,
+    stale.length ? 'out of date: ' + stale.join(', ') + ' — run node tools/build.mjs' : '');
+  const info = fs.existsSync(path.join(gameDir, 'dist', 'BUILD_INFO.txt')) ? fs.readFileSync(path.join(gameDir, 'dist', 'BUILD_INFO.txt'), 'utf8') : '';
+  const hash = crypto.createHash('sha256').update(built).digest('hex').slice(0, 12);
+  check('dist/BUILD_INFO.txt names the hash of dist/index.html', info.includes('code ' + hash + ' '),
+    info.includes('code ' + hash + ' ') ? hash : 'expected ' + hash + ' — run node tools/build.mjs');
+}
+
+const chrome = findChrome();
+if (!chrome) { console.error('No Chromium-based browser found. Set CHROME_PATH.'); process.exit(2); }
 console.log('Browser: ' + chrome);
 
 // 1 + 2: source and built game
