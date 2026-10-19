@@ -1,0 +1,7 @@
+Sammy placeholder prototype — build 2026-10-19T10:08:07.410Z
+Open index.html in a browser. Everything is in this folder; nothing is fetched from the internet.
+
+Art included (0):
+Art left out (0):
+
+Placeholder shapes and code-generated beeps are used for everything not included.

@@ -1,0 +1,46 @@
+# Template examples
+
+> **EXAMPLE ONLY — not a real asset. No files listed here exist yet.** Copy into assets/<category>/<asset-id>/ and replace with your real details.
+
+This README is the index of the examples folder; it is itself not an asset.
+
+These are **filled-in examples** of the templates in `templates/`, written for Sammy's Central Park game. They show what "good enough" metadata looks like so you can copy the pattern. All details (sizes, frame counts, ability names, enemy types, level names) are **Proposed / Example** — not decisions, and not real assets.
+
+For what to send first, see `design/ASSET_REQUEST_CHECKLIST.md`.
+
+## What each example demonstrates
+
+| Example folder | Template(s) shown | Demonstrates |
+|---|---|---|
+| `character-sammy/` | `ASSET.md` | The player character: 48×48 frame cells, feet baseline (24, 47), facing right, one strip per animation with frame counts, fps, loop/one-shot, hit frames |
+| `enemy-zombie-jogger/` | `ASSET.md` | The main enemy example: walk/attack/hit-react/comedic defeat strips plus behavior values (speed, damage, how it notices Sammy) |
+| `enemy-zombie-hot-dog-vendor/` | `ASSET.md` | A brief second enemy — how little you need to write when it reuses the first enemy's layout |
+| `prop-hot-dog-cart/` | `ASSET.md` + `INTERACTION.md` | An interactive object with every visual state and the transitions between them |
+| `item-powerup-trash-lid-shield/` | `ASSET.md` + `ABILITY.md` | A power-up: pickup sprite, "active" look, HUD icon, duration and how it ends |
+| `ability-play-possum/` | `ABILITY.md` | The proposed signature ability (play dead → nearby zombies lose track of Sammy) — rules, timing, cooldown, feedback |
+| `environment-central-park-tileset/` | `ASSET.md` | An 8×8 / 16×16 tileset with collision notes and a parallax background band list |
+| `audio/` | `AUDIO.md` | A looping music track (`music-level-01-central-park`) with loop points, and a core SFX set |
+| `level-01-sheep-meadow/` | `LEVEL.md` | The Central Park wake-up level: start, enemy/prop/item placement, goal, failure/restart |
+
+New blank templates used by these examples: `templates/STYLE_GUIDE.md`, `templates/LEVEL.md`, `templates/ABILITY.md` (alongside the original `ASSET.md`, `INTERACTION.md`, `AUDIO.md`).
+
+## The banner rule
+
+Every file in this folder starts with this line right after its title:
+
+> **EXAMPLE ONLY — not a real asset. No files listed here exist yet.** Copy into assets/<category>/<asset-id>/ and replace with your real details.
+
+Any filename mentioned in an example is marked "(planned — not yet supplied)" or listed under a section clearly titled as planned files. This keeps Claude Code from mistaking an example for real inventory.
+
+## How to use an example for a real asset
+
+1. **Copy** the example folder into the matching `assets/` category, e.g. `templates/examples/prop-hot-dog-cart/` → `assets/props/prop-hot-dog-cart/`.
+   - **Exception:** `LEVEL.md` and `ABILITY.md` files never go in `assets/`. Copy them to `design/levels/<level-id>.md` and `design/abilities/<ability-id>.md` (so `level-01-sheep-meadow/` and `ability-play-possum/` go entirely to `design/`, and the trash lid's `ABILITY.md` goes to `design/abilities/item-powerup-trash-lid-shield.md` while its `ASSET.md` goes to `assets/items/`). Only art-bearing `ASSET.md`, `INTERACTION.md` and `AUDIO.md` files go in `assets/`.
+2. **Rename** the folder to your real asset ID if it differs (lowercase kebab-case, e.g. `prop-park-bench`).
+3. **Replace every planned file** with your real files (PNG, WAV, etc.), and update every number, name, and description to match what you actually made. Unknowns stay `TBD`.
+4. **Delete the EXAMPLE banner line** — only after the real files are in the folder.
+5. Add a row per file to `design/ASSET_SOURCES.csv` (creator, source, license).
+
+## Warning
+
+**Never leave an example inside `assets/`.** Claude Code reads every `ASSET.md` and `INTERACTION.md` under `assets/` as real inventory. An unedited example there would be recorded as a real asset with files that don't exist. If you copy one in and don't finish it, move it back out or delete it.

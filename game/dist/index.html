@@ -1,0 +1,1794 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sammy (placeholder prototype)</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; }
+    body { display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+    #test-result { position: absolute; left: 0; top: 0; margin: 0; color: #0f0; font: 10px monospace; white-space: pre-wrap; max-width: 100%; }
+  </style>
+</head>
+<body>
+  <canvas id="screen" width="320" height="224" aria-label="Sammy game screen"></canvas>
+  <pre id="test-result"></pre>
+  <noscript style="color:#fff">This game needs JavaScript.</noscript>
+  <script>
+globalThis.SAMMY_ASSET_BASE = 'assets/';
+
+// ---- src/config.js ----
+// Tuning values for the placeholder prototype.
+// Every number comes from the example docs in templates/examples/ (all PROPOSED, not approved).
+// Change values here, not inside the game code.
+(function (S) {
+  S.CONFIG = {
+    screenW: 320,              // Genesis H40 mode width
+    screenH: 224,
+    step: 1 / 60,              // fixed simulation step (seconds)
+    groundY: 192,              // top of the grass in level 1
+
+    gravity: 900,              // px/s^2
+    maxFall: 320,
+
+    sammy: {
+      maxHp: 3,
+      runSpeed: 110,           // faster than a chasing jogger (60)
+      accel: 900,
+      decel: 1400,
+      jumpSpeed: 330,          // ~60 px jump height
+      jumpCutSpeed: 120,       // releasing jump early cuts the jump
+      coyoteTime: 0.08,
+      jumpBuffer: 0.1,
+      bodyW: 20, bodyH: 30,    // character-sammy ASSET.md
+      deadW: 28, deadH: 14,    // body box while playing dead
+      invulnTime: 1.0,
+      hurtTime: 0.2,           // hurt strip: 2 frames @ 10 fps
+      hurtKnockX: 120, hurtKnockY: 150,
+      attackTime: 4 / 15,      // tail-whip: 4 frames @ 15 fps
+      attackHitStart: 2 / 15,  // hit frame = 2
+      attackHitEnd: 3 / 15,
+      whipW: 20, whipH: 12,
+      landTime: 2 / 15,
+      koTime: 0.6,             // ko strip: 6 frames @ 10 fps
+      koWait: 1.0,             // pause before checkpoint restart
+    },
+
+    possum: {                  // ability-play-possum ABILITY.md
+      radius: 96,
+      maxTime: 3.0,
+      minTime: 0.5,
+      dropTime: 0.5,           // play-dead strip: 4 frames @ 8 fps
+      getUpTime: 0.25,
+      cooldown: 6.0,
+      ignoreAfter: 1.5,        // prototype addition: zombies ignore Sammy briefly after he gets up
+    },
+
+    jogger: {                  // enemy-zombie-jogger ASSET.md
+      hp: 2,
+      patrolSpeed: 30,
+      chaseSpeed: 60,
+      patrolRange: 64,
+      notice: 96,
+      giveUpDist: 160,
+      giveUpTime: 2.0,
+      attackRange: 26,
+      attackTime: 0.4,         // 4 frames @ 10 fps
+      attackHitStart: 0.2,     // hit frame = 2
+      attackHitEnd: 0.3,
+      attackCooldown: 1.2,
+      hitW: 16, hitH: 20,
+      bodyW: 18, bodyH: 38,
+      hitReactTime: 2 / 12,
+      defeatTime: 8 / 12,
+    },
+
+    vendor: {                  // enemy-zombie-hot-dog-vendor ASSET.md
+      hp: 2,
+      notice: 160,
+      throwEvery: 2.0,
+      throwTime: 0.4,
+      releaseAt: 0.2,          // release frame = 2
+      bodyW: 20, bodyH: 36,
+      hitReactTime: 2 / 12,
+      defeatTime: 6 / 12,
+      projW: 10, projH: 6,
+      projFlight: 0.9,
+      projGravity: 500,
+      projLife: 3.0,
+    },
+
+    cart: {                    // prop-hot-dog-cart INTERACTION.md
+      w: 64, h: 48,
+      rockWindow: 1.5,
+      tipTime: 0.25,           // 3 frames @ 12 fps
+      spillCount: 3,
+      knockRadius: 48,
+      hotDogLife: 10.0,
+    },
+
+    lid: { hits: 3 },          // item-powerup-trash-lid-shield ABILITY.md
+
+    gauntlet: { waves: [2, 3, 4], waveDelay: 1.0 },
+  };
+
+  // 9-bit colour: each channel snapped to 0,36,72,...,252 (templates/STYLE_GUIDE.md)
+  S.PAL = {
+    black: '#000000', white: '#fcfcfc', grey: '#909090', dark: '#242424',
+    sky0: '#244890', sky1: '#486cb4', sky2: '#9090d8', sky3: '#d8b4b4', sky4: '#fcd8b4',
+    skyline: '#48486c', trees: '#246c48', bushes: '#249048',
+    grass: '#48b424', dirt: '#906c24', dirtDark: '#6c4824',
+    water: '#246cd8', waterHi: '#90b4fc',
+    sammy: '#d8d8d8', sammyDark: '#909090', nose: '#fc90b4',
+    jogger: '#6cb46c', joggerDark: '#246c24', band: '#fc24fc',
+    vendor: '#b4b46c', vendorDark: '#6c6c24', hat: '#fcfcfc',
+    cart: '#d82424', cartDark: '#902424', umbrella: '#fcd824',
+    hotdog: '#fcb424', mustard: '#fcfc24',
+    lid: '#909090', lidHi: '#d8d8d8',
+    bench: '#906c24', rock: '#6c6c6c', fence: '#6c4824', pole: '#242424', lamp: '#fcfc90', lampOff: '#6c6c48',
+    heart: '#fc2424', gate: '#484848', hud: '#000024',
+  };
+})(globalThis.SAMMY = globalThis.SAMMY || {});
+
+// ---- src/font.js ----
+// Tiny 3x5 pixel font drawn with fillRect, so text stays crisp when the screen is scaled up.
+// PLACEHOLDER: replace with the 8x8 font sheet described in templates/STYLE_GUIDE.md.
+(function (S) {
+  const RAW = {
+    A: '.#.|#.#|###|#.#|#.#', B: '##.|#.#|##.|#.#|##.', C: '.##|#..|#..|#..|.##', D: '##.|#.#|#.#|#.#|##.',
+    E: '###|#..|##.|#..|###', F: '###|#..|##.|#..|#..', G: '.##|#..|#.#|#.#|.##', H: '#.#|#.#|###|#.#|#.#',
+    I: '###|.#.|.#.|.#.|###', J: '..#|..#|..#|#.#|.#.', K: '#.#|#.#|##.|#.#|#.#', L: '#..|#..|#..|#..|###',
+    M: '#.#|###|###|#.#|#.#', N: '##.|#.#|#.#|#.#|#.#', O: '.#.|#.#|#.#|#.#|.#.', P: '##.|#.#|##.|#..|#..',
+    Q: '.#.|#.#|#.#|##.|.##', R: '##.|#.#|##.|#.#|#.#', S: '.##|#..|.#.|..#|##.', T: '###|.#.|.#.|.#.|.#.',
+    U: '#.#|#.#|#.#|#.#|###', V: '#.#|#.#|#.#|#.#|.#.', W: '#.#|#.#|###|###|#.#', X: '#.#|#.#|.#.|#.#|#.#',
+    Y: '#.#|#.#|.#.|.#.|.#.', Z: '###|..#|.#.|#..|###',
+    0: '###|#.#|#.#|#.#|###', 1: '.#.|##.|.#.|.#.|###', 2: '##.|..#|.#.|#..|###', 3: '##.|..#|.#.|..#|##.',
+    4: '#.#|#.#|###|..#|..#', 5: '###|#..|##.|..#|##.', 6: '.##|#..|###|#.#|###', 7: '###|..#|.#.|.#.|.#.',
+    8: '###|#.#|###|#.#|###', 9: '###|#.#|###|..#|##.',
+    '.': '...|...|...|...|.#.', ',': '...|...|...|.#.|#..', '!': '.#.|.#.|.#.|...|.#.', '?': '##.|..#|.#.|...|.#.',
+    ':': '...|.#.|...|.#.|...', '-': '...|...|###|...|...', '+': '...|.#.|###|.#.|...', '/': '..#|..#|.#.|#..|#..',
+    "'": '.#.|.#.|...|...|...', '(': '.#.|#..|#..|#..|.#.', ')': '.#.|..#|..#|..#|.#.', '*': '...|#.#|.#.|#.#|...',
+    '=': '...|###|...|###|...', '>': '#..|.#.|..#|.#.|#..', '<': '..#|.#.|#..|.#.|..#', '%': '#.#|..#|.#.|#..|#.#',
+    '"': '#.#|#.#|...|...|...', '#': '#.#|###|#.#|###|#.#', ' ': '...|...|...|...|...', '_': '...|...|...|...|###',
+  };
+  const GLYPHS = {};
+  for (const k in RAW) GLYPHS[k] = RAW[k].split('|');
+
+  // Draw text at (x, y) top-left. scale = whole-number size multiplier.
+  S.drawText = function (ctx, text, x, y, color, scale, shadow) {
+    scale = scale || 1;
+    const str = String(text).toUpperCase();
+    if (shadow) S.drawText(ctx, str, x + 1, y + 1, shadow, scale, null);
+    ctx.fillStyle = color;
+    let cx = x;
+    for (const ch of str) {
+      const g = GLYPHS[ch] || GLYPHS['?'];
+      for (let r = 0; r < 5; r++) for (let c = 0; c < 3; c++) if (g[r][c] === '#') ctx.fillRect(cx + c * scale, y + r * scale, scale, scale);
+      cx += 4 * scale;
+    }
+  };
+  S.textWidth = function (text, scale) { return String(text).length * 4 * (scale || 1) - (scale || 1); };
+  S.drawTextCentered = function (ctx, text, cx, y, color, scale, shadow) {
+    S.drawText(ctx, text, Math.round(cx - S.textWidth(text, scale) / 2), y, color, scale, shadow);
+  };
+})(globalThis.SAMMY = globalThis.SAMMY || {});
+
+// ---- src/level.js ----
+// Level 1 layout, from templates/examples/level-01-sheep-meadow/LEVEL.md (PROPOSED).
+// Coordinates are in pixels. x = left→right, y = down. Feet stand at y = 192 on the grass.
+// Characters and pickups use x = centre, y = bottom (feet).
+// One screen is 320 px wide; screen n starts at x = (n - 1) * 320.
+(function (S) {
+  const G = 192;
+  S.LEVEL1 = {
+    id: 'level-01-sheep-meadow',
+    name: 'SHEEP MEADOW',
+    width: 3840,
+    start: { x: 48, y: G },
+
+    // Solid ground. The gap between the two pieces is the pond (screen 8).
+    ground: [ { x0: 0, x1: 2344 }, { x0: 2424, x1: 3840 } ],
+    water: [ { x0: 2344, x1: 2424, y: 198 } ],
+
+    // Solid blocks: rocks and fences. x/y = top-left corner.
+    solids: [
+      { kind: 'rock',  x: 720,  y: 176, w: 32, h: 16 },
+      { kind: 'rock',  x: 872,  y: 176, w: 32, h: 16 },
+      { kind: 'fence', x: 1580, y: 168, w: 8,  h: 24 },
+      { kind: 'rock',  x: 2960, y: 176, w: 32, h: 16 },
+      { kind: 'fence', x: 3100, y: 168, w: 8,  h: 24 },
+      { kind: 'fence', x: 3260, y: 168, w: 8,  h: 24 },
+    ],
+
+    // One-way platforms: Sammy can jump up through them and land on top.
+    platforms: [
+      { kind: 'bench', x: 420,  y: 172, w: 32 },
+      { kind: 'lamp',  x: 1352, y: 140, w: 24 },
+      { kind: 'lamp',  x: 1492, y: 140, w: 24 },
+      { kind: 'bench', x: 2368, y: 172, w: 32 },   // bench over the pond
+      { kind: 'lamp',  x: 3352, y: 140, w: 24 },
+    ],
+
+    checkpoints: [ { id: 'C1', x: 1264 }, { id: 'C2', x: 2576 } ],
+
+    enemies: [
+      { type: 'jogger', x: 540 },                                         // screen 2: first zombie
+      { type: 'jogger', x: 780 }, { type: 'jogger', x: 940 },             // screen 3
+      { type: 'jogger', x: 1180 },                                        // screen 4: guards the lid
+      { type: 'jogger', x: 1420 }, { type: 'jogger', x: 1540 },           // screen 5
+      { type: 'vendor', x: 1800 },                                        // screen 6: behind the cart
+      { type: 'jogger', x: 2080 }, { type: 'jogger', x: 2112 }, { type: 'jogger', x: 2144 }, // screen 7
+      { type: 'jogger', x: 2290 }, { type: 'jogger', x: 2490 },           // screen 8: pond edges
+      { type: 'jogger', x: 2930 }, { type: 'jogger', x: 3040 }, { type: 'jogger', x: 3160 }, // screen 10
+    ],
+
+    carts: [ { x: 1688 } ],                  // screen 6; x = left edge, 64 px wide
+
+    pickups: [
+      { type: 'lid',    x: 1120, y: 172 },   // screen 4
+      { type: 'hotdog', x: 1504, y: 140 },   // secret: on top of the screen-5 lamp
+      { type: 'lid',    x: 2700, y: 172 },   // optional second lid (TBD in LEVEL.md)
+      { type: 'hotdog', x: 3364, y: 140 },   // screen 11 lamp top, before the arena (prototype addition)
+    ],
+
+    // Gauntlet arena = last screen. Camera locks; fences block both sides.
+    arena: { x0: 3520, x1: 3840, trigger: 3560, gateX: 3800, gateW: 24, exitX: 3820 },
+
+    // On-screen tutorial prompts by x range (screen-by-screen beats in LEVEL.md).
+    prompts: [
+      { x0: 0,    x1: 300,  text: 'ARROWS: MOVE   Z: JUMP' },
+      { x0: 340,  x1: 660,  text: 'X: TAIL-WHIP' },
+      { x0: 1060, x1: 1160, text: 'GRAB THE TRASH LID: BLOCKS 3 HITS' },
+      { x0: 1620, x1: 1760, text: 'WHIP THE CART!' },
+      { x0: 1920, x1: 2080, text: 'C: PLAY POSSUM - ZOMBIES LOSE TRACK OF YOU' },
+      { x0: 3380, x1: 3520, text: 'THE PARK EXIT IS AHEAD...' },
+    ],
+  };
+})(globalThis.SAMMY = globalThis.SAMMY || {});
+
+// ---- src/assets.js ----
+// Art the game will use as soon as it exists.
+// File names and frame specs come from the planned-file lists in templates/examples/.
+// Paths are relative to the library's assets/ folder. Missing files are drawn as labeled placeholders.
+//
+// The game only loads files listed in src/asset-files.js (made by `node tools/scan-assets.mjs`),
+// so missing art never causes browser errors. Add ?probe=1 to the URL to try every file anyway.
+(function (S) {
+  const strip = (key, path, frames, fps, loop, extra) =>
+    Object.assign({ key, path, fw: 48, fh: 48, frames, fps, loop, px: 24, py: 47, feet: true }, extra || {});
+  const SAM = 'characters/character-sammy/';
+  const JOG = 'enemies/enemy-zombie-jogger/';
+  const VEN = 'enemies/enemy-zombie-hot-dog-vendor/';
+  const CART = 'props/prop-hot-dog-cart/';
+  const LID = 'items/item-powerup-trash-lid-shield/';
+  const ENV = 'environments/environment-central-park-tileset/';
+  const cart = { fw: 64, fh: 48, px: 32, py: 47 };
+  const small = { fw: 16, fh: 16, px: 8, py: 15 };
+  const mid = { fw: 16, fh: 16, px: 8, py: 8, feet: false };
+
+  S.ASSET_MANIFEST = [
+    strip('sammy:idle', SAM + 'sammy-idle-strip-v01.png', 4, 6, 'loop'),
+    strip('sammy:run', SAM + 'sammy-run-strip-v01.png', 8, 12, 'loop'),
+    strip('sammy:jump-rise', SAM + 'sammy-jump-rise-strip-v01.png', 2, 10, 'hold'),
+    strip('sammy:fall', SAM + 'sammy-fall-strip-v01.png', 2, 10, 'loop'),
+    strip('sammy:land', SAM + 'sammy-land-strip-v01.png', 2, 15, 'once'),
+    strip('sammy:tail-whip', SAM + 'sammy-tail-whip-strip-v01.png', 4, 15, 'once'),
+    strip('sammy:hurt', SAM + 'sammy-hurt-strip-v01.png', 2, 10, 'once'),
+    strip('sammy:play-dead', SAM + 'sammy-play-dead-strip-v01.png', 4, 8, 'hold'),
+    strip('sammy:ko', SAM + 'sammy-ko-strip-v01.png', 6, 10, 'once'),
+    strip('sammy:victory', SAM + 'sammy-victory-strip-v01.png', 4, 8, 'loop'),
+
+    strip('jogger:walk', JOG + 'zombie-jogger-walk-strip-v01.png', 6, 8, 'loop'),
+    strip('jogger:attack', JOG + 'zombie-jogger-attack-strip-v01.png', 4, 10, 'once'),
+    strip('jogger:hit', JOG + 'zombie-jogger-hit-strip-v01.png', 2, 12, 'once'),
+    strip('jogger:defeat', JOG + 'zombie-jogger-defeat-strip-v01.png', 8, 12, 'once'),
+    strip('jogger:idle', JOG + 'zombie-jogger-idle-strip-v01.png', 4, 6, 'loop'),
+
+    strip('vendor:idle', VEN + 'zombie-vendor-idle-strip-v01.png', 4, 6, 'loop'),
+    strip('vendor:throw', VEN + 'zombie-vendor-throw-strip-v01.png', 4, 10, 'once'),
+    strip('vendor:hit', VEN + 'zombie-vendor-hit-strip-v01.png', 2, 12, 'once'),
+    strip('vendor:defeat', VEN + 'zombie-vendor-defeat-strip-v01.png', 6, 12, 'once'),
+    strip('projectile:hotdog', VEN + 'hot-dog-projectile-strip-v01.png', 4, 12, 'loop', mid),
+    strip('effect:splat', VEN + 'hot-dog-splat-strip-v01.png', 4, 15, 'once', mid),
+
+    strip('cart:upright', CART + 'hot-dog-cart-upright-v01.png', 1, 1, 'hold', cart),
+    strip('cart:rocking', CART + 'hot-dog-cart-rocking-strip-v01.png', 3, 12, 'loop', cart),
+    strip('cart:tipping', CART + 'hot-dog-cart-tipping-strip-v01.png', 3, 12, 'once', cart),
+    strip('cart:tipped-over', CART + 'hot-dog-cart-tipped-over-v01.png', 1, 1, 'hold', cart),
+    strip('cart:empty', CART + 'hot-dog-cart-empty-v01.png', 1, 1, 'hold', cart),
+    strip('pickup:hotdog', CART + 'hot-dog-pickup-strip-v01.png', 4, 8, 'loop', small),
+
+    strip('pickup:lid', LID + 'trash-lid-pickup-strip-v01.png', 4, 8, 'loop', small),
+    strip('overlay:lid', LID + 'trash-lid-held-overlay-strip-v01.png', 3, 1, 'frame', mid),
+    strip('hud:lid', LID + 'hud-icon-trash-lid-v01.png', 1, 1, 'hold', { fw: 16, fh: 16, px: 0, py: 0, feet: false }),
+
+    strip('bg:sky', ENV + 'central-park-bg-sky-v01.png', 1, 1, 'hold', { fw: 320, fh: 224, px: 0, py: 0, feet: false }),
+    strip('bg:skyline', ENV + 'central-park-bg-skyline-v01.png', 1, 1, 'hold', { fw: 512, fh: 64, px: 0, py: 0, feet: false }),
+    strip('bg:treeline', ENV + 'central-park-bg-treeline-v01.png', 1, 1, 'hold', { fw: 512, fh: 32, px: 0, py: 0, feet: false }),
+    strip('bg:bushes', ENV + 'central-park-bg-bushes-v01.png', 1, 1, 'hold', { fw: 512, fh: 32, px: 0, py: 0, feet: false }),
+  ];
+  // Not wired yet: central-park-tiles-v01.png needs a tile map (which metatile goes where) before it can be drawn.
+
+  S.images = {};
+  S.assetReport = { expected: S.ASSET_MANIFEST.length, tried: 0, loaded: [], failed: [], warnings: [], base: '' };
+
+  S.loadAssets = function (opts, done) {
+    const base = opts.base;
+    const present = new Set(S.PRESENT_ASSET_FILES || []);
+    const list = S.ASSET_MANIFEST.filter((m) => opts.probe || present.has(m.path));
+    const R = S.assetReport;
+    R.base = base; R.tried = list.length;
+    if (!list.length || typeof Image === 'undefined') { done(R); return; }
+    let left = list.length;
+    const finish = () => { left -= 1; if (left === 0) done(R); };
+    for (const m of list) {
+      const img = new Image();
+      img.onload = () => {
+        const wantW = m.fw * m.frames, wantH = m.fh;
+        if (img.width !== wantW || img.height !== wantH) {
+          R.warnings.push(m.path + ': expected ' + wantW + 'x' + wantH + ' px, got ' + img.width + 'x' + img.height);
+        }
+        S.images[m.key] = Object.assign({ img }, m);
+        R.loaded.push(m.path);
+        finish();
+      };
+      img.onerror = () => { R.failed.push(m.path); finish(); };
+      img.src = base + m.path;
+    }
+  };
+
+  // Which frame of a strip to show after `t` seconds.
+  S.frameAt = function (m, t, reverse) {
+    let f = Math.floor(t * m.fps);
+    if (m.loop === 'loop') f = f % m.frames;
+    else f = Math.min(f, m.frames - 1);
+    if (reverse) f = m.frames - 1 - f;
+    return Math.max(0, f);
+  };
+})(globalThis.SAMMY = globalThis.SAMMY || {});
+
+// ---- src/asset-files.js ----
+(function (S) { S.PRESENT_ASSET_FILES = []; })(globalThis.SAMMY = globalThis.SAMMY || {});
+
+// ---- src/sim.js ----
+// Game rules for the Sammy prototype. No drawing, no browser APIs: it runs the same in Node tests.
+// One call to SAMMY.update(state, input) advances the game by one fixed 1/60 s step.
+// Sounds and music are requested by pushing { type, id } objects onto state.events.
+(function (S) {
+  const C = S.CONFIG;
+  const P = C.sammy;
+  const DT = C.step;
+  const G = C.groundY;
+
+  // ---------- small helpers ----------
+  const sign = (v) => (v > 0 ? 1 : v < 0 ? -1 : 0);
+  const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
+  function overlap(a, b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+  function footBox(e, w, h) { return { x: e.x - w / 2, y: e.y - h, w, h }; }
+  function playerBox(p) {
+    const dead = p.state === 'playdead' || p.state === 'getup' || p.state === 'ko';
+    return dead ? footBox(p, P.deadW, P.deadH) : footBox(p, P.bodyW, P.bodyH);
+  }
+  function setAnim(e, name) { if (e.anim !== name) { e.anim = name; e.animT = 0; } }
+  function sfx(s, id) { s.events.push({ type: 'sfx', id }); }
+  function music(s, id) { s.events.push({ type: 'music', id }); }
+  function effect(s, kind, x, y, life, extra) {
+    s.effects.push(Object.assign({ kind, x, y, t: 0, life }, extra || {}));
+  }
+
+  S.makeInput = function () {
+    return {
+      held: { left: false, right: false, up: false, down: false, jump: false, attack: false, possum: false },
+      pressed: { left: false, right: false, jump: false, attack: false, possum: false, start: false, restart: false },
+    };
+  };
+
+  // ---------- creating things ----------
+  function makePlayer(x, y) {
+    return {
+      x, y, vx: 0, vy: 0, face: 1, grounded: true, groundKind: 'ground',
+      hp: P.maxHp, shield: 0, state: 'normal', t: 0, invuln: 0,
+      coyote: 0, buffer: 0, landT: 0, possumCd: 0, hitSet: null,
+      anim: 'idle', animT: 0,
+    };
+  }
+  function makeEnemy(def, idx, extra) {
+    const isVendor = def.type === 'vendor';
+    const k = isVendor ? C.vendor : C.jogger;
+    return Object.assign({
+      id: (extra && extra.id) || ('e' + idx), type: def.type, def,
+      x: def.x, y: def.y != null ? def.y : G, vx: 0, vy: 0, face: -1, dir: -1,
+      grounded: true, hp: k.hp, state: isVendor ? 'idle' : 'patrol', t: 0,
+      home: def.x, cd: 0, lostT: 0, throwT: 0.5, released: false, attackHit: false,
+      confused: false, arena: false, anim: isVendor ? 'idle' : 'walk', animT: 0,
+    }, extra || {});
+  }
+  function makeCart(def, idx) {
+    return { id: 'cart' + idx, def, x: def.x, state: 'upright', t: 0, anim: 'upright', animT: 0, spill: [] };
+  }
+  function makePickup(def, idx) {
+    return { id: 'pk' + idx, type: def.type, def, x: def.x, y: def.y, vx: 0, vy: 0,
+      collected: false, spilled: false, landed: true, life: 0, t: 0 };
+  }
+
+  S.newGame = function (level) {
+    const s = { level: level || S.LEVEL1, mode: 'title', t: 0, events: [], effects: [], god: false };
+    resetLevel(s);
+    return s;
+  };
+
+  function resetLevel(s) {
+    const L = s.level;
+    s.player = makePlayer(L.start.x, L.start.y);
+    s.enemies = L.enemies.map((d, i) => makeEnemy(d, i));
+    s.carts = L.carts.map((d, i) => makeCart(d, i));
+    s.pickups = L.pickups.map((d, i) => makePickup(d, i));
+    s.projectiles = [];
+    s.effects = [];
+    s.cps = L.checkpoints.map((c) => ({ id: c.id, x: c.x, active: false }));
+    s.checkpoint = { id: 'START', x: L.start.x };
+    s.arena = { state: 'idle', wave: -1, timer: 0, spawnCount: 0 };
+    s.cam = { x: 0 };
+    s.stats = { time: 0, defeated: 0, hotdogs: 0, hits: 0, kos: 0 };
+    s.lastSafeX = L.start.x;
+    s.shake = 0;
+    s.clearT = 0;
+    s.nextId = 1000;
+  }
+  S.resetLevel = resetLevel;
+
+  // ---------- world collision ----------
+  function arenaLocked(s) { return s.arena.state === 'fight' || s.arena.state === 'open'; }
+
+  function getSolids(s) {
+    const L = s.level;
+    const out = [];
+    for (const g of L.ground) out.push({ kind: 'ground', x: g.x0, y: G, w: g.x1 - g.x0, h: 64 });
+    for (const b of L.solids) out.push(b);
+    out.push({ kind: 'wall', x: -16, y: -400, w: 16, h: 700 });
+    out.push({ kind: 'wall', x: L.width, y: -400, w: 16, h: 700 });
+    for (const c of s.carts) {
+      const b = cartBody(c);
+      if (b) out.push(b);
+    }
+    const A = L.arena;
+    if (arenaLocked(s)) out.push({ kind: 'arena-wall', x: A.x0, y: -400, w: 8, h: 600 });
+    if (s.arena.state !== 'open') out.push({ kind: 'gate', x: A.gateX, y: -400, w: A.gateW, h: 400 + G });
+    return out;
+  }
+  function getPlatforms(s) {
+    const out = s.level.platforms.slice();
+    for (const c of s.carts) if (c.state === 'upright') out.push({ kind: 'umbrella', x: c.x, y: G - C.cart.h, w: C.cart.w });
+    return out;
+  }
+  function cartBody(c) {
+    if (c.state === 'upright' || c.state === 'rocking') return { kind: 'cart', x: c.x + 4, y: G - 28, w: 56, h: 28 };
+    if (c.state === 'tipped' || c.state === 'empty') return { kind: 'cart', x: c.x - 8, y: G - 16, w: 80, h: 16 };
+    return null; // tipping: no collision while falling
+  }
+
+  // Is there ground or a platform directly under the point (x, y)?
+  function isSupported(s, x, y) {
+    for (const b of getSolids(s)) if (x > b.x && x < b.x + b.w && y + 1 > b.y && y + 1 < b.y + b.h && Math.abs(b.y - y) < 2) return true;
+    for (const p of getPlatforms(s)) if (x > p.x && x < p.x + p.w && Math.abs(p.y - y) < 2) return true;
+    return false;
+  }
+  S.isSupported = isSupported;
+
+  // Move a body (feet at e.x, e.y) with gravity and collide with the world.
+  function moveBody(s, e, w, h) {
+    const solids = getSolids(s);
+    e.blocked = false;
+    // horizontal
+    e.x += e.vx * DT;
+    let box = footBox(e, w, h);
+    for (const b of solids) {
+      if (!overlap(box, b)) continue;
+      if (b.kind === 'ground' && box.y + box.h - b.y < 4) continue;
+      const mid = b.x + b.w / 2;
+      if (e.x < mid) e.x = b.x - w / 2; else e.x = b.x + b.w + w / 2;
+      e.vx = 0; e.blocked = true;
+      box = footBox(e, w, h);
+    }
+    // vertical
+    const wasGrounded = e.grounded;
+    e.vy = Math.min(e.vy + C.gravity * DT, C.maxFall);
+    const prevY = e.y;
+    e.y += e.vy * DT;
+    e.grounded = false;
+    box = footBox(e, w, h);
+    for (const b of solids) {
+      if (!overlap(box, b)) continue;
+      if (e.vy >= 0 && prevY <= b.y + 4) { e.y = b.y; e.grounded = true; e.groundKind = b.kind; }
+      else if (e.vy < 0) { e.y = b.y + b.h + h; }
+      e.vy = 0;
+      box = footBox(e, w, h);
+    }
+    if (e.vy >= 0 && !e.grounded) {
+      for (const p of getPlatforms(s)) {
+        if (prevY <= p.y + 0.01 && e.y >= p.y && e.x + w / 2 > p.x && e.x - w / 2 < p.x + p.w) {
+          e.y = p.y; e.vy = 0; e.grounded = true; e.groundKind = p.kind;
+        }
+      }
+    }
+    return wasGrounded;
+  }
+
+  // ---------- damage ----------
+  function hurtPlayer(s, opts) {
+    const p = s.player;
+    if (p.state === 'ko' || s.mode !== 'playing') return false;
+    if (s.god) return false;
+    if (p.invuln > 0) return false;
+    if (!opts.hazard && p.shield > 0) {
+      p.shield -= 1;
+      p.invuln = 0.3;
+      sfx(s, p.shield > 0 ? 'sfx-shield-block' : 'sfx-shield-break');
+      effect(s, 'spark', p.x + p.face * 10, p.y - 18, 0.2);
+      if (opts.source && opts.source.type === 'jogger') opts.source.x += sign(opts.source.x - p.x) * 16;
+      return 'blocked';
+    }
+    if (p.state === 'playdead' || p.state === 'getup') p.possumCd = C.possum.cooldown;
+    p.hp -= 1;
+    s.stats.hits += 1;
+    sfx(s, 'sfx-hurt');
+    releaseConfused(s);
+    if (p.hp <= 0) {
+      p.hp = 0; p.state = 'ko'; p.t = 0; p.vx = 0; p.shield = 0;
+      s.stats.kos += 1;
+      sfx(s, 'sfx-ko');
+      music(s, 'stop');
+      return 'ko';
+    }
+    p.state = 'hurt'; p.t = 0; p.invuln = P.invulnTime;
+    if (!opts.hazard) {
+      const dir = opts.fromX != null ? (sign(p.x - opts.fromX) || -p.face) : -p.face;
+      p.vx = dir * P.hurtKnockX; p.vy = -P.hurtKnockY; p.grounded = false;
+    }
+    return 'hurt';
+  }
+  S.hurtPlayer = hurtPlayer;
+
+  function damageEnemy(s, e, fromX) {
+    if (e.state === 'defeat' || e.state === 'dead') return;
+    e.hp -= 1;
+    sfx(s, 'sfx-hit-zombie');
+    effect(s, 'spark', e.x, e.y - 24, 0.15);
+    if (e.hp <= 0) {
+      e.state = 'defeat'; e.t = 0; e.vx = 0; e.confused = false;
+      s.stats.defeated += 1;
+      sfx(s, 'sfx-zombie-defeat-comedic');
+      return;
+    }
+    e.state = 'hitreact'; e.t = 0;
+    e.vx = e.type === 'jogger' ? sign(e.x - fromX) * 120 : 0;
+  }
+
+  function releaseConfused(s) {
+    for (const e of s.enemies) {
+      if (!e.confused) continue;
+      e.confused = false;
+      if (e.state === 'confused') { e.state = 'patrol'; e.home = e.x; e.t = 0; }
+      e.ignoreT = C.possum.ignoreAfter; // lost interest: won't re-notice Sammy straight away
+      if (e.state === 'shrug') { e.state = 'idle'; e.t = 0; }
+    }
+  }
+
+  // ---------- player ----------
+  function anyPressed(inp) {
+    const q = inp.pressed;
+    return q.jump || q.attack || q.possum || q.left || q.right;
+  }
+
+  function startPossum(s) {
+    const p = s.player;
+    p.state = 'playdead'; p.t = 0; p.vx = 0;
+    sfx(s, 'sfx-play-dead');
+    for (const e of s.enemies) {
+      if (e.state === 'defeat' || e.state === 'dead') continue;
+      if (Math.abs(e.x - p.x) <= C.possum.radius && Math.abs(e.y - p.y) < 48) {
+        e.confused = true;
+        if (e.type === 'jogger' && e.state !== 'attack' && e.state !== 'hitreact') { e.state = 'confused'; e.t = 0; e.vx = 0; }
+        if (e.type === 'vendor' && e.state !== 'hitreact') { e.state = 'shrug'; e.t = 0; }
+      }
+    }
+  }
+
+  function updatePlayer(s, inp) {
+    const p = s.player;
+    p.invuln = Math.max(0, p.invuln - DT);
+    p.possumCd = Math.max(0, p.possumCd - DT);
+    p.landT = Math.max(0, p.landT - DT);
+    p.t += DT;
+
+    if (p.state === 'ko') {
+      p.vx = 0;
+      moveBody(s, p, P.deadW, P.deadH);
+      if (p.t >= P.koTime + P.koWait) respawn(s);
+      return;
+    }
+
+    const h = inp.held;
+    if (inp.pressed.jump) p.buffer = P.jumpBuffer; else p.buffer = Math.max(0, p.buffer - DT);
+
+    if (p.state === 'hurt' && p.t >= P.hurtTime) { p.state = 'normal'; p.t = 0; }
+    if (p.state === 'playdead') {
+      p.vx = 0;
+      if (p.t >= C.possum.maxTime || (p.t >= C.possum.minTime && anyPressed(inp))) { p.state = 'getup'; p.t = 0; p.buffer = 0; }
+    } else if (p.state === 'getup') {
+      p.vx = 0;
+      if (p.t >= C.possum.getUpTime) { p.state = 'normal'; p.t = 0; p.possumCd = C.possum.cooldown; releaseConfused(s); }
+    }
+
+    const canControl = p.state === 'normal' || p.state === 'attack';
+    if (canControl) {
+      const dir = (h.right ? 1 : 0) - (h.left ? 1 : 0);
+      const slow = p.state === 'attack' && p.grounded ? 0.3 : 1;
+      const target = dir * P.runSpeed * slow;
+      const rate = dir !== 0 ? P.accel : P.decel;
+      if (p.vx < target) p.vx = Math.min(target, p.vx + rate * DT);
+      else if (p.vx > target) p.vx = Math.max(target, p.vx - rate * DT);
+      if (dir !== 0 && p.state !== 'attack') p.face = dir;
+
+      if (p.buffer > 0 && (p.grounded || p.coyote > 0)) {
+        p.vy = -P.jumpSpeed; p.grounded = false; p.coyote = 0; p.buffer = 0;
+        sfx(s, 'sfx-jump');
+      }
+      if (!h.jump && p.vy < -P.jumpCutSpeed) p.vy = -P.jumpCutSpeed;
+
+      if (inp.pressed.attack && p.state === 'normal') {
+        p.state = 'attack'; p.t = 0; p.hitSet = new Set();
+        sfx(s, 'sfx-tail-whip');
+      } else if (inp.pressed.possum && p.state === 'normal' && p.grounded && p.possumCd <= 0) {
+        startPossum(s);
+      }
+    } else if (p.state === 'hurt') {
+      p.vx *= 0.92;
+    }
+
+    if (p.state === 'attack') {
+      if (p.t >= P.attackHitStart && p.t < P.attackHitEnd) whipHits(s);
+      if (p.t >= P.attackTime) { p.state = 'normal'; p.t = 0; }
+    }
+
+    const fallSpeed = p.vy;
+    const box = playerBox(p);
+    const wasGrounded = moveBody(s, p, box.w, box.h);
+    if (!wasGrounded && p.grounded && fallSpeed > 150) { p.landT = P.landTime; sfx(s, 'sfx-land'); effect(s, 'dust', p.x, p.y, 0.2); }
+    p.coyote = p.grounded ? P.coyoteTime : Math.max(0, p.coyote - DT);
+
+    // Can't walk back off the left of the screen (no backtracking past the camera).
+    const minX = s.cam.x + 8;
+    if (p.x < minX) { p.x = minX; if (p.vx < 0) p.vx = 0; }
+
+    // Remember the last safe spot on solid ground (for the pond).
+    if (p.grounded && p.groundKind === 'ground') {
+      let nearWater = false;
+      for (const w of s.level.water) if (p.x > w.x0 - 24 && p.x < w.x1 + 24) nearWater = true;
+      if (!nearWater) s.lastSafeX = p.x;
+    }
+    // Pond water / falling out of the world.
+    let inWater = p.y > 260;
+    for (const w of s.level.water) if (p.x > w.x0 && p.x < w.x1 && p.y >= w.y) inWater = true;
+    if (inWater) {
+      sfx(s, 'sfx-splash');
+      effect(s, 'splash', clamp(p.x, s.level.water[0] ? s.level.water[0].x0 : p.x, s.level.water[0] ? s.level.water[0].x1 : p.x), 198, 0.4);
+      const result = hurtPlayer(s, { hazard: true });
+      if (result !== 'ko') {
+        p.x = s.lastSafeX; p.y = G; p.vx = 0; p.vy = 0; p.grounded = true; p.groundKind = 'ground';
+        if (p.state === 'normal' || p.state === 'hurt') { p.state = 'hurt'; p.t = 0; }
+        p.invuln = Math.max(p.invuln, P.invulnTime);
+      } else {
+        p.y = G; p.x = s.lastSafeX;
+      }
+    }
+  }
+
+  function whipHits(s) {
+    const p = s.player;
+    const r = { x: p.face > 0 ? p.x + 6 : p.x - 6 - P.whipW, y: p.y - 22, w: P.whipW, h: P.whipH };
+    s.lastWhip = r;
+    for (const e of s.enemies) {
+      if (e.state === 'defeat' || e.state === 'dead' || p.hitSet.has(e.id)) continue;
+      const k = e.type === 'vendor' ? C.vendor : C.jogger;
+      if (overlap(r, footBox(e, k.bodyW, k.bodyH))) { p.hitSet.add(e.id); damageEnemy(s, e, p.x); }
+    }
+    for (const c of s.carts) {
+      if (p.hitSet.has(c.id)) continue;
+      if (overlap(r, { x: c.x, y: G - C.cart.h, w: C.cart.w, h: C.cart.h })) { p.hitSet.add(c.id); hitCart(s, c); }
+    }
+  }
+
+  function respawn(s) {
+    const cp = s.checkpoint;
+    const L = s.level;
+    s.player = makePlayer(cp.x, G);
+    s.player.invuln = 1.0;
+    s.enemies = s.enemies.filter((e) => !e.arena && e.def.x <= cp.x);
+    L.enemies.forEach((d, i) => { if (d.x > cp.x) s.enemies.push(makeEnemy(d, i)); });
+    s.carts = s.carts.map((c, i) => (c.def.x > cp.x ? makeCart(c.def, i) : c));
+    s.pickups = s.pickups.filter((pk) => !pk.spilled);
+    for (const pk of s.pickups) if (pk.def.x > cp.x) pk.collected = false;
+    s.projectiles = [];
+    s.arena = { state: 'idle', wave: -1, timer: 0, spawnCount: 0 };
+    s.lastSafeX = cp.x;
+    s.cam.x = clamp(cp.x - 64, 0, L.width - C.screenW);
+    music(s, 'level');
+    s.events.push({ type: 'respawn', id: cp.id });
+  }
+
+  // ---------- enemies ----------
+  function playerHidden(p) { return p.state === 'playdead' || p.state === 'getup'; }
+
+  function updateJogger(s, e) {
+    const J = C.jogger;
+    const p = s.player;
+    e.t += DT; e.cd = Math.max(0, e.cd - DT); e.ignoreT = Math.max(0, (e.ignoreT || 0) - DT);
+    const dx = p.x - e.x, dy = p.y - e.y;
+    const canNotice = p.state !== 'ko' && !playerHidden(p) && e.ignoreT <= 0 && Math.abs(dx) <= J.notice && Math.abs(dy) < 40;
+    const aheadSupported = () => !e.grounded || isSupported(s, e.x + e.face * (J.bodyW / 2 + 2), e.y);
+
+    switch (e.state) {
+      case 'patrol': {
+        e.face = e.dir;
+        e.vx = e.dir * J.patrolSpeed;
+        if ((e.x <= e.home - J.patrolRange && e.dir < 0) || (e.x >= e.home + J.patrolRange && e.dir > 0) || !aheadSupported() || e.blocked) {
+          e.dir = -e.dir; e.face = e.dir; e.vx = e.dir * J.patrolSpeed;
+        }
+        if (canNotice) { e.state = 'chase'; e.t = 0; e.lostT = 0; effect(s, 'bang', e.x, e.y - 44, 0.5); if (s.t - (s.groanT || -9) > 1.5) { s.groanT = s.t; sfx(s, 'sfx-zombie-groan'); } }
+        break;
+      }
+      case 'chase': {
+        if (p.state === 'ko') { e.state = 'patrol'; e.home = e.x; break; }
+        if (Math.abs(dx) > 2) e.face = sign(dx);
+        e.vx = Math.abs(dx) > J.attackRange - 6 ? e.face * J.chaseSpeed : 0;
+        if (!aheadSupported()) e.vx = 0;
+        if (Math.abs(dx) > J.giveUpDist && !e.arena) { e.lostT += DT; if (e.lostT > J.giveUpTime) { e.state = 'patrol'; e.home = e.x; } }
+        else e.lostT = 0;
+        if (Math.abs(dx) <= J.attackRange && Math.abs(dy) < 30 && e.cd <= 0) { e.state = 'attack'; e.t = 0; e.attackHit = false; e.vx = 0; }
+        break;
+      }
+      case 'attack': {
+        e.vx = 0;
+        if (e.t >= J.attackHitStart && e.t < J.attackHitEnd && !e.attackHit) {
+          const r = { x: e.face > 0 ? e.x + 4 : e.x - 4 - J.hitW, y: e.y - 26, w: J.hitW, h: J.hitH };
+          if (overlap(r, playerBox(p))) { e.attackHit = true; hurtPlayer(s, { fromX: e.x, source: e }); }
+        }
+        if (e.t >= J.attackTime) { e.state = e.confused ? 'confused' : 'chase'; e.t = 0; e.cd = J.attackCooldown; }
+        break;
+      }
+      case 'hitreact': {
+        e.vx *= 0.85;
+        if (e.t >= J.hitReactTime) { e.state = e.confused ? 'confused' : 'chase'; e.t = 0; e.cd = Math.max(e.cd, 0.4); }
+        break;
+      }
+      case 'spawn': e.vx = 0; if (e.grounded && e.t > 0.6) { e.state = 'chase'; e.t = 0; } break;
+      case 'confused': e.vx = 0; break;
+      case 'defeat': e.vx = 0; if (e.t >= J.defeatTime) e.state = 'dead'; break;
+    }
+    // Touching a zombie that is walking or attacking hurts (not while it reels back or is confused).
+    if ((e.state === 'patrol' || e.state === 'chase' || e.state === 'attack') && overlap(footBox(e, J.bodyW, J.bodyH), playerBox(p))) {
+      hurtPlayer(s, { fromX: e.x, source: e });
+    }
+    if (e.state !== 'dead') moveBody(s, e, J.bodyW, J.bodyH);
+    if (e.y > 260) e.state = 'dead';
+    setAnim(e, { spawn: 'idle', patrol: 'walk', chase: 'walk', attack: 'attack', hitreact: 'hit', confused: 'idle', defeat: 'defeat', dead: 'defeat' }[e.state]);
+  }
+
+  function updateVendor(s, e) {
+    const V = C.vendor;
+    const p = s.player;
+    e.t += DT;
+    const dx = p.x - e.x;
+    const inRange = Math.abs(dx) <= V.notice && p.state !== 'ko';
+    switch (e.state) {
+      case 'idle':
+        if (inRange) e.face = sign(dx) || e.face;
+        e.throwT -= DT;
+        if (inRange && e.throwT <= 0) { e.state = 'throw'; e.t = 0; e.released = false; }
+        break;
+      case 'throw':
+        if (e.t >= V.releaseAt && !e.released) { e.released = true; throwHotDog(s, e); }
+        if (e.t >= V.throwTime) { e.state = e.confused ? 'shrug' : 'idle'; e.t = 0; e.throwT = V.throwEvery; }
+        break;
+      case 'hitreact':
+        if (e.t >= V.hitReactTime) { e.state = e.confused ? 'shrug' : 'idle'; e.t = 0; e.throwT = Math.max(e.throwT, 0.8); }
+        break;
+      case 'shrug': break;
+      case 'defeat': if (e.t >= V.defeatTime) e.state = 'dead'; break;
+    }
+    e.vx = 0;
+    if (e.state !== 'dead') moveBody(s, e, V.bodyW, V.bodyH);
+    setAnim(e, { idle: 'idle', shrug: 'idle', throw: 'throw', hitreact: 'hit', defeat: 'defeat', dead: 'defeat' }[e.state]);
+  }
+
+  function throwHotDog(s, e) {
+    const V = C.vendor;
+    const p = s.player;
+    const x = e.x + e.face * 10, y = e.y - 28;
+    const T = V.projFlight;
+    const vx = clamp((p.x - x) / T, -150, 150);
+    const vy = (p.y - 15 - y - 0.5 * V.projGravity * T * T) / T;
+    s.projectiles.push({ id: 'pr' + (s.nextId++), x, y, vx, vy, life: V.projLife, t: 0 });
+    sfx(s, 'sfx-throw');
+  }
+
+  function updateProjectiles(s) {
+    const V = C.vendor;
+    const p = s.player;
+    const solids = getSolids(s);
+    for (const pr of s.projectiles) {
+      pr.t += DT; pr.life -= DT;
+      pr.vy += V.projGravity * DT;
+      pr.x += pr.vx * DT; pr.y += pr.vy * DT;
+      const box = { x: pr.x - V.projW / 2, y: pr.y - V.projH / 2, w: V.projW, h: V.projH };
+      if (overlap(box, playerBox(p)) && p.state !== 'ko') {
+        hurtPlayer(s, { fromX: pr.x });
+        pr.dead = true; effect(s, 'splat', pr.x, pr.y, 0.27); sfx(s, 'sfx-splat');
+        continue;
+      }
+      let hit = pr.life <= 0 || pr.y > 240;
+      for (const b of solids) if (b.kind !== 'wall' && overlap(box, b)) hit = true;
+      if (hit) { pr.dead = true; effect(s, 'splat', pr.x, Math.min(pr.y, G), 0.27); sfx(s, 'sfx-splat'); }
+    }
+    s.projectiles = s.projectiles.filter((pr) => !pr.dead);
+  }
+
+  // ---------- hot dog cart ----------
+  function hitCart(s, c) {
+    if (c.state === 'upright') { c.state = 'rocking'; c.t = 0; sfx(s, 'sfx-cart-rock'); }
+    else if (c.state === 'rocking') {
+      c.state = 'tipping'; c.t = 0; c.tipDir = sign(c.x + C.cart.w / 2 - s.player.x) || 1;
+      sfx(s, 'sfx-cart-crash'); s.shake = 0.2;
+    }
+  }
+
+  function updateCart(s, c) {
+    const K = C.cart;
+    c.t += DT;
+    if (c.state === 'rocking' && c.t >= K.rockWindow) { c.state = 'upright'; c.t = 0; }
+    if (c.state === 'tipping' && c.t >= K.tipTime) {
+      c.state = 'tipped'; c.t = 0;
+      const cx = c.x + K.w / 2;
+      const speeds = [90, 130, 170]; // far enough to land clear of the tipped cart
+      for (let i = 0; i < K.spillCount; i++) {
+        const pk = { id: 'hd' + (s.nextId++), type: 'hotdog', def: { x: cx }, x: cx, y: G - 30,
+          vx: c.tipDir * speeds[i], vy: -220, collected: false, spilled: true, landed: false, life: K.hotDogLife, t: 0 };
+        s.pickups.push(pk); c.spill.push(pk.id);
+      }
+      effect(s, 'dust', cx, G, 0.3);
+      for (const e of s.enemies) {
+        if (e.state === 'defeat' || e.state === 'dead') continue;
+        if (Math.abs(e.x - cx) <= K.knockRadius) {
+          e.state = 'hitreact'; e.t = 0;
+          if (e.type === 'jogger') e.vx = (sign(e.x - cx) || 1) * 160;
+        }
+      }
+    }
+    if (c.state === 'tipped') {
+      const left = s.pickups.filter((pk) => c.spill.includes(pk.id) && !pk.collected);
+      if (left.length === 0) { c.state = 'empty'; c.t = 0; }
+    }
+    setAnim(c, c.state === 'tipped' ? 'tipped-over' : c.state);
+  }
+
+  // ---------- pickups ----------
+  function updatePickups(s) {
+    const p = s.player;
+    for (const pk of s.pickups) {
+      if (pk.collected) continue;
+      pk.t += DT;
+      if (pk.spilled) {
+        pk.life -= DT;
+        if (pk.life <= 0) { pk.collected = true; pk.expired = true; continue; }
+        if (!pk.landed) {
+          pk.vy = Math.min(pk.vy + C.gravity * DT, C.maxFall);
+          pk.x += pk.vx * DT; pk.y += pk.vy * DT;
+          if (pk.y >= G) {
+            if (isSupported(s, pk.x, G)) { pk.y = G; pk.vx = 0; pk.vy = 0; pk.landed = true; }
+            else if (pk.y > 230) { pk.collected = true; pk.expired = true; continue; }
+          }
+          if (pk.x < 4 || pk.x > s.level.width - 4) pk.vx = 0;
+        }
+      }
+      if (p.state === 'ko') continue;
+      if (overlap({ x: pk.x - 8, y: pk.y - 16, w: 16, h: 16 }, playerBox(p))) {
+        pk.collected = true;
+        sfx(s, 'sfx-pickup');
+        effect(s, 'sparkle', pk.x, pk.y - 8, 0.3);
+        if (pk.type === 'hotdog') { p.hp = Math.min(P.maxHp, p.hp + 1); s.stats.hotdogs += 1; }
+        if (pk.type === 'lid') p.shield = C.lid.hits;
+      }
+    }
+  }
+
+  // ---------- checkpoints, arena, camera ----------
+  function updateCheckpoints(s) {
+    const p = s.player;
+    for (const cp of s.cps) {
+      if (!cp.active && p.x >= cp.x && p.state !== 'ko') {
+        cp.active = true; s.checkpoint = cp; sfx(s, 'sfx-checkpoint');
+        effect(s, 'text', cp.x, G - 60, 1.0, { text: 'CHECKPOINT' });
+      }
+    }
+  }
+
+  function spawnWave(s, n) {
+    const A = s.level.arena;
+    const count = C.gauntlet.waves[n];
+    for (let i = 0; i < count; i++) {
+      const left = i % 2 === 0;
+      const step = (i >> 1) * 14;
+      const x = left ? A.x0 + 16 + step : A.gateX - 16 - step;
+      const e = makeEnemy({ type: 'jogger', x, y: 100 }, 0, { id: 'w' + n + '-' + i, arena: true, state: 'spawn', wave: n });
+      e.y = 100; e.grounded = false; e.face = left ? 1 : -1;
+      s.enemies.push(e);
+    }
+    s.arena.spawnCount += count;
+    effect(s, 'text', (A.x0 + A.x1) / 2, 80, 1.2, { text: 'WAVE ' + (n + 1) });
+    sfx(s, 'sfx-zombie-groan');
+  }
+
+  function updateArena(s) {
+    const a = s.arena, A = s.level.arena, p = s.player;
+    if (a.state === 'idle' && p.x >= A.trigger && p.state !== 'ko') {
+      a.state = 'fight'; a.wave = 0; a.timer = 0.6;
+      music(s, 'arena');
+      effect(s, 'text', (A.x0 + A.x1) / 2, 60, 1.2, { text: 'ZOMBIE GAUNTLET!' });
+    } else if (a.state === 'fight') {
+      if (a.timer > 0) {
+        a.timer -= DT;
+        if (a.timer <= 0) spawnWave(s, a.wave);
+      } else {
+        const alive = s.enemies.some((e) => e.arena && e.wave === a.wave && e.state !== 'dead');
+        if (!alive) {
+          a.wave += 1;
+          if (a.wave >= C.gauntlet.waves.length) {
+            a.state = 'open'; sfx(s, 'sfx-gate-open'); music(s, 'level');
+            effect(s, 'text', A.gateX, 120, 1.5, { text: 'EXIT OPEN!' });
+          } else a.timer = C.gauntlet.waveDelay;
+        }
+      }
+    } else if (a.state === 'open' && p.x >= A.exitX && p.state !== 'ko') {
+      s.mode = 'clear'; s.clearT = 0;
+      p.state = 'victory'; p.vx = 0; setAnim(p, 'victory');
+      music(s, 'clear');
+      sfx(s, 'sfx-level-clear');
+    }
+  }
+
+  function updateCamera(s) {
+    const p = s.player, L = s.level, W = C.screenW;
+    let minX = Math.max(0, s.checkpoint.x - 64);
+    let target = p.x - W / 2 + p.face * 32;
+    if (arenaLocked(s)) { target = L.arena.x0; minX = L.arena.x0; }
+    target = clamp(target, minX, L.width - W);
+    s.cam.x += (target - s.cam.x) * Math.min(1, 6 * DT);
+    s.cam.x = clamp(s.cam.x, 0, L.width - W);
+  }
+
+  function playerAnim(p) {
+    if (p.state === 'victory') return 'victory';
+    if (p.state === 'ko') return 'ko';
+    if (p.state === 'hurt') return 'hurt';
+    if (p.state === 'playdead') return 'play-dead';
+    if (p.state === 'getup') return 'get-up';
+    if (p.state === 'attack') return 'tail-whip';
+    if (!p.grounded) return p.vy < 0 ? 'jump-rise' : 'fall';
+    if (p.landT > 0) return 'land';
+    if (Math.abs(p.vx) > 10) return 'run';
+    return 'idle';
+  }
+
+  function updateEffects(s) {
+    for (const f of s.effects) f.t += DT;
+    s.effects = s.effects.filter((f) => f.t < f.life);
+    s.shake = Math.max(0, s.shake - DT);
+  }
+
+  // ---------- main step ----------
+  S.update = function (s, inp) {
+    const q = inp.pressed;
+    if (s.mode === 'title') {
+      if (q.start || q.jump) { s.mode = 'playing'; music(s, 'level'); sfx(s, 'sfx-start'); }
+      return;
+    }
+    if (s.mode === 'paused') { if (q.start) { s.mode = 'playing'; music(s, 'resume'); } return; }
+    if (s.mode === 'clear') {
+      s.clearT += DT;
+      s.player.animT += DT;
+      updateEffects(s);
+      if ((q.start || q.jump || q.restart) && s.clearT > 1.5) { resetLevel(s); s.mode = 'playing'; music(s, 'level'); }
+      return;
+    }
+    // playing
+    if (q.start) { s.mode = 'paused'; music(s, 'pause'); return; }
+    if (q.restart) { resetLevel(s); music(s, 'level'); return; }
+    s.t += DT;
+    s.stats.time += DT;
+    updatePlayer(s, inp);
+    for (const e of s.enemies) { if (e.type === 'vendor') updateVendor(s, e); else updateJogger(s, e); e.animT += DT; }
+    s.enemies = s.enemies.filter((e) => !(e.arena && e.state === 'dead'));
+    for (const c of s.carts) { updateCart(s, c); c.animT += DT; }
+    updatePickups(s);
+    updateProjectiles(s);
+    updateCheckpoints(s);
+    updateArena(s);
+    updateCamera(s);
+    updateEffects(s);
+    const p = s.player;
+    if (s.mode === 'playing') setAnim(p, playerAnim(p));
+    p.animT += DT;
+  };
+
+  // Exposed for tests and the renderer.
+  S.overlap = overlap;
+  S.footBox = footBox;
+  S.playerBox = playerBox;
+  S.getSolids = getSolids;
+  S.getPlatforms = getPlatforms;
+  S.cartBody = cartBody;
+})(globalThis.SAMMY = globalThis.SAMMY || {});
+
+// ---- src/bot.js ----
+// A simple autopilot used only by tests (Node tests and the in-browser ?test= check).
+// It runs right, jumps over obstacles and gaps, and tail-whips anything in front of it.
+// It proves the level can be finished; it is not a good player.
+(function (S) {
+  S.makeBot = function () { return { frame: 0, lastX: 0, stall: 0, jumpHold: 0 }; };
+
+  S.botInput = function (s, b) {
+    const inp = S.makeInput();
+    b.frame += 1;
+    if (s.mode === 'title' || s.mode === 'clear' || s.mode === 'paused') {
+      if (b.frame % 2 === 0) inp.pressed.start = true;
+      return inp;
+    }
+    const p = s.player;
+    const alive = s.enemies.filter((e) => e.state !== 'defeat' && e.state !== 'dead');
+    let dir = 1;
+
+    // In the arena, walk toward the nearest zombie.
+    if (s.arena.state === 'fight') {
+      let best = null;
+      for (const e of alive) if (!best || Math.abs(e.x - p.x) < Math.abs(best.x - p.x)) best = e;
+      if (best) dir = Math.abs(best.x - p.x) < 18 ? 0 : Math.sign(best.x - p.x);
+      else dir = 0;
+    }
+
+    // Whip zombies and the cart when they are just in front.
+    const front = (x) => (x - p.x) * p.face > -4 && Math.abs(x - p.x) < 34;
+    let whip = alive.some((e) => front(e.x) && Math.abs(e.y - p.y) < 30);
+    for (const c of s.carts) if ((c.state === 'upright' || c.state === 'rocking') && front(c.x + 8)) whip = true;
+    if (alive.some((e) => Math.abs(e.x - p.x) < 34 && Math.abs(e.y - p.y) < 30 && Math.sign(e.x - p.x) !== p.face && dir === 0)) {
+      dir = -p.face; // turn to face a zombie behind us
+    }
+    // Outside the arena: stop and fight a zombie that is close ahead instead of running into it.
+    if (s.arena.state !== 'fight' && alive.some((e) => (e.x - p.x) * dir > 0 && Math.abs(e.x - p.x) < 40 && Math.abs(e.y - p.y) < 30)) dir = 0;
+    inp.held.right = dir > 0;
+    inp.held.left = dir < 0;
+    inp.pressed.attack = whip;
+    inp.held.attack = whip;
+
+    // Jump when stuck, at a ledge, or when a wall is just ahead.
+    if (Math.abs(p.x - b.lastX) < 0.3 && dir !== 0) b.stall += 1; else b.stall = 0;
+    b.lastX = p.x;
+    let wallAhead = false;
+    if (dir !== 0) {
+      const probe = { x: p.x + dir * 12 - 2, y: p.y - 20, w: 4, h: 16 };
+      for (const so of S.getSolids(s)) if (so.kind !== 'ground' && S.overlap(probe, so)) wallAhead = true;
+    }
+    const gapAhead = dir !== 0 && p.grounded && !S.isSupported(s, p.x + dir * 14, p.y);
+    if (p.grounded && (b.stall > 12 || gapAhead || wallAhead)) { inp.pressed.jump = true; b.jumpHold = 24; b.stall = 0; }
+    if (b.jumpHold > 0) { inp.held.jump = true; b.jumpHold -= 1; }
+    return inp;
+  };
+})(globalThis.SAMMY = globalThis.SAMMY || {});
+
+// ---- src/render.js ----
+// Drawing. Uses real art from S.images when it has loaded; otherwise draws clearly marked placeholders.
+(function (S) {
+  const C = S.CONFIG, K = S.PAL, G = C.groundY, W = C.screenW, H = C.screenH;
+  const rnd = (n) => (((n * 2654435761) >>> 0) % 1000) / 1000;
+  const R = (ctx, col, x, y, w, h) => { ctx.fillStyle = col; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+
+  // Draw a frame from a real sprite strip. Returns false when no art is loaded for that key.
+  function sprite(ctx, key, t, x, y, face, reverse, frame) {
+    const m = S.images[key];
+    if (!m) return false;
+    const f = frame != null ? Math.min(frame, m.frames - 1) : S.frameAt(m, t, reverse);
+    S.spriteDraws[key] = (S.spriteDraws[key] || 0) + 1; // counted for the ?test= self-check
+    ctx.save();
+    ctx.translate(Math.round(x), Math.round(y));
+    if (face < 0) ctx.scale(-1, 1);
+    // Feet-pivot sprites: the pivot row sits on the pixel row just above the ground line.
+    ctx.drawImage(m.img, f * m.fw, 0, m.fw, m.fh, -m.px, -m.py - (m.feet ? 1 : 0), m.fw, m.fh);
+    ctx.restore();
+    return true;
+  }
+  S.drawSprite = sprite;
+  S.spriteDraws = {};
+
+  // ---------- background (parallax) ----------
+  function drawBackground(ctx, camX) {
+    if (!sprite(ctx, 'bg:sky', 0, 0, 0, 1)) {
+      const bands = [K.sky0, K.sky1, K.sky2, K.sky3, K.sky4];
+      bands.forEach((c, i) => R(ctx, c, 0, i * 28, W, 28));
+      R(ctx, K.sky4, 0, 140, W, 84);
+    }
+    tiled(ctx, 'bg:skyline', camX * 0.125, 96, 512, (ox) => {
+      for (let i = 0; i < 16; i++) {
+        const bw = 16 + Math.floor(rnd(i + 7) * 20), bh = 20 + Math.floor(rnd(i + 31) * 44);
+        const bx = ox + i * 32;
+        R(ctx, K.skyline, bx, 160 - bh, bw, bh);
+        if (rnd(i + 3) > 0.6) R(ctx, K.skyline, bx + bw / 2 - 1, 160 - bh - 8, 2, 8);
+      }
+    });
+    tiled(ctx, 'bg:treeline', camX * 0.25, 144, 512, (ox) => {
+      for (let i = 0; i < 32; i++) {
+        const r = 8 + Math.floor(rnd(i + 99) * 10);
+        R(ctx, K.trees, ox + i * 16, 168 - r, 18, r + 8);
+      }
+      R(ctx, K.trees, ox, 166, 512, 26);
+    });
+    tiled(ctx, 'bg:bushes', camX * 0.5, 160, 512, (ox) => {
+      for (let i = 0; i < 24; i++) {
+        const r = 4 + Math.floor(rnd(i + 55) * 8);
+        R(ctx, K.bushes, ox + i * 22, 184 - r, 20, r + 8);
+      }
+      R(ctx, K.bushes, ox, 182, 512, 10);
+    });
+  }
+  function tiled(ctx, key, scroll, y, loopW, fallback) {
+    const off = -(scroll % loopW);
+    const m = S.images[key];
+    for (let ox = off; ox < W; ox += loopW) {
+      if (m) ctx.drawImage(m.img, Math.round(ox), y);
+      else fallback(Math.round(ox));
+    }
+  }
+
+  // ---------- world ----------
+  function drawGround(ctx, s, x0, x1) {
+    for (const g of s.level.ground) {
+      const a = Math.max(g.x0, x0), b = Math.min(g.x1, x1);
+      if (a >= b) continue;
+      R(ctx, K.dirt, a, G, b - a, H - G);
+      R(ctx, K.grass, a, G, b - a, 4);
+      for (let x = Math.floor(a / 8) * 8; x < b; x += 8) {
+        if (rnd(x) > 0.5) R(ctx, K.grass, x + 2, G - 2, 2, 2);
+        if (rnd(x + 1) > 0.7) R(ctx, K.dirtDark, x + 3, G + 10 + Math.floor(rnd(x + 2) * 18), 3, 2);
+      }
+    }
+    for (const w of s.level.water) {
+      R(ctx, K.water, w.x0, w.y, w.x1 - w.x0, H - w.y);
+      const ph = Math.floor(s.t * 4) % 2;
+      for (let x = w.x0 + ph * 4; x < w.x1 - 4; x += 8) R(ctx, K.waterHi, x, w.y + 2 + ((x / 8) % 2) * 6, 4, 1);
+    }
+  }
+
+  function drawStatic(ctx, s) {
+    for (const b of s.level.solids) {
+      if (b.kind === 'rock') { R(ctx, K.rock, b.x, b.y, b.w, b.h); R(ctx, K.grey, b.x + 3, b.y + 2, b.w - 10, 3); }
+      else if (b.kind === 'fence') { R(ctx, K.fence, b.x, b.y, b.w, b.h); R(ctx, K.fence, b.x - 6, b.y + 6, b.w + 12, 3); R(ctx, K.fence, b.x - 6, b.y + 15, b.w + 12, 3); }
+    }
+    for (const p of s.level.platforms) {
+      if (p.kind === 'bench') {
+        R(ctx, K.bench, p.x, p.y, p.w, 4); R(ctx, K.bench, p.x, p.y - 10, p.w, 3);
+        R(ctx, K.dark, p.x + 2, p.y + 4, 3, G - p.y - 4); R(ctx, K.dark, p.x + p.w - 5, p.y + 4, 3, G - p.y - 4);
+      } else if (p.kind === 'lamp') {
+        R(ctx, K.pole, p.x + p.w / 2 - 2, p.y + 4, 4, G - p.y - 4);
+        R(ctx, K.pole, p.x, p.y, p.w, 4); R(ctx, K.lamp, p.x + 4, p.y + 4, p.w - 8, 3);
+      }
+    }
+    for (const cp of s.cps) {
+      R(ctx, K.pole, cp.x - 1, G - 40, 3, 40);
+      R(ctx, cp.active ? K.umbrella : K.lampOff, cp.x + 2, G - 40, 12, 8);
+      S.drawText(ctx, cp.id, cp.x + 3, G - 39, K.black);
+    }
+    const A = s.level.arena;
+    if (s.arena.state !== 'idle') {
+      R(ctx, K.fence, A.x0, 128, 8, G - 128);
+      for (let y = 136; y < G; y += 14) R(ctx, K.fence, A.x0, y, 14, 3);
+    }
+    // Exit gate: bars rise when the gauntlet is cleared.
+    const barH = s.arena.state === 'open' ? 6 : G - 126;
+    R(ctx, K.dark, A.gateX - 4, 120, A.gateW + 8, 6);
+    for (let x = A.gateX; x < A.gateX + A.gateW; x += 6) R(ctx, K.gate, x, 126, 3, barH);
+    R(ctx, K.umbrella, A.gateX - 2, 108, A.gateW + 4, 10);
+    S.drawText(ctx, 'EXIT', A.gateX + 2, 110, K.black);
+  }
+
+  function drawCart(ctx, c, t) {
+    const key = 'cart:' + c.anim;
+    const cx = c.x + C.cart.w / 2;
+    if (sprite(ctx, key, c.animT, cx, G, c.tipDir < 0 ? -1 : 1)) return;
+    ctx.save();
+    ctx.translate(cx, G);
+    let ang = 0;
+    if (c.state === 'rocking') ang = Math.sin(c.t * 30) * 0.08;
+    if (c.state === 'tipping') ang = (c.t / C.cart.tipTime) * (Math.PI / 2) * (c.tipDir || 1);
+    if (c.state === 'tipped' || c.state === 'empty') ang = (Math.PI / 2) * (c.tipDir || 1);
+    ctx.rotate(ang);
+    const body = c.state === 'empty' ? K.cartDark : K.cart;
+    R(ctx, body, -28, -28, 56, 22);
+    R(ctx, K.white, -24, -24, 48, 4);
+    S.drawText(ctx, 'HOT DOGS', -16, -18, K.white);
+    R(ctx, K.dark, -22, -7, 7, 7); R(ctx, K.dark, 15, -7, 7, 7);
+    R(ctx, K.pole, -1, -46, 2, 18);
+    if (c.state !== 'empty') { R(ctx, K.umbrella, -32, -48, 64, 5); R(ctx, K.cart, -32, -44, 64, 2); }
+    else R(ctx, K.umbrella, -20, -48, 30, 4);
+    ctx.restore();
+  }
+
+  function drawPickup(ctx, pk, t) {
+    if (pk.collected) return;
+    if (pk.spilled && pk.life < 3 && Math.floor(pk.life * 8) % 2 === 0) return; // blink before vanishing
+    if (pk.type === 'hotdog') {
+      if (sprite(ctx, 'pickup:hotdog', pk.t, pk.x, pk.y, 1)) return;
+      R(ctx, K.hotdog, pk.x - 7, pk.y - 7, 14, 6);
+      R(ctx, K.cartDark, pk.x - 8, pk.y - 6, 16, 3);
+      R(ctx, K.mustard, pk.x - 5, pk.y - 7, 10, 1);
+    } else if (pk.type === 'lid') {
+      const bob = Math.round(Math.sin(pk.t * 4) * 2);
+      if (sprite(ctx, 'pickup:lid', pk.t, pk.x, pk.y + bob, 1)) return;
+      R(ctx, K.lid, pk.x - 7, pk.y - 14 + bob, 14, 12); R(ctx, K.lid, pk.x - 5, pk.y - 16 + bob, 10, 16);
+      R(ctx, K.lidHi, pk.x - 2, pk.y - 15 + bob, 4, 2);
+      S.drawText(ctx, 'LID', pk.x - 5, pk.y - 11 + bob, K.black);
+    }
+  }
+
+  function drawJogger(ctx, e) {
+    const a = e.anim;
+    if (sprite(ctx, 'jogger:' + a, e.animT, e.x, e.y, e.face)) { if (e.state === 'confused') S.drawTextCentered(ctx, '?', e.x, e.y - 50, K.white, 2, K.black); return; }
+    const x = Math.round(e.x), y = Math.round(e.y), f = e.face;
+    if (e.state === 'defeat' || e.state === 'dead') {
+      // Placeholder comedy: the head pops off and bounces away, the body sinks into a pile of sweatsuit.
+      const t = e.t;
+      const sink = Math.min(1, t / 0.5);
+      R(ctx, K.jogger, x - 9, y - 30 * (1 - sink) - 8, 18, 30 * (1 - sink) + 8);
+      R(ctx, K.band, x - 10, y - 4, 20, 4);
+      const hx = x - f * t * 70, hy = y - 40 - Math.abs(Math.sin(t * 9)) * 24 * (1 - t);
+      R(ctx, K.jogger, hx - 4, hy - 8, 8, 8); R(ctx, K.band, hx - 4, hy - 7, 8, 2);
+      if (t < 0.3) S.drawTextCentered(ctx, 'BOING', x, y - 56, K.white, 1, K.black);
+      return;
+    }
+    const flash = e.state === 'hitreact';
+    const lean = e.state === 'attack' && e.t > 0.15 && e.t < 0.32 ? f * 4 : 0;
+    const step = Math.floor(e.animT * 8) % 2;
+    R(ctx, K.joggerDark, x - 7 + step * 2, y - 12, 5, 12); R(ctx, K.joggerDark, x + 2 - step * 2, y - 12, 5, 12);
+    R(ctx, flash ? K.white : K.jogger, x - 9 + lean, y - 38, 18, 27);
+    R(ctx, K.band, x - 9 + lean, y - 34, 18, 3);
+    R(ctx, K.black, x + f * 4 - 1 + lean, y - 30, 2, 2);
+    R(ctx, K.nose, x + f * 7 + lean, y - 24, 3 * f, 2);  // tongue
+    R(ctx, flash ? K.white : K.jogger, x + f * 8 + lean, y - 26, f * (e.state === 'attack' ? 10 : 6), 3); // arms out
+    if (e.state === 'confused') S.drawTextCentered(ctx, '?', x, y - 50, K.white, 2, K.black);
+    if (e.state === 'spawn') S.drawTextCentered(ctx, '!', x, y - 50, K.heart, 2, K.black);
+  }
+
+  function drawVendor(ctx, e) {
+    if (sprite(ctx, 'vendor:' + e.anim, e.animT, e.x, e.y, e.face)) { if (e.state === 'shrug') S.drawTextCentered(ctx, '?', e.x, e.y - 50, K.white, 2, K.black); return; }
+    const x = Math.round(e.x), y = Math.round(e.y), f = e.face;
+    let hgt = 36;
+    if (e.state === 'defeat' || e.state === 'dead') hgt = Math.max(6, 36 * (1 - e.t / C.vendor.defeatTime)); // deflates like a balloon
+    const flash = e.state === 'hitreact';
+    R(ctx, flash ? K.white : K.vendor, x - 10, y - hgt, 20, hgt);
+    R(ctx, K.white, x - 8, y - hgt + 14, 16, Math.max(0, hgt - 18)); // apron
+    R(ctx, K.hat, x - 7, y - hgt - 5, 14, 5);
+    if (hgt > 20) { R(ctx, K.black, x + f * 4 - 1, y - hgt + 6, 2, 2); R(ctx, K.vendorDark, x + f * 2 - 3, y - hgt + 10, 7, 2); }
+    if (e.state === 'throw') R(ctx, K.vendor, x + f * 8, y - hgt - 2, 4 * f, 10);
+    if (e.state === 'shrug') S.drawTextCentered(ctx, '?', x, y - 50, K.white, 2, K.black);
+    if (e.state === 'defeat') S.drawTextCentered(ctx, 'PFFFT', x, y - 48, K.white, 1, K.black);
+  }
+
+  function drawProjectile(ctx, pr) {
+    if (sprite(ctx, 'projectile:hotdog', pr.t, pr.x, pr.y, 1)) return;
+    const spin = Math.floor(pr.t * 12) % 2;
+    if (spin) { R(ctx, K.hotdog, pr.x - 6, pr.y - 2, 12, 4); R(ctx, K.cartDark, pr.x - 5, pr.y - 1, 10, 2); }
+    else { R(ctx, K.hotdog, pr.x - 2, pr.y - 6, 4, 12); R(ctx, K.cartDark, pr.x - 1, pr.y - 5, 2, 10); }
+  }
+
+  function drawSammy(ctx, s) {
+    const p = s.player;
+    if (p.invuln > 0 && p.state !== 'ko' && Math.floor(p.invuln * 15) % 2 === 0) return; // blink while invincible
+    const anim = p.anim === 'get-up' ? 'play-dead' : p.anim;
+    const real = sprite(ctx, 'sammy:' + anim, p.anim === 'get-up' ? p.animT * 2 : p.animT, p.x, p.y, p.face, p.anim === 'get-up');
+    if (!real) drawSammyPlaceholder(ctx, s);
+    if (p.shield > 0 && p.state !== 'playdead' && p.state !== 'ko') {
+      const ox = p.x + p.face * 12, oy = p.y - 14;
+      if (!sprite(ctx, 'overlay:lid', 0, ox, oy, p.face, false, 3 - p.shield)) {
+        R(ctx, K.lid, ox - 3, oy - 7, 6, 14); R(ctx, K.lidHi, ox - 1, oy - 5, 2, 4 - (3 - p.shield));
+      }
+    }
+  }
+
+  function drawSammyPlaceholder(ctx, s) {
+    const p = s.player, x = Math.round(p.x), y = Math.round(p.y), f = p.face;
+    const flash = p.state === 'hurt';
+    const body = flash ? K.white : K.sammy;
+    if (p.state === 'playdead' || p.state === 'getup' || p.state === 'ko') {
+      // Lying flat on his back, feet up, X eyes, tongue out.
+      R(ctx, body, x - 14, y - 12, 28, 12);
+      R(ctx, K.sammyDark, x - 10, y - 16, 3, 4); R(ctx, K.sammyDark, x + 6, y - 16, 3, 4);
+      S.drawText(ctx, 'X', x + f * 8 - 1, y - 10, K.black);
+      R(ctx, K.nose, x + f * 13, y - 8, 2 * f, 3);
+      R(ctx, K.nose, x - f * 14, y - 3, -f * 10, 2); // tail
+      if (p.state === 'playdead') S.drawTextCentered(ctx, 'Z z', x, y - 26, K.white, 1, K.black);
+      if (p.state === 'ko') S.drawTextCentered(ctx, '* * *', x, y - 24 - Math.round(Math.sin(p.t * 8) * 2), K.umbrella, 1, K.black);
+      return;
+    }
+    const squash = p.anim === 'land' ? 3 : 0;
+    const run = p.anim === 'run' ? Math.floor(p.animT * 12) % 2 : 0;
+    R(ctx, K.sammyDark, x - 7 + run * 2, y - 6, 4, 6); R(ctx, K.sammyDark, x + 3 - run * 2, y - 6, 4, 6);
+    R(ctx, body, x - 10, y - 28 + squash, 20, 23 - squash);
+    R(ctx, K.sammyDark, x - 7, y - 32 + squash, 4, 5); R(ctx, K.sammyDark, x + 3, y - 32 + squash, 4, 5); // ears
+    R(ctx, K.white, f > 0 ? x + 2 : x - 11, y - 26 + squash, 9, 7);                                    // face
+    R(ctx, K.black, x + f * 5, y - 24 + squash, 2, 2);                                                // eye
+    R(ctx, K.nose, x + f * 11 - (f < 0 ? 2 : 0), y - 21 + squash, 3, 2);                              // pink nose
+    // Bare tail. During the tail-whip's hit frame it swings out in front.
+    if (p.state === 'attack' && p.t >= C.sammy.attackHitStart && p.t < C.sammy.attackHitEnd) {
+      R(ctx, K.nose, x + f * 6 - (f < 0 ? 24 : 0), y - 18, 24, 3);
+      R(ctx, K.white, x + f * 28 - 2, y - 20, 4, 6);
+    } else if (p.state === 'attack' && p.t < C.sammy.attackHitStart) {
+      R(ctx, K.nose, x - f * 10 - 2, y - 30, 3, 14);
+    } else {
+      R(ctx, K.nose, x - f * 10 - (f > 0 ? 10 : 0), y - 12, 10, 2);
+    }
+  }
+
+  function drawEffects(ctx, s) {
+    for (const f of s.effects) {
+      const k = f.t / f.life;
+      if (f.kind === 'spark') { R(ctx, K.white, f.x - 1, f.y - 5, 2, 10); R(ctx, K.white, f.x - 5, f.y - 1, 10, 2); }
+      else if (f.kind === 'dust') { for (let i = -1; i <= 1; i++) R(ctx, K.grey, f.x + i * (6 + k * 10) - 2, f.y - 4 - k * 4, 4, 4); }
+      else if (f.kind === 'splat') { if (!sprite(ctx, 'effect:splat', f.t, f.x, f.y, 1)) { R(ctx, K.mustard, f.x - 5 - k * 4, f.y - 2, 10 + k * 8, 3); R(ctx, K.hotdog, f.x - 2, f.y - 4, 4, 2); } }
+      else if (f.kind === 'splash') { for (let i = -2; i <= 2; i++) R(ctx, K.waterHi, f.x + i * 6, f.y - 14 * (1 - k) - Math.abs(i) * 2, 2, 4); }
+      else if (f.kind === 'sparkle') { R(ctx, K.mustard, f.x - 1, f.y - 8 - k * 8, 2, 2); R(ctx, K.white, f.x + 5, f.y - 4 - k * 8, 2, 2); R(ctx, K.white, f.x - 6, f.y - 3 - k * 8, 2, 2); }
+      else if (f.kind === 'bang') S.drawTextCentered(ctx, '!', f.x, f.y, K.heart, 2, K.black);
+      else if (f.kind === 'text') S.drawTextCentered(ctx, f.text, f.x, Math.round(f.y - k * 10), K.white, 1, K.black);
+    }
+  }
+
+  // ---------- HUD ----------
+  function heart(ctx, x, y, full) {
+    const c = full ? K.heart : K.dark;
+    R(ctx, c, x + 1, y, 2, 1); R(ctx, c, x + 4, y, 2, 1); R(ctx, c, x, y + 1, 7, 2); R(ctx, c, x + 1, y + 3, 5, 1); R(ctx, c, x + 2, y + 4, 3, 1); R(ctx, c, x + 3, y + 5, 1, 1);
+  }
+  function drawHud(ctx, s) {
+    const p = s.player;
+    R(ctx, K.hud, 0, 0, W, 14);
+    for (let i = 0; i < C.sammy.maxHp; i++) heart(ctx, 4 + i * 9, 4, i < p.hp);
+    if (p.shield > 0) {
+      if (!sprite(ctx, 'hud:lid', 0, 34, -1, 1)) { R(ctx, K.lid, 36, 3, 9, 8); S.drawText(ctx, 'L', 39, 4, K.black); }
+      for (let i = 0; i < p.shield; i++) R(ctx, K.lidHi, 48 + i * 4, 6, 2, 3);
+    }
+    // Play Possum icon: greyed with a filling bar during the cooldown.
+    const ready = p.possumCd <= 0 && p.state !== 'playdead' && p.state !== 'getup';
+    const blinkReady = ready && Math.floor(s.t * 3) % 2 === 0 && s.t < 30;
+    R(ctx, ready ? K.nose : K.grey, 66, 2, 14, 10);
+    S.drawText(ctx, 'PP', 68, 4, blinkReady ? K.white : K.black);
+    if (!ready) {
+      const frac = p.state === 'playdead' || p.state === 'getup' ? 0 : 1 - p.possumCd / C.possum.cooldown;
+      R(ctx, K.dark, 82, 6, 20, 3); R(ctx, K.nose, 82, 6, Math.round(20 * frac), 3);
+    }
+    S.drawText(ctx, 'ZOMBIES ' + s.stats.defeated, 120, 5, K.white);
+    const secs = Math.floor(s.stats.time);
+    S.drawText(ctx, Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0'), 200, 5, K.white);
+    if (s.arena.state === 'fight') S.drawText(ctx, 'WAVE ' + (s.arena.wave + 1) + '/' + C.gauntlet.waves.length, 240, 5, K.umbrella);
+    // Tutorial prompt for the current part of the level.
+    for (const pr of s.level.prompts) {
+      if (p.x >= pr.x0 && p.x < pr.x1) {
+        const w = S.textWidth(pr.text) + 8;
+        R(ctx, K.hud, (W - w) / 2, 20, w, 11);
+        S.drawTextCentered(ctx, pr.text, W / 2, 23, K.white);
+      }
+    }
+    if (p.state === 'ko') {
+      S.drawTextCentered(ctx, 'K.O.!', W / 2, 80, K.heart, 4, K.black);
+      if (p.t > C.sammy.koTime) S.drawTextCentered(ctx, 'BACK TO THE LAST CHECKPOINT...', W / 2, 110, K.white, 1, K.black);
+    }
+  }
+
+  function watermark(ctx) {
+    const t = 'PLACEHOLDER ART - NOT FINAL';
+    R(ctx, K.black, W - S.textWidth(t) - 6, H - 9, S.textWidth(t) + 6, 9);
+    S.drawText(ctx, t, W - S.textWidth(t) - 3, H - 7, K.umbrella);
+  }
+
+  // ---------- screens ----------
+  function panel(ctx, x, y, w, h) { R(ctx, K.black, x - 1, y - 1, w + 2, h + 2); R(ctx, K.hud, x, y, w, h); R(ctx, K.sky1, x, y, w, 2); }
+
+  function drawTitle(ctx, s) {
+    drawBackground(ctx, (s.titleT || 0) * 20);
+    R(ctx, K.dirt, 0, G, W, H - G); R(ctx, K.grass, 0, G, W, 4);
+    panel(ctx, 40, 24, 240, 150);
+    S.drawTextCentered(ctx, 'SAMMY', W / 2, 34, K.sammy, 5, K.black);
+    S.drawTextCentered(ctx, '(WORKING TITLE)', W / 2, 64, K.grey);
+    S.drawTextCentered(ctx, 'SAMMY THE OPOSSUM WAKES UP IN CENTRAL PARK.', W / 2, 78, K.white);
+    S.drawTextCentered(ctx, 'NO MEMORY. AND EVERY HUMAN IS A ZOMBIE.', W / 2, 86, K.white);
+    S.drawTextCentered(ctx, 'LEVEL 1: SHEEP MEADOW', W / 2, 100, K.umbrella);
+    S.drawTextCentered(ctx, 'ARROWS/WASD MOVE  Z JUMP  X WHIP  C PLAY POSSUM', W / 2, 116, K.white);
+    S.drawTextCentered(ctx, 'ENTER PAUSE   R RESTART   M MUTE', W / 2, 124, K.white);
+    if (Math.floor((s.titleT || 0) * 2) % 2 === 0) S.drawTextCentered(ctx, 'PRESS ENTER OR Z TO START', W / 2, 142, K.nose, 1);
+    const r = S.assetReport;
+    S.drawTextCentered(ctx, 'REAL ART LOADED: ' + r.loaded.length + ' OF ' + r.expected + ' FILES', W / 2, 160, K.grey);
+    watermark(ctx);
+  }
+
+  function drawClear(ctx, s) {
+    panel(ctx, 60, 40, 200, 136);
+    S.drawTextCentered(ctx, 'LEVEL CLEAR!', W / 2, 50, K.umbrella, 2, K.black);
+    const st = s.stats, k = Math.min(1, s.clearT / 1.2); // count-up tally
+    const secs = Math.floor(st.time);
+    const rows = [
+      ['TIME', Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0')],
+      ['ZOMBIES DEFEATED', Math.round(st.defeated * k)],
+      ['HOT DOGS EATEN', Math.round(st.hotdogs * k)],
+      ['HITS TAKEN', Math.round(st.hits * k)],
+      ['K.O.S', Math.round(st.kos * k)],
+    ];
+    rows.forEach((r, i) => { S.drawText(ctx, r[0], 76, 76 + i * 12, K.white); S.drawText(ctx, String(r[1]), 220, 76 + i * 12, K.umbrella); });
+    if (s.clearT > 1.5 && Math.floor(s.clearT * 2) % 2 === 0) S.drawTextCentered(ctx, 'PRESS ENTER TO PLAY AGAIN', W / 2, 152, K.nose);
+    S.drawTextCentered(ctx, 'END OF THE PROTOTYPE LEVEL', W / 2, 164, K.grey);
+  }
+
+  S.render = function (ctx, s) {
+    ctx.imageSmoothingEnabled = false;
+    if (s.mode === 'title') { drawTitle(ctx, s); return; }
+    const camX = Math.round(s.cam.x);
+    ctx.save();
+    if (s.shake > 0) ctx.translate(Math.round(Math.sin(s.t * 90) * 2), 0);
+    drawBackground(ctx, camX);
+    ctx.translate(-camX, 0);
+    drawGround(ctx, s, camX - 16, camX + W + 16);
+    drawStatic(ctx, s);
+    for (const c of s.carts) if (c.x + 80 > camX && c.x - 16 < camX + W) drawCart(ctx, c, s.t);
+    for (const pk of s.pickups) if (pk.x > camX - 16 && pk.x < camX + W + 16) drawPickup(ctx, pk, s.t);
+    for (const e of s.enemies) {
+      if (e.x < camX - 64 || e.x > camX + W + 64) continue;
+      if (e.state === 'dead') continue;
+      if (e.type === 'vendor') drawVendor(ctx, e); else drawJogger(ctx, e);
+    }
+    for (const pr of s.projectiles) drawProjectile(ctx, pr);
+    drawSammy(ctx, s);
+    drawEffects(ctx, s);
+    ctx.restore();
+    drawHud(ctx, s);
+    if (s.mode === 'paused') {
+      panel(ctx, 100, 80, 120, 50);
+      S.drawTextCentered(ctx, 'PAUSED', W / 2, 90, K.white, 2, K.black);
+      S.drawTextCentered(ctx, 'ENTER TO RESUME  R RESTART', W / 2, 112, K.grey);
+    }
+    if (s.mode === 'clear') drawClear(ctx, s);
+    if (s.muted) S.drawText(ctx, 'MUTED', 4, H - 7, K.grey);
+    watermark(ctx);
+  };
+})(globalThis.SAMMY = globalThis.SAMMY || {});
+
+// ---- src/audio.js ----
+// PLACEHOLDER SOUND: beeps and a short chiptune loop made in code with WebAudio.
+// Replace with the real files listed in templates/examples/audio/AUDIO.md.
+(function (S) {
+  // type, start Hz, end Hz, seconds, volume
+  const SFX = {
+    'sfx-jump': ['square', 300, 700, 0.15, 0.25],
+    'sfx-land': ['noise', 200, 100, 0.08, 0.2],
+    'sfx-tail-whip': ['noise', 1200, 400, 0.12, 0.2],
+    'sfx-hit-zombie': ['square', 220, 80, 0.12, 0.3],
+    'sfx-zombie-groan': ['sawtooth', 110, 70, 0.5, 0.15],
+    'sfx-zombie-defeat-comedic': ['square', 900, 120, 0.5, 0.25],
+    'sfx-pickup': ['square', 600, 1200, 0.2, 0.25],
+    'sfx-hurt': ['square', 500, 150, 0.25, 0.3],
+    'sfx-play-dead': ['triangle', 400, 60, 0.5, 0.35],
+    'sfx-cart-rock': ['noise', 500, 300, 0.1, 0.2],
+    'sfx-cart-crash': ['noise', 900, 100, 0.4, 0.35],
+    'sfx-ko': ['triangle', 400, 100, 1.0, 0.35],
+    'sfx-shield-block': ['square', 1400, 1000, 0.1, 0.25],
+    'sfx-shield-break': ['noise', 1600, 200, 0.3, 0.3],
+    'sfx-throw': ['noise', 600, 900, 0.1, 0.15],
+    'sfx-splat': ['noise', 300, 80, 0.15, 0.2],
+    'sfx-splash': ['noise', 800, 200, 0.3, 0.25],
+    'sfx-checkpoint': ['square', 800, 1600, 0.25, 0.2],
+    'sfx-gate-open': ['triangle', 200, 800, 0.6, 0.3],
+    'sfx-level-clear': ['square', 523, 1046, 0.6, 0.25],
+    'sfx-start': ['square', 440, 880, 0.2, 0.2],
+  };
+  const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
+  const TRACKS = {
+    level: { bpm: 132, bass: [36, 0, 43, 0, 39, 0, 43, 39, 41, 0, 48, 0, 43, 0, 38, 43],
+      lead: [72, 0, 75, 77, 79, 0, 77, 75, 72, 0, 70, 72, 75, 0, 0, 0, 72, 0, 75, 77, 79, 0, 82, 79, 77, 0, 75, 74, 72, 0, 0, 0] },
+    arena: { bpm: 160, bass: [36, 36, 48, 36, 39, 39, 51, 39, 41, 41, 53, 41, 43, 43, 55, 42],
+      lead: [84, 0, 82, 0, 79, 0, 82, 84, 86, 0, 84, 0, 82, 79, 77, 79] },
+  };
+
+  S.createAudio = function () {
+    let ctx = null, master = null, noiseBuf = null, timer = null, track = null, step = 0, nextT = 0;
+    const api = { muted: false, ok: false };
+    function init() {
+      if (ctx) return;
+      try {
+        const AC = globalThis.AudioContext || globalThis.webkitAudioContext;
+        if (!AC) return;
+        ctx = new AC();
+        master = ctx.createGain(); master.gain.value = api.muted ? 0 : 0.5; master.connect(ctx.destination);
+        noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
+        const d = noiseBuf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        api.ok = true;
+      } catch (e) { ctx = null; }
+    }
+    function tone(type, f0, f1, dur, vol, when) {
+      if (!ctx) return;
+      const t = when || ctx.currentTime;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      g.connect(master);
+      if (type === 'noise') {
+        const src = ctx.createBufferSource(); src.buffer = noiseBuf;
+        const flt = ctx.createBiquadFilter(); flt.type = 'bandpass';
+        flt.frequency.setValueAtTime(f0, t); flt.frequency.exponentialRampToValueAtTime(Math.max(40, f1), t + dur);
+        src.connect(flt); flt.connect(g); src.start(t); src.stop(t + dur);
+      } else {
+        const o = ctx.createOscillator(); o.type = type;
+        o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+        o.connect(g); o.start(t); o.stop(t + dur);
+      }
+    }
+    function schedule() {
+      if (!ctx || !track) return;
+      const sd = 60 / track.bpm / 2;
+      while (nextT < ctx.currentTime + 0.12) {
+        const b = track.bass[step % track.bass.length], l = track.lead[step % track.lead.length];
+        if (b) tone('triangle', midi(b), midi(b), sd * 0.9, 0.22, nextT);
+        if (l) tone('square', midi(l), midi(l), sd * 0.8, 0.07, nextT);
+        nextT += sd; step += 1;
+      }
+    }
+    function stopMusic() { track = null; if (timer) { clearInterval(timer); timer = null; } }
+    function playMusic(name) {
+      stopMusic();
+      if (!ctx || !TRACKS[name]) return;
+      track = TRACKS[name]; step = 0; nextT = ctx.currentTime + 0.05;
+      timer = setInterval(schedule, 25);
+    }
+    let current = null;
+    api.unlock = function () { init(); if (ctx && ctx.state === 'suspended') ctx.resume(); };
+    api.sfx = function (id) { const d = SFX[id]; if (d && ctx && !api.muted) tone(d[0], d[1], d[2], d[3], d[4]); };
+    api.music = function (cmd) {
+      if (cmd === 'stop' || cmd === 'pause') { stopMusic(); if (cmd === 'stop') current = null; return; }
+      if (cmd === 'resume') { if (current) playMusic(current); return; }
+      if (cmd === 'clear') {
+        stopMusic(); current = null;
+        if (ctx) [72, 76, 79, 84].forEach((n, i) => tone('square', midi(n), midi(n), 0.18, 0.15, ctx.currentTime + i * 0.12));
+        return;
+      }
+      current = cmd; playMusic(cmd);
+    };
+    api.toggleMute = function () { api.muted = !api.muted; if (master) master.gain.value = api.muted ? 0 : 0.5; return api.muted; };
+    return api;
+  };
+})(globalThis.SAMMY = globalThis.SAMMY || {});
+
+// ---- src/input.js ----
+// Keyboard and gamepad -> the abstract buttons the game rules use.
+// Defaults match the on-screen prompts in LEVEL.md: Z jump, X tail-whip, C Play Possum.
+(function (S) {
+  const KEYS = {
+    ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
+    ArrowDown: 'down', KeyS: 'down',
+    KeyZ: 'jump', Space: 'jump', ArrowUp: 'jump', KeyW: 'jump', KeyK: 'jump',
+    KeyX: 'attack', KeyJ: 'attack',
+    KeyC: 'possum', KeyL: 'possum',
+    Enter: 'start', Escape: 'start', KeyP: 'start',
+    KeyR: 'restart', KeyM: 'mute',
+  };
+  // Standard gamepad layout: A/Cross = jump, X/Square = whip, B/Circle or Y/Triangle = Play Possum.
+  const PAD = { 0: 'jump', 2: 'attack', 1: 'possum', 3: 'possum', 9: 'start', 8: 'restart', 12: 'jump', 14: 'left', 15: 'right', 13: 'down' };
+
+  S.createInput = function (target) {
+    const keyHeld = {};
+    const pending = new Set();
+    let padPrev = {};
+    target.addEventListener('keydown', (e) => {
+      const a = KEYS[e.code];
+      if (!a) return;
+      e.preventDefault();
+      if (!e.repeat) pending.add(a);
+      keyHeld[a] = true;
+    });
+    target.addEventListener('keyup', (e) => { const a = KEYS[e.code]; if (a) keyHeld[a] = false; });
+    target.addEventListener('blur', () => { for (const k in keyHeld) keyHeld[k] = false; });
+
+    function readPad() {
+      const out = {};
+      const pads = (navigator.getGamepads && navigator.getGamepads()) || [];
+      for (const gp of pads) {
+        if (!gp) continue;
+        gp.buttons.forEach((b, i) => { if (b && b.pressed && PAD[i]) out[PAD[i]] = true; });
+        if (gp.axes[0] < -0.5) out.left = true;
+        if (gp.axes[0] > 0.5) out.right = true;
+        if (gp.axes[1] > 0.6) out.down = true;
+      }
+      return out;
+    }
+
+    // Called once per simulation step. Presses are only reported once.
+    return {
+      poll() {
+        const inp = S.makeInput();
+        const pad = readPad();
+        for (const k in pad) if (pad[k] && !padPrev[k]) pending.add(k);
+        padPrev = pad;
+        for (const k in inp.held) inp.held[k] = !!(keyHeld[k] || pad[k]);
+        for (const k of pending) if (k in inp.pressed) inp.pressed[k] = true;
+        inp.mute = pending.has('mute');
+        pending.clear();
+        return inp;
+      },
+    };
+  };
+})(globalThis.SAMMY = globalThis.SAMMY || {});
+
+// ---- src/main.js ----
+// Starts the game in the browser: screen scaling, the fixed-step loop, sound, and the ?test= self-checks.
+(function (S) {
+  const C = S.CONFIG;
+  const canvas = document.getElementById('screen');
+  const ctx = canvas.getContext('2d');
+  canvas.width = C.screenW; canvas.height = C.screenH;
+
+  const params = new URLSearchParams(location.search);
+  const errors = [];
+  window.addEventListener('error', (e) => errors.push(String(e.message || e)));
+
+  // Whole-number scaling keeps pixels square and sharp.
+  function fit() {
+    const scale = Math.max(1, Math.floor(Math.min(window.innerWidth / C.screenW, window.innerHeight / C.screenH)));
+    canvas.style.width = C.screenW * scale + 'px';
+    canvas.style.height = C.screenH * scale + 'px';
+  }
+  window.addEventListener('resize', fit); fit();
+
+  const state = S.newGame();
+  window.__SAMMY_STATE = state;
+  const input = S.createInput(window);
+  const audio = S.createAudio();
+  const unlock = () => audio.unlock();
+  window.addEventListener('keydown', unlock); window.addEventListener('pointerdown', unlock);
+
+  function drainEvents() {
+    for (const ev of state.events) {
+      if (ev.type === 'sfx') audio.sfx(ev.id);
+      else if (ev.type === 'music') audio.music(ev.id);
+    }
+    state.events.length = 0;
+  }
+
+  let last = 0, acc = 0; // frame timing (declared before loading starts)
+  const base = params.get('assetBase') || globalThis.SAMMY_ASSET_BASE || '../assets/';
+  S.loadAssets({ base, probe: params.has('probe') }, (report) => {
+    console.info('[sammy] art loaded:', report.loaded.length, 'of', report.expected, report.warnings.length ? report.warnings : '');
+    if (params.get('test') === 'keys') keysTest();
+    else if (params.has('test')) runTest(params.get('test'));
+    else requestAnimationFrame(loop);
+  });
+
+  function loop(now) { frame(now); requestAnimationFrame(loop); }
+  function frame(now) {
+    const dt = last ? Math.min(0.25, (now - last) / 1000) : C.step;
+    last = now;
+    acc += dt;
+    if (state.mode === 'title') state.titleT = (state.titleT || 0) + dt;
+    while (acc >= C.step) {
+      const inp = input.poll();
+      if (inp.mute) state.muted = audio.toggleMute();
+      S.update(state, inp);
+      drainEvents();
+      acc -= C.step;
+    }
+    S.render(ctx, state);
+  }
+
+  // ---------- self-checks for headless browsers ----------
+  // ?test=keys: real key presses through the normal loop (Enter to start, then hold Right).
+  function keysTest() {
+    const out = document.getElementById('test-result');
+    const key = (type, code) => window.dispatchEvent(new KeyboardEvent(type, { code, bubbles: true }));
+    // Real key events through the real listeners, input polling, update, sound and drawing.
+    // Frames are stepped by hand because headless browsers barely fire requestAnimationFrame.
+    let now = 1000;
+    const run = (n) => { for (let i = 0; i < n; i++) { now += 1000 / 60; frame(now); } };
+    try {
+    run(5); key('keydown', 'Enter'); key('keyup', 'Enter');
+    run(5); key('keydown', 'ArrowRight');
+    run(60); key('keyup', 'ArrowRight');
+    run(2); key('keydown', 'KeyZ');
+    run(8);
+    } catch (e) { errors.push(String(e && e.stack || e)); }
+    const r = { test: 'keys', mode: state.mode, x: Math.round(state.player.x), airborne: !state.player.grounded, errors };
+    r.ok = r.mode === 'playing' && r.x > state.level.start.x + 50 && r.airborne && errors.length === 0;
+    out.textContent = JSON.stringify(r);
+    requestAnimationFrame(loop); // keep running normally afterwards
+  }
+
+  // Draw every state the autopilot can't reach (it never takes damage), to catch drawing errors.
+  function renderSweep() {
+    const p = state.player, saved = JSON.stringify({ mode: state.mode });
+    const drawn = [];
+    const draw = (label) => { S.render(ctx, state); drawn.push(label); };
+    state.mode = 'playing';
+    for (const st of ['hurt', 'playdead', 'getup', 'ko', 'attack', 'normal']) {
+      p.state = st; p.t = st === 'ko' ? 1 : 0.15; p.anim = { hurt: 'hurt', playdead: 'play-dead', getup: 'get-up', ko: 'ko', attack: 'tail-whip', normal: 'idle' }[st];
+      p.invuln = 0; draw('sammy-' + st);
+    }
+    p.shield = 3; draw('shield'); p.shield = 1; draw('shield-cracked'); p.possumCd = 3; draw('possum-cooldown');
+    const jog = state.enemies.find((e) => e.type === 'jogger'), ven = state.enemies.find((e) => e.type === 'vendor');
+    for (const e of [jog, ven]) if (e) { e.x = p.x + 40; }
+    for (const st of ['confused', 'spawn', 'attack', 'hitreact', 'defeat']) if (jog) { jog.state = st; jog.t = 0.2; draw('jogger-' + st); }
+    for (const st of ['shrug', 'throw', 'hitreact', 'defeat']) if (ven) { ven.state = st; ven.t = 0.2; draw('vendor-' + st); }
+    for (const c of state.carts) for (const st of ['upright', 'rocking', 'tipping', 'tipped', 'empty']) { c.state = st; c.t = 0.1; c.anim = st === 'tipped' ? 'tipped-over' : st; draw('cart-' + st); }
+    state.projectiles.push({ x: p.x + 20, y: p.y - 20, vx: 0, vy: 0, t: 0.1, life: 1 });
+    for (const k of ['spark', 'dust', 'splat', 'splash', 'sparkle', 'bang', 'text']) state.effects.push({ kind: k, x: p.x, y: p.y - 10, t: 0.05, life: 1, text: 'TEST' });
+    state.arena.state = 'fight'; state.arena.wave = 1; draw('effects-arena');
+    state.mode = 'paused'; draw('paused');
+    state.muted = true; draw('muted');
+    state.mode = 'title'; draw('title');
+    return drawn;
+  }
+
+  // ?test=full: autopilot plays the level; ?test=shot&frames=N: stop after N frames for a screenshot.
+  function runTest(name) {
+    const out = document.getElementById('test-result');
+    const result = { test: name, ok: false, errors, assets: { loaded: S.assetReport.loaded, warnings: S.assetReport.warnings, tried: S.assetReport.tried } };
+    try {
+      const bot = S.makeBot();
+      const frames = parseInt(params.get('frames') || '0', 10);
+      state.god = params.get('god') !== '0';
+      const seen = new Set();
+      let f = 0;
+      const limit = frames || 60 * 600;
+      for (; f < limit; f++) {
+        S.update(state, S.botInput(state, bot));
+        state.events.length = 0;
+        seen.add(state.mode);
+        if (state.arena.state !== 'idle') seen.add('arena-' + state.arena.state);
+        if (f % 4 === 0) S.render(ctx, state);            // exercise drawing in every game state
+        if (!frames && state.mode === 'clear') break;
+      }
+      // Let the level-clear tally finish counting before checking restart.
+      for (let i = 0; i < 120 && state.mode === 'clear'; i++) { S.update(state, S.makeInput()); if (i % 4 === 0) S.render(ctx, state); }
+      result.frames = f;
+      result.modesSeen = Array.from(seen);
+      result.stats = state.stats;
+      result.realArtDraws = S.spriteDraws;
+      result.player = { x: Math.round(state.player.x), hp: state.player.hp, state: state.player.state };
+      if (name === 'full') {
+        result.reachedClear = state.mode === 'clear';
+        const restart = S.makeInput(); restart.pressed.start = true;
+        S.update(state, restart);
+        result.restartOk = state.mode === 'playing' && state.player.x === state.level.start.x && state.stats.defeated === 0;
+        S.update(state, S.makeInput());
+        result.renderSweep = renderSweep().length;
+        result.ok = result.reachedClear && result.restartOk && errors.length === 0;
+        S.resetLevel(state); state.mode = 'playing';
+      } else {
+        result.ok = errors.length === 0;
+      }
+      if (params.has('title')) state.mode = 'title';
+      S.render(ctx, state);
+    } catch (e) {
+      errors.push(String(e && e.stack || e));
+    }
+    result.errors = errors;
+    out.textContent = JSON.stringify(result);
+    if (name === 'shot') out.style.visibility = 'hidden'; // keep screenshots clean; text stays in the page for --dump-dom
+    document.title = result.ok ? 'TEST PASS' : 'TEST FAIL';
+  }
+})(globalThis.SAMMY = globalThis.SAMMY || {});
+
+  </script>
+</body>
+</html>
