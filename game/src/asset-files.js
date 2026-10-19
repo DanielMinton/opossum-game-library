@@ -2,6 +2,8 @@
 // Lists which planned art and sound files currently exist in the library's assets/ folder.
 // Art: planned name -> the newest version found. Sound: id -> files.
 (function (S) {
-  S.PRESENT_ASSET_FILES = {};
+  S.PRESENT_ASSET_FILES = {
+    "characters/character-sammy/sammy-run-strip-v01.png": "characters/character-sammy/sammy-run-strip-v01.png"
+  };
   S.PRESENT_SOUND_FILES = {};
 })(globalThis.SAMMY = globalThis.SAMMY || {});

@@ -111,7 +111,9 @@ for (const [label, file] of [['source game (game/index.html)', path.join(gameDir
   check(label + ': every hurt/K.O./play-dead/pause/mute screen draws without errors', r.ok && r.renderSweep >= 27, 'states drawn: ' + r.renderSweep);
   const k = runPage(file, 'test=keys');
   check(label + ': real key presses start the game and move Sammy', k.ok, `mode ${k.mode}, x ${k.x}, errors ${JSON.stringify(k.errors)}`);
-  check(label + ': no art files expected yet, so none loaded', r.assets && r.assets.tried === 0, 'tried ' + (r.assets && r.assets.tried));
+  // Real art in assets/ (if any) must all load, at the right size.
+  check(label + ': every real art file loads with no size warnings', r.assets && r.assets.loaded.length === r.assets.tried && r.assets.warnings.length === 0,
+    `tried ${r.assets && r.assets.tried}, loaded ${JSON.stringify(r.assets && r.assets.loaded)}, warnings ${JSON.stringify(r.assets && r.assets.warnings)}`);
   check(label + ': no sound files expected yet, so none loaded', r.sounds && r.sounds.tried === 0, 'tried ' + (r.sounds && r.sounds.tried));
 }
 

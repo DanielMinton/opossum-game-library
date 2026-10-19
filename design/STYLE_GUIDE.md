@@ -82,7 +82,7 @@ This is Sammy's filled-in copy of `templates/STYLE_GUIDE.md`. **Every answer her
 
 | Asset type | Cell size | Character height in cell |
 |---|---|---|
-| Sammy | 48×48 px (tail whip only: **64×48 px**, feet at (32, 47), so the tail fits) | about 32–40 px |
+| Sammy | 48×48 px, feet at **(28, 47)** (tail whip only: **64×48 px**, feet at (36, 47), so the tail fits) | about 32–40 px (the first real run strip is about 43 px with ears) |
 | Standard zombie | 48×48 px | about 40–46 px (a little taller than Sammy) |
 | Large zombie / boss | 64×64 px | TBD |
 | Items / power-ups | 16×16 px (pickups: feet at (8, 15)) | — |
@@ -102,7 +102,7 @@ The exact size of every planned file is in `game/src/assets.js`. Sammy's cell si
 
 ### Pivot and baseline rules
 
-- Pivot = **bottom-center**. In a 48×48 cell that is **(24, 47)**, zero-based.
+- Pivot = **bottom-center**. In a 48×48 cell that is **(24, 47)**, zero-based. **Exception: Sammy** uses **(28, 47)** (tail-whip (36, 47)): his long tail needs room behind him, so his body sits 4 px right of centre. Set from the first real strip (run, 2026-10-19); every Sammy strip must use it.
 - Feet touch **row 47** in every grounded frame (64×64 cell: (32, 63), row 63).
 - Jump and fall frames may lift off the baseline; keep the body centered horizontally.
 - Characters face **RIGHT** by default. Mirroring for left is allowed unless an asymmetric detail must stay on one side — note it.

@@ -5,7 +5,7 @@
 **Sammy** is a small 2D platformer in the style of a 16-bit home console game. You play Sammy, an opossum who wakes up in Central Park with no memory of how he got there. Everyone in the city has turned into a zombie. Sammy fights his way through with his tail, a trash-can lid, a tipped-over hot dog cart, and his secret move: playing dead. The zombies are funny, not scary: heads pop off and bounce, and vendors deflate like balloons.
 
 > [!NOTE]
-> **Status: playable placeholder prototype.** One level (level 1, Sheep Meadow) can be played from start to finish today. All art is placeholder boxes and all sound is computer-made beeps. No real art or sound has been added yet. "Sammy" is a working title.
+> **Status: playable placeholder prototype.** One level (level 1, Sheep Meadow) can be played from start to finish today. Almost all art is placeholder boxes and all sound is computer-made beeps. The first real art is in: **Sammy's run animation**. "Sammy" is a working title.
 
 Every gameplay number and rule in the game is a **proposal**, not an approved decision. They can all be changed.
 
@@ -208,7 +208,7 @@ This refreshes `game/dist/`:
 
 Anything else is left out, and `BUILD_INFO.txt` says why. Files in `assets/references/` are never included. Your own copy of the game still uses every file.
 
-Today there is no real art or sound, so the build is placeholders only. The `dist/` folder is saved in the project history for now (this is open question 9 in [design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)).
+Today the only real art is Sammy's run animation (licensed in `design/ASSET_SOURCES.csv`, so it goes into the build); everything else is a placeholder. The `dist/` folder is saved in the project history for now (this is open question 9 in [design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)).
 
 ## Tests
 

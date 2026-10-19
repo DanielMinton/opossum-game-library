@@ -1,1 +1,2 @@
 asset_id,path,creator,source_url,license,commercial_use,attribution_required,notes
+sammy-run-strip,assets/characters/character-sammy/sammy-run-strip-v01.png,DanielMinton,,Original work,yes,no,"First real art. 8-frame run, 48x48 cells, feet point (28,47). Pixel geometry drawn in code (Pillow) with an AI coding assistant on 2026-10-19; owner to confirm the tool's terms allow selling the game."
