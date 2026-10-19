@@ -68,7 +68,7 @@ One guide for the whole project. Copy to `design/STYLE_GUIDE.md` and fill in the
 
 | Asset type | Cell size | Character height in cell |
 |---|---|---|
-| Sammy | 48×48 px | about 32–40 px |
+| Sammy | 48×48 px (tail whip only: 64×48 px, feet at (32, 47)) | about 32–40 px |
 | Standard zombie | 48×48 px | about 40–46 px (a little taller than Sammy) |
 | Large zombie / boss | 64×64 px | TBD |
 | Items / power-ups | TBD (16×16 suggested) | — |

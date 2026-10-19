@@ -490,7 +490,7 @@ test('placeholder font: M, W, H and N look different, and text width matches dra
   assert.equal(maxX, S.textWidth('MWHN', 2));
 });
 
-test('audio converter: picks only .wav files that have no .ogg beside them', async () => {
+test('audio converter: picks only .wav files missing an .ogg (or an .mp3 with --mp3)', async () => {
   const os = await import('node:os');
   const { findWavsToConvert, ffmpegArgs } = await import('../tools/convert-audio.mjs');
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sammy-convert-'));
@@ -510,8 +510,13 @@ test('audio converter: picks only .wav files that have no .ogg beside them', asy
       ['audio/sfx/sfx-hurt/sfx-hurt-v01.WAV', 'audio/sfx/sfx-hurt/sfx-hurt-v01.ogg', null],
       ['audio/sfx/sfx-jump/sfx-jump-v01.wav', 'audio/sfx/sfx-jump/sfx-jump-v01.ogg', null],
     ]);
-    const withMp3 = findWavsToConvert(tmp, { mp3: true }).map((t) => rel(t.mp3));
-    assert.deepEqual(withMp3, ['audio/music/music-level-01-central-park/music-level-01-central-park-v01.mp3', null, 'audio/sfx/sfx-jump/sfx-jump-v01.mp3']);
+    const withMp3 = findWavsToConvert(tmp, { mp3: true }).map((t) => [rel(t.wav), rel(t.ogg), rel(t.mp3)]);
+    assert.deepEqual(withMp3, [
+      ['audio/music/music-level-01-central-park/music-level-01-central-park-v01.wav', 'audio/music/music-level-01-central-park/music-level-01-central-park-v01.ogg', 'audio/music/music-level-01-central-park/music-level-01-central-park-v01.mp3'],
+      ['audio/sfx/sfx-hurt/sfx-hurt-v01.WAV', 'audio/sfx/sfx-hurt/sfx-hurt-v01.ogg', null],
+      ['audio/sfx/sfx-jump/sfx-jump-v01.wav', 'audio/sfx/sfx-jump/sfx-jump-v01.ogg', 'audio/sfx/sfx-jump/sfx-jump-v01.mp3'],
+      ['audio/sfx/sfx-land/sfx-land-v01.wav', null, 'audio/sfx/sfx-land/sfx-land-v01.mp3'], // .ogg done earlier, --mp3 added later
+    ]);
     assert.deepEqual(findWavsToConvert(path.join(tmp, 'missing')), []);
     const args = ffmpegArgs('a.wav', 'a.ogg');
     assert.ok(args.includes('-n') && !args.includes('-y'), 'never overwrites');

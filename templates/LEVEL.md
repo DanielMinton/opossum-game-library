@@ -19,7 +19,7 @@ Copy to `design/levels/<level-id>.md` (e.g., `level-01-sheep-meadow.md`). Leave 
 
 - Tileset: TBD (asset ID)
 - Palette lines used: TBD (see `STYLE_GUIDE.md`)
-- Music: TBD (asset ID; loop points in its `AUDIO.md`)
+- Music: TBD (asset ID; it must loop cleanly end-to-start, see its `AUDIO.md`)
 - Ambient sounds: TBD
 
 | Parallax layer (far → near) | Asset ID / file | Scroll speed | Notes |

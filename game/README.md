@@ -60,6 +60,8 @@ Frame sizes, frame counts, speeds and the feet point (24, 47) follow `templates/
 The docs ask for these, but the game has no place to draw them yet, so adding the files changes nothing on screen:
 - Play Possum HUD icon (the "PP" box stays)
 - hearts
+- Sammy wake-up strip (`sammy-wake-up-strip-v01.png`)
+- Sammy face sheet (`sammy-expressions-v01.png`, optional reference)
 - the 8×8 font
 - trash lid break strip (`trash-lid-break-strip-v01.png`)
 - zombie jogger head (`zombie-jogger-head-v01.png`)
@@ -77,7 +79,7 @@ To try every planned file without scanning, add `?probe=1` to the address. Missi
 2. Run `node game/tools/scan-assets.mjs`. It lists the sounds it found and flags any audio file with a name it doesn't recognize.
 3. Reload the game and press a key (browsers stay silent until you do). Each sound with a file uses it; the rest keep their beep.
 
-**Only have WAV files?** From the `game/` folder, run `node tools/convert-audio.mjs` (or `npm run convert`). It makes an `.ogg` beside every `.wav` in `assets/audio/` that doesn't have one yet. Add `--mp3` to also make `.mp3` copies for older Safari. It needs ffmpeg (`brew install ffmpeg`); without it, it prints the exact commands to run. It never deletes or overwrites anything, and the `.wav` stays as the master copy. Then run the scanner (step 2).
+**Only have WAV files?** From the `game/` folder, run `node tools/convert-audio.mjs` (or `npm run convert`). It makes an `.ogg` beside every `.wav` in `assets/audio/` that doesn't have one yet. Add `--mp3` to also make any missing `.mp3` copies for older Safari (this works even after the `.ogg` files exist). It needs ffmpeg (`brew install ffmpeg`); without it, it prints the exact commands to run. It never deletes or overwrites anything, and the `.wav` stays as the master copy. Then run the scanner (step 2).
 
 **Sound names.** The full list is `S.SOUND_MANIFEST` in `game/src/assets.js`:
 - The 11 core sounds from `templates/examples/audio/AUDIO.md` (`sfx-jump`, `sfx-land`, `sfx-tail-whip`, `sfx-hit-zombie`, `sfx-zombie-groan`, `sfx-pickup`, `sfx-hurt`, `sfx-play-dead`, `sfx-zombie-defeat-comedic`, `sfx-cart-crash`, `sfx-ko`).
@@ -134,7 +136,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - a full autopilot playthrough, repeatable results, and the art list vs. the example docs (file names and sizes)
 - the background bands (rows match the tileset doc and don't overlap), the tail-whip frame width, and the placeholder font (M, W, H and N look different)
 - the sound list: every sound the game triggers has a planned name and a beep; file names, versions and variations are read correctly
-- the audio converter picks only `.wav` files that have no `.ogg` beside them, and never overwrites
+- the audio converter picks only `.wav` files missing an `.ogg` (or an `.mp3` with `--mp3`), and never overwrites
 
 **Browser checks** cover:
 - the source game and the built game each play title → level → gauntlet → clear → restart with no errors

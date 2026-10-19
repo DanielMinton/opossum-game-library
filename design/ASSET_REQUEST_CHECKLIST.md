@@ -22,8 +22,8 @@ These are *looks to emulate* in a browser build, not hardware limits Claude will
 | Palettes | 4 palette lines × 16 colors; index 0 = transparent → 15 usable per line, ~61 on screen |
 | Palette lines | 0 = Sammy + HUD · 1 = zombies/enemies · 2 = foreground tiles, props, items · 3 = backgrounds/parallax |
 | Edges | Hard pixel edges, 1-bit transparency only. **No** semi-transparent pixels, no anti-aliasing against transparency. Dithering and shading ramps are fine |
-| Sprite frames | **48×48 px** cell for Sammy and normal zombies (large zombies 64×64). Sammy ~32–40 px tall; normal zombies ~40–46 px tall. Transparent PNG, every frame the same size |
-| Baseline | Feet at bottom-center **(24, 47)** zero-based; feet touch row 47 in every grounded frame |
+| Sprite frames | **48×48 px** cell for Sammy and normal zombies (large zombies 64×64). Sammy ~32–40 px tall; normal zombies ~40–46 px tall. Transparent PNG, every frame in a strip the same size. One exception: Sammy's tail-whip strip uses a **64×48** cell (see 1.3) |
+| Baseline | Feet at bottom-center **(24, 47)** zero-based (**(32, 47)** in the 64×48 tail-whip cell); feet touch row 47 in every grounded frame |
 | Facing | Draw facing **right**; Claude mirrors for left unless you note an asymmetric detail |
 | Sheet layout | One horizontal strip per animation, frames left→right, zero-based, no padding (or state "1 px padding") |
 | Audio | FM-synth + PSG feel (YM2612 + SN76489 style). Deliver **OGG** (plus an MP3 beside it for older Safari), or **WAV masters** and Claude converts them. Music must loop cleanly end-to-start with no separate intro (loop points aren't supported yet) |
@@ -103,7 +103,7 @@ Without these, Claude can only build with grey placeholder boxes.
 
 ## Top 10 mistakes that cost prep time
 
-1. **Inconsistent frame size** — every frame in an animation (and ideally every Sammy animation) must use the same cell, e.g. 48×48.
+1. **Inconsistent frame size** — every frame in an animation must use the same cell. Sammy uses 48×48 for everything except the tail whip (64×48, so the tail fits).
 2. **Shifting feet baseline** — if the feet move up/down between frames, Sammy will jitter. Keep feet on row 47.
 3. **Semi-transparent edges** — soft/anti-aliased edges against transparency show as halos. Use hard 1-bit edges.
 4. **Upscaled exports** — send art at native size (1×). Claude scales the whole screen; a 4× export breaks the pixel grid and the palette.

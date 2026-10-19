@@ -1,6 +1,6 @@
 // Makes browser copies of WAV sound masters:  node tools/convert-audio.mjs [--mp3]
 // Finds every .wav under assets/audio/ with no .ogg of the same name beside it, and makes that .ogg
-// with ffmpeg (plus an .mp3 for older Safari with --mp3). Without ffmpeg it prints the commands to run.
+// with ffmpeg. With --mp3 it also makes any missing .mp3 (for older Safari), even if the .ogg exists. Without ffmpeg it prints the commands to run.
 // Never deletes or overwrites a file: the WAV stays as the master copy.
 // Options: --root <library folder> (default: the folder above game/)   --mp3
 import fs from 'node:fs';
@@ -23,7 +23,7 @@ export function findWavsToConvert(root, opts = {}) {
       const base = p.slice(0, -4);
       const ogg = fs.existsSync(base + '.ogg') ? null : base + '.ogg';
       const mp3 = !opts.mp3 || fs.existsSync(base + '.mp3') ? null : base + '.mp3';
-      if (ogg) out.push({ wav: p, ogg, mp3 });
+      if (ogg || mp3) out.push({ wav: p, ogg, mp3 });
     }
   };
   walk(path.join(root, 'assets', 'audio'));
@@ -44,7 +44,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
   const root = path.resolve(arg('--root', path.join(gameDir, '..')));
   const todo = findWavsToConvert(root, { mp3: process.argv.includes('--mp3') });
-  if (!todo.length) { console.log('Nothing to convert: every .wav in assets/audio/ already has an .ogg beside it.'); process.exit(0); }
+  if (!todo.length) { console.log('Nothing to convert: every .wav in assets/audio/ already has its copies beside it.'); process.exit(0); }
   const jobs = [];
   for (const t of todo) for (const dest of [t.ogg, t.mp3]) if (dest) jobs.push([t.wav, dest]);
   const probe = spawnSync('ffmpeg', ['-hide_banner', '-encoders'], { encoding: 'utf8' });
