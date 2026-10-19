@@ -59,7 +59,7 @@ The 16-bit target has only **two scrolling planes**: plane A (foreground tiles a
 | Tree line | 512×32 | 144–175 | 25% | Rounded canopy shapes |
 | Near bushes | 512×32 | 176–207 | 50% | Just behind the ground line. The ground starts at row 192, so only rows 176–191 show; fill any gaps between bushes with tree or shadow colour, because only the sky is behind this band |
 
-Widths are multiples of 8 and loop seamlessly; scrolling bands are 256 or 512 px wide so they divide the real plane widths (256/512/1024). Speeds match `templates/STYLE_GUIDE.md`. Vertical rows are a starting suggestion — adjust to your art, but keep bands separate. The game uses exactly these rows, speeds and widths (the `bg:` entries in `game/src/assets.js`); if you change them here, ask Claude to change them there too.
+Widths are multiples of 8 and loop seamlessly; scrolling bands are 256 or 512 px wide so they divide the real plane widths (256/512/1024). Speeds match `design/STYLE_GUIDE.md`. Vertical rows are a starting suggestion — adjust to your art, but keep bands separate. The game uses exactly these rows, speeds and widths (the `bg:` entries in `game/src/assets.js`); if you change them here, ask Claude to change them there too.
 
 ## Palette (Proposed)
 - Line 2 = foreground tiles + props + items (15 colors + transparent). Shared with the hot dog cart and pickups — leave room for them.

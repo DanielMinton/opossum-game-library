@@ -157,7 +157,7 @@ The exact size of every planned file is in `game/src/assets.js`. Sammy's cell si
 - [ ] PNG format, 1× scale — **do not upscale** (the game scales it).
 - [ ] No embedded color profile surprises (export as plain sRGB or strip the profile).
 - [ ] No semi-transparent pixels: every pixel fully opaque or fully transparent.
-- [ ] Colors snapped to the 8 levels per channel; 15 colors max per palette line.
+- [ ] Colors snapped to the 8 levels per channel; aim for 15 colors or fewer per sprite or tile set (a target, not a hard limit).
 - [ ] Exact frame grid: sheet width = cell width × frame count.
 - [ ] Feet on the baseline row in grounded frames; facing right.
 - [ ] File named in kebab-case with `-v01` suffix; layered source file kept beside it.

@@ -77,7 +77,10 @@ function check(name, cond, detail) { results.push({ name, ok: !!cond, detail });
 // 0: dist/ is fresh (no browser needed). Every source file except asset-files.js (which the build replaces)
 // must appear unchanged in dist/index.html, and BUILD_INFO.txt must carry that file's hash.
 const distHtml = path.join(gameDir, 'dist', 'index.html');
-if (fs.existsSync(distHtml)) {
+if (!fs.existsSync(distHtml)) {
+  check('dist/index.html has the current code of every src/ file', false, 'dist/index.html missing — run node tools/build.mjs');
+  check('dist/BUILD_INFO.txt names the hash of dist/index.html', false, 'dist/index.html missing — run node tools/build.mjs');
+} else {
   const built = fs.readFileSync(distHtml, 'utf8');
   const stale = fs.readdirSync(path.join(gameDir, 'src')).filter((f) => f.endsWith('.js') && f !== 'asset-files.js')
     .filter((f) => !built.includes(fs.readFileSync(path.join(gameDir, 'src', f), 'utf8')));

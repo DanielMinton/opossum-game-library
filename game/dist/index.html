@@ -189,11 +189,11 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 
 // ---- src/level.js ----
 // Level 1 layout, from templates/examples/level-01-sheep-meadow/LEVEL.md (PROPOSED).
-// Coordinates are in pixels. x = left→right, y = down. Feet stand at y = 192 on the grass.
+// Coordinates are in pixels. x = left→right, y = down. Feet stand at y = CONFIG.groundY (192) on the grass.
 // Characters and pickups use x = centre, y = bottom (feet).
 // One screen is 320 px wide; screen n starts at x = (n - 1) * 320.
 (function (S) {
-  const G = 192;
+  const G = S.CONFIG.groundY; // config.js loads first
   S.LEVEL1 = {
     id: 'level-01-sheep-meadow',
     name: 'SHEEP MEADOW',
