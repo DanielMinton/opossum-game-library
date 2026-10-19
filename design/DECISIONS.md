@@ -90,3 +90,16 @@ Record date, decision, supporting asset or requirement, and unresolved questions
 - Difficulty is untested with people. An autopilot taking normal damage loses in the gauntlet.
 - Gamepad, audio quality, Safari, Firefox and touch weren't tested. Real sound files were tested for loading and playing in headless Chromium, not by ear.
 - Nothing was published or uploaded.
+
+## 2026-10-19: Review fixes
+
+Bug fixes from a code review. Each choice below is **Proposed (reversible)**.
+
+**Step 2: gameplay bugs**
+- **R works on the pause screen.** It restarts the level and unpauses. Before, only Enter did anything while paused.
+- **Mid-air finish:** reaching the exit in the air now lets Sammy fall and land. He keeps the victory pose while falling, and he doesn't drift sideways.
+- **Play Possum "ready" flash:** the PP icon flashes for 1 s every time the cooldown ends (`possum.readyFlash` in `config.js`). Before, it flashed only during the first 30 s of play. There is no flash at the start of the level, because the cooldown hasn't ended yet.
+- **HUD bar is 16 px tall (was 14 px)** so the 16×16 trash-lid icon fits. The shield pips moved to the right of the icon. Text and the tutorial prompt moved down 1–2 px to match.
+- **Mirrored sprites:** a sprite facing left now flips around its feet point, not 1 px to the left of it.
+- **Falling off the world vs. the pond:** only the pond splashes. A fall into a dry pit (none in level 1 today) still costs 1 heart, but there's no splash. The "last safe spot" Sammy returns to is now at least 24 px from any pit edge, not just the pond, and only where the middle of his feet is on solid ground.
+- **Music on pause:** the placeholder tune now carries on from where it was paused instead of starting over. Pressing R on the pause screen continues a real music file that was already playing, the same as R during play. The placeholder tune starts over, as before.

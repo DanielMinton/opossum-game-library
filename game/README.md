@@ -36,7 +36,7 @@ The level is 12 screens long, about 1 minute for a fast run and 3–5 minutes fo
    - The vendor zombie lobs hot dogs at Sammy and deflates when defeated.
 7. **Play Possum lesson (screen 7):** a group of 3 joggers.
    - Press **C** to play dead for up to 3 s. Zombies within 96 px get confused.
-   - The ability has a 6 s cooldown; the "PP" icon shows when it's ready.
+   - The ability has a 6 s cooldown. The "PP" icon in the top bar fills up during the cooldown and flashes when it's ready again.
 8. **Pond (screen 8):** falling in costs 1 heart and puts Sammy back on safe ground. A bench helps him cross.
 9. **Checkpoint C2:** the start of screen 9, with a second trash lid nearby.
 10. **Gauntlet (screen 12):**
@@ -44,7 +44,7 @@ The level is 12 screens long, about 1 minute for a fast run and 3–5 minutes fo
     - Clearing all three opens the park exit.
     - Walking through the exit shows the level-clear tally: time, zombies, hot dogs, hits and K.O.s.
 
-**Losing:** Sammy has 3 hearts. A K.O. sends him back to the last checkpoint with full health, and there are no lives in this version. **R** restarts the level at any time, and Enter on the tally screen plays again.
+**Losing:** Sammy has 3 hearts. A K.O. sends him back to the last checkpoint with full health, and there are no lives in this version. **R** restarts the level at any time, including from the pause screen. Enter on the tally screen plays again.
 
 ## Adding art
 
@@ -68,7 +68,7 @@ To try every planned file without scanning, add `?probe=1` to the address. Missi
 **Sound names.** The full list is `S.SOUND_MANIFEST` in `game/src/assets.js`:
 - The 11 core sounds from `templates/examples/audio/AUDIO.md` (`sfx-jump`, `sfx-land`, `sfx-tail-whip`, `sfx-hit-zombie`, `sfx-zombie-groan`, `sfx-pickup`, `sfx-hurt`, `sfx-play-dead`, `sfx-zombie-defeat-comedic`, `sfx-cart-crash`, `sfx-ko`).
 - 10 extra sounds the prototype uses: `sfx-cart-rock`, `sfx-shield-block`, `sfx-shield-break`, `sfx-throw`, `sfx-splat`, `sfx-splash`, `sfx-checkpoint`, `sfx-gate-open`, `sfx-level-clear`, `sfx-start`.
-- Music: `music-level-01-central-park` plays during the level. `music-level-01-gauntlet` plays during the gauntlet; without it, the level music keeps playing there without restarting. Real music also carries on (rather than restarting) after a checkpoint respawn or **R**; a K.O. starts it over.
+- Music: `music-level-01-central-park` plays during the level. `music-level-01-gauntlet` plays during the gauntlet; without it, the level music keeps playing there without restarting. Real music also carries on (rather than restarting) after a checkpoint respawn or **R**; a K.O. starts it over. Pausing keeps the music's place, for both real music and the placeholder tune.
 
 **Formats and versions:**
 - Use `.ogg` (what `AUDIO.md` asks for). `.mp3` and `.wav` also work. If a sound has more than one format, the game uses the first one the browser can play, in the order ogg → mp3 → wav. Adding an `.mp3` next to each `.ogg` covers older Safari, which can't play `.ogg`.
@@ -106,17 +106,17 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | 26 game-rule checks (see the list below) |
+| `node --test tests/sim.test.mjs` | 29 game-rule checks (see the list below) |
 | `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 18 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 
 **Game-rule checks** cover:
 - startup, level layout, movement, jumping, one-way platforms and rocks
 - tail-whip; jogger patrol, chase and attack; invincibility after a hit
-- Play Possum (confusion, cancel, cooldown, range)
-- cart (tip, spill, heal, settle), trash lid, vendor and pond
-- K.O. and checkpoints; the gauntlet and exit
-- pause, restart and play again
+- Play Possum (confusion, cancel, cooldown, range, the "ready" flash)
+- cart (tip, spill, heal, settle), trash lid, vendor, pond, and falling into a dry pit (no splash)
+- K.O. and checkpoints; the gauntlet and exit; finishing in mid-air
+- pause, restart (also from the pause screen) and play again
 - a full autopilot playthrough, repeatable results, and the art list vs. the example docs
 - the sound list: every sound the game triggers has a planned name and a beep; file names, versions and variations are read correctly
 

@@ -175,6 +175,21 @@ test('play possum: nearby zombies get confused and stop hurting; 6 s cooldown; n
   assert.notEqual(s.player.state, 'playdead', 'cannot use mid-air');
 });
 
+test('play possum: the HUD icon flashes for 1 s each time the cooldown ends', () => {
+  const s = start(); s.enemies = [];
+  place(s, 200);
+  assert.equal(s.player.possumFlash, 0, 'no flash at the start');
+  for (let round = 0; round < 2; round++) {
+    step(s, { pressed: { possum: true } });
+    runUntil(s, () => s.player.state === 'normal', sec(4));
+    assert.equal(s.player.possumFlash, 0, 'no flash during the cooldown');
+    runUntil(s, () => s.player.possumCd === 0, sec(7));
+    assert.ok(s.player.possumFlash > 0.9, 'flash starts when ready (round ' + (round + 1) + ')');
+    step(s, {}, sec(C.possum.readyFlash) + 2);
+    assert.equal(s.player.possumFlash, 0, 'flash stops after 1 s');
+  }
+});
+
 test('play possum: any button cancels it after 0.5 s, not before', () => {
   const s = start(); s.enemies = [];
   place(s, 200);
@@ -284,6 +299,24 @@ test('pond: falling in costs 1 heart and puts Sammy back on safe ground', () => 
   assert.ok(fell > 0, 'fell into the pond');
   assert.ok(s.player.x < 2344 - 20, 'respawned before the water at x ' + s.player.x);
   assert.equal(s.player.y, G);
+  assert.ok(events(s).includes('sfx-splash'), 'splash sound');
+  const sp = s.effects.find((f) => f.kind === 'splash');
+  assert.ok(sp && sp.x >= 2344 && sp.x <= 2424 && sp.y === 198, 'splash drawn on the water');
+});
+
+test('dry pit: falling out of the world costs 1 heart with no splash, back on safe ground', () => {
+  const L = JSON.parse(JSON.stringify(S.LEVEL1));
+  L.water = []; // the pond's gap (x 2344..2424) becomes a dry pit
+  const s = S.newGame(L); step(s, { pressed: { start: true } }); s.enemies = [];
+  place(s, 2300);
+  events(s);
+  const fell = runUntil(s, () => s.player.hp < 3, sec(4), { held: { right: true } });
+  assert.ok(fell > 0, 'fell into the pit');
+  assert.ok(!events(s).includes('sfx-splash'), 'no splash sound');
+  assert.ok(!s.effects.some((f) => f.kind === 'splash'), 'no splash effect');
+  assert.equal(s.player.y, G);
+  assert.ok(s.player.x < 2344 - 20, 'back before the pit at x ' + s.player.x);
+  assert.ok(S.isSupported(s, s.player.x, G), 'standing on solid ground');
 });
 
 // ---------- failure and recovery ----------
@@ -330,6 +363,21 @@ test('gauntlet: arena locks, 3 waves (2, 3, 4 zombies), gate opens, exit clears 
   assert.ok(minX >= s.level.arena.x0 + 8, 'Sammy never left the arena during the fight: ' + minX);
 });
 
+test('victory: reaching the exit mid-air, Sammy falls and lands instead of freezing in the air', () => {
+  const s = start(); s.god = true; s.enemies = [];
+  s.arena.state = 'open';
+  place(s, 3812);
+  const p = s.player; p.y = G - 40; p.grounded = false; p.vy = 0; p.vx = C.sammy.runSpeed;
+  runUntil(s, () => s.mode === 'clear', 10, { held: { right: true } });
+  assert.equal(s.mode, 'clear');
+  assert.ok(p.y < G, 'still in the air');
+  const x = p.x;
+  step(s, { held: { right: true } }, sec(1));
+  assert.equal(p.y, G); assert.ok(p.grounded); assert.equal(p.vy, 0);
+  assert.equal(p.x, x, 'no sideways drift');
+  assert.equal(p.anim, 'victory');
+});
+
 test('pause, restart and play again', () => {
   const s = start(); s.enemies = [];
   step(s, { held: { right: true } }, 30);
@@ -342,6 +390,13 @@ test('pause, restart and play again', () => {
   assert.equal(s.mode, 'playing');
   step(s, { pressed: { restart: true } });
   assert.equal(s.player.x, s.level.start.x, 'R restarts the level');
+  step(s, { held: { right: true } }, 30);
+  step(s, { pressed: { start: true } });
+  events(s);
+  step(s, { pressed: { restart: true } });
+  assert.equal(s.mode, 'playing', 'R while paused restarts and unpauses');
+  assert.equal(s.player.x, s.level.start.x, 'R while paused restarts the level');
+  assert.ok(events(s).includes('level'), 'level music requested');
   s.mode = 'clear'; s.clearT = 0;
   step(s, { pressed: { start: true } });
   assert.equal(s.mode, 'clear', 'tally must finish before restarting');

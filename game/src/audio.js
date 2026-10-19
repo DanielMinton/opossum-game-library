@@ -175,14 +175,22 @@
         nextT += sd; step += 1;
       }
     }
-    function stopMusic(keepPlace) { track = null; if (timer) { clearInterval(timer); timer = null; } stopFile(keepPlace); }
-    function playMusic(name) {
+    // Placeholder loop: keepPlace (pause) remembers the step so resume carries on from there.
+    let heldStep = 0;
+    function stopMusic(keepPlace) {
+      heldStep = keepPlace && track ? step : 0;
+      track = null; if (timer) { clearInterval(timer); timer = null; } stopFile(keepPlace);
+    }
+    function playMusic(name, fromStep) {
       const el = fileTrack(name);
-      if (el && musicOn && el === musicEl) return; // same file already playing (e.g. no gauntlet track): keep going
+      if (el && el === musicEl) { // same file already playing or paused (e.g. no gauntlet track, R while paused): keep going
+        if (!musicOn) { musicOn = true; quiet(el.play()); }
+        return;
+      }
       stopMusic();
       if (el) { startFile(el); return; }
       if (!ctx || !TRACKS[name]) return;
-      track = TRACKS[name]; step = 0; nextT = ctx.currentTime + 0.05;
+      track = TRACKS[name]; step = fromStep || 0; nextT = ctx.currentTime + 0.05;
       timer = setInterval(schedule, 25);
     }
     let current = null;
@@ -199,7 +207,7 @@
       if (cmd === 'stop') { stopMusic(); current = null; return; }
       if (cmd === 'pause') { stopMusic(true); return; }
       if (cmd === 'resume') {
-        if (musicEl) { musicOn = true; quiet(musicEl.play()); } else if (current) playMusic(current);
+        if (musicEl) { musicOn = true; quiet(musicEl.play()); } else if (current) playMusic(current, heldStep);
         return;
       }
       if (cmd === 'clear') {

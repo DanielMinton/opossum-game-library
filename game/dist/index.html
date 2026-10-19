@@ -68,6 +68,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       getUpTime: 0.25,
       cooldown: 6.0,
       ignoreAfter: 1.5,        // prototype addition: zombies ignore Sammy briefly after he gets up
+      readyFlash: 1.0,         // prototype addition: HUD icon flashes this long when the cooldown ends
     },
 
     jogger: {                  // enemy-zombie-jogger ASSET.md
@@ -424,7 +425,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     return {
       x, y, vx: 0, vy: 0, face: 1, grounded: true, groundKind: 'ground',
       hp: P.maxHp, shield: 0, state: 'normal', t: 0, invuln: 0,
-      coyote: 0, buffer: 0, landT: 0, possumCd: 0, hitSet: null,
+      coyote: 0, buffer: 0, landT: 0, possumCd: 0, possumFlash: 0, hitSet: null,
       anim: 'idle', animT: 0,
     };
   }
@@ -633,7 +634,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   function updatePlayer(s, inp) {
     const p = s.player;
     p.invuln = Math.max(0, p.invuln - DT);
+    const cdBefore = p.possumCd;
     p.possumCd = Math.max(0, p.possumCd - DT);
+    p.possumFlash = Math.max(0, p.possumFlash - DT);
+    if (cdBefore > 0 && p.possumCd === 0) p.possumFlash = C.possum.readyFlash; // HUD icon flashes: ready again
     p.landT = Math.max(0, p.landT - DT);
     p.t += DT;
 
@@ -697,18 +701,22 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     const minX = s.cam.x + 8;
     if (p.x < minX) { p.x = minX; if (p.vx < 0) p.vx = 0; }
 
-    // Remember the last safe spot on solid ground (for the pond).
-    if (p.grounded && p.groundKind === 'ground') {
-      let nearWater = false;
-      for (const w of s.level.water) if (p.x > w.x0 - 24 && p.x < w.x1 + 24) nearWater = true;
-      if (!nearWater) s.lastSafeX = p.x;
+    // Remember the last safe spot on solid ground: not within 24 px of the pond or the edge of a pit.
+    if (p.grounded && p.groundKind === 'ground' && isSupported(s, p.x, p.y)) {
+      const L = s.level;
+      let nearHole = false;
+      for (const w of L.water) if (p.x > w.x0 - 24 && p.x < w.x1 + 24) nearHole = true;
+      for (const g of L.ground) {
+        if (g.x0 > 0 && Math.abs(p.x - g.x0) < 24) nearHole = true;
+        if (g.x1 < L.width && Math.abs(p.x - g.x1) < 24) nearHole = true;
+      }
+      if (!nearHole) s.lastSafeX = p.x;
     }
-    // Pond water / falling out of the world.
-    let inWater = p.y > 260;
-    for (const w of s.level.water) if (p.x > w.x0 && p.x < w.x1 && p.y >= w.y) inWater = true;
-    if (inWater) {
-      sfx(s, 'sfx-splash');
-      effect(s, 'splash', clamp(p.x, s.level.water[0] ? s.level.water[0].x0 : p.x, s.level.water[0] ? s.level.water[0].x1 : p.x), 198, 0.4);
+    // Pond water (splash) or falling out of the world (no splash). Both cost a heart.
+    let pond = null;
+    for (const w of s.level.water) if (p.x > w.x0 && p.x < w.x1 && p.y >= w.y) pond = w;
+    if (pond || p.y > 260) {
+      if (pond) { sfx(s, 'sfx-splash'); effect(s, 'splash', clamp(p.x, pond.x0, pond.x1), pond.y, 0.4); }
       const result = hurtPlayer(s, { hazard: true });
       if (result !== 'ko') {
         p.x = s.lastSafeX; p.y = G; p.vx = 0; p.vy = 0; p.grounded = true; p.groundKind = 'ground';
@@ -1029,10 +1037,17 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       if (q.start || q.jump) { s.mode = 'playing'; music(s, 'level'); sfx(s, 'sfx-start'); }
       return;
     }
-    if (s.mode === 'paused') { if (q.start) { s.mode = 'playing'; music(s, 'resume'); } return; }
+    if (s.mode === 'paused') {
+      if (q.restart) { resetLevel(s); s.mode = 'playing'; music(s, 'level'); }
+      else if (q.start) { s.mode = 'playing'; music(s, 'resume'); }
+      return;
+    }
     if (s.mode === 'clear') {
       s.clearT += DT;
-      s.player.animT += DT;
+      const p = s.player;
+      // Reached the exit mid-air: keep falling until he lands.
+      if (!p.grounded) { p.vx = 0; const b = playerBox(p); moveBody(s, p, b.w, b.h); }
+      p.animT += DT;
       updateEffects(s);
       if ((q.start || q.jump || q.restart) && s.clearT > 1.5) { resetLevel(s); s.mode = 'playing'; music(s, 'level'); }
       return;
@@ -1136,7 +1151,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     S.spriteDraws[key] = (S.spriteDraws[key] || 0) + 1; // counted for the ?test= self-check
     ctx.save();
     ctx.translate(Math.round(x), Math.round(y));
-    if (face < 0) ctx.scale(-1, 1);
+    if (face < 0) { ctx.translate(1, 0); ctx.scale(-1, 1); } // mirror around the pivot column, not 1 px left of it
     // Feet-pivot sprites: the pivot row sits on the pixel row just above the ground line.
     ctx.drawImage(m.img, f * m.fw, 0, m.fw, m.fh, -m.px, -m.py - (m.feet ? 1 : 0), m.fw, m.fh);
     ctx.restore();
@@ -1392,31 +1407,33 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   }
   function drawHud(ctx, s) {
     const p = s.player;
-    R(ctx, K.hud, 0, 0, W, 14);
-    for (let i = 0; i < C.sammy.maxHp; i++) heart(ctx, 4 + i * 9, 4, i < p.hp);
+    // 16 px bar, tall enough for the 16x16 HUD icons. Left to right:
+    // hearts 4-29 | lid icon 34-49, pips 52-61 | PP 66-79, cooldown bar 82-101 | zombies 120 | time 200 | wave 240.
+    R(ctx, K.hud, 0, 0, W, 16);
+    for (let i = 0; i < C.sammy.maxHp; i++) heart(ctx, 4 + i * 9, 5, i < p.hp);
     if (p.shield > 0) {
-      if (!sprite(ctx, 'hud:lid', 0, 34, -1, 1)) { R(ctx, K.lid, 36, 3, 9, 8); S.drawText(ctx, 'L', 39, 4, K.black); }
-      for (let i = 0; i < p.shield; i++) R(ctx, K.lidHi, 48 + i * 4, 6, 2, 3);
+      if (!sprite(ctx, 'hud:lid', 0, 34, 0, 1)) { R(ctx, K.lid, 37, 4, 9, 8); S.drawText(ctx, 'L', 40, 6, K.black); }
+      for (let i = 0; i < p.shield; i++) R(ctx, K.lidHi, 52 + i * 4, 6, 2, 4);
     }
-    // Play Possum icon: greyed with a filling bar during the cooldown.
+    // Play Possum icon: greyed with a filling bar during the cooldown; flashes for a moment when ready again.
     const ready = p.possumCd <= 0 && p.state !== 'playdead' && p.state !== 'getup';
-    const blinkReady = ready && Math.floor(s.t * 3) % 2 === 0 && s.t < 30;
-    R(ctx, ready ? K.nose : K.grey, 66, 2, 14, 10);
-    S.drawText(ctx, 'PP', 68, 4, blinkReady ? K.white : K.black);
+    const blinkReady = ready && p.possumFlash > 0 && Math.floor(p.possumFlash * 6) % 2 === 1;
+    R(ctx, ready ? K.nose : K.grey, 66, 3, 14, 10);
+    S.drawText(ctx, 'PP', 68, 6, blinkReady ? K.white : K.black);
     if (!ready) {
       const frac = p.state === 'playdead' || p.state === 'getup' ? 0 : 1 - p.possumCd / C.possum.cooldown;
-      R(ctx, K.dark, 82, 6, 20, 3); R(ctx, K.nose, 82, 6, Math.round(20 * frac), 3);
+      R(ctx, K.dark, 82, 7, 20, 3); R(ctx, K.nose, 82, 7, Math.round(20 * frac), 3);
     }
-    S.drawText(ctx, 'ZOMBIES ' + s.stats.defeated, 120, 5, K.white);
+    S.drawText(ctx, 'ZOMBIES ' + s.stats.defeated, 120, 6, K.white);
     const secs = Math.floor(s.stats.time);
-    S.drawText(ctx, Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0'), 200, 5, K.white);
-    if (s.arena.state === 'fight') S.drawText(ctx, 'WAVE ' + (s.arena.wave + 1) + '/' + C.gauntlet.waves.length, 240, 5, K.umbrella);
+    S.drawText(ctx, Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0'), 200, 6, K.white);
+    if (s.arena.state === 'fight') S.drawText(ctx, 'WAVE ' + (s.arena.wave + 1) + '/' + C.gauntlet.waves.length, 240, 6, K.umbrella);
     // Tutorial prompt for the current part of the level.
     for (const pr of s.level.prompts) {
       if (p.x >= pr.x0 && p.x < pr.x1) {
         const w = S.textWidth(pr.text) + 8;
-        R(ctx, K.hud, (W - w) / 2, 20, w, 11);
-        S.drawTextCentered(ctx, pr.text, W / 2, 23, K.white);
+        R(ctx, K.hud, (W - w) / 2, 22, w, 11);
+        S.drawTextCentered(ctx, pr.text, W / 2, 25, K.white);
       }
     }
     if (p.state === 'ko') {
@@ -1679,14 +1696,22 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         nextT += sd; step += 1;
       }
     }
-    function stopMusic(keepPlace) { track = null; if (timer) { clearInterval(timer); timer = null; } stopFile(keepPlace); }
-    function playMusic(name) {
+    // Placeholder loop: keepPlace (pause) remembers the step so resume carries on from there.
+    let heldStep = 0;
+    function stopMusic(keepPlace) {
+      heldStep = keepPlace && track ? step : 0;
+      track = null; if (timer) { clearInterval(timer); timer = null; } stopFile(keepPlace);
+    }
+    function playMusic(name, fromStep) {
       const el = fileTrack(name);
-      if (el && musicOn && el === musicEl) return; // same file already playing (e.g. no gauntlet track): keep going
+      if (el && el === musicEl) { // same file already playing or paused (e.g. no gauntlet track, R while paused): keep going
+        if (!musicOn) { musicOn = true; quiet(el.play()); }
+        return;
+      }
       stopMusic();
       if (el) { startFile(el); return; }
       if (!ctx || !TRACKS[name]) return;
-      track = TRACKS[name]; step = 0; nextT = ctx.currentTime + 0.05;
+      track = TRACKS[name]; step = fromStep || 0; nextT = ctx.currentTime + 0.05;
       timer = setInterval(schedule, 25);
     }
     let current = null;
@@ -1703,7 +1728,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       if (cmd === 'stop') { stopMusic(); current = null; return; }
       if (cmd === 'pause') { stopMusic(true); return; }
       if (cmd === 'resume') {
-        if (musicEl) { musicOn = true; quiet(musicEl.play()); } else if (current) playMusic(current);
+        if (musicEl) { musicOn = true; quiet(musicEl.play()); } else if (current) playMusic(current, heldStep);
         return;
       }
       if (cmd === 'clear') {

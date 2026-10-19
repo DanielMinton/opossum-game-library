@@ -37,7 +37,7 @@
     return {
       x, y, vx: 0, vy: 0, face: 1, grounded: true, groundKind: 'ground',
       hp: P.maxHp, shield: 0, state: 'normal', t: 0, invuln: 0,
-      coyote: 0, buffer: 0, landT: 0, possumCd: 0, hitSet: null,
+      coyote: 0, buffer: 0, landT: 0, possumCd: 0, possumFlash: 0, hitSet: null,
       anim: 'idle', animT: 0,
     };
   }
@@ -246,7 +246,10 @@
   function updatePlayer(s, inp) {
     const p = s.player;
     p.invuln = Math.max(0, p.invuln - DT);
+    const cdBefore = p.possumCd;
     p.possumCd = Math.max(0, p.possumCd - DT);
+    p.possumFlash = Math.max(0, p.possumFlash - DT);
+    if (cdBefore > 0 && p.possumCd === 0) p.possumFlash = C.possum.readyFlash; // HUD icon flashes: ready again
     p.landT = Math.max(0, p.landT - DT);
     p.t += DT;
 
@@ -310,18 +313,22 @@
     const minX = s.cam.x + 8;
     if (p.x < minX) { p.x = minX; if (p.vx < 0) p.vx = 0; }
 
-    // Remember the last safe spot on solid ground (for the pond).
-    if (p.grounded && p.groundKind === 'ground') {
-      let nearWater = false;
-      for (const w of s.level.water) if (p.x > w.x0 - 24 && p.x < w.x1 + 24) nearWater = true;
-      if (!nearWater) s.lastSafeX = p.x;
+    // Remember the last safe spot on solid ground: not within 24 px of the pond or the edge of a pit.
+    if (p.grounded && p.groundKind === 'ground' && isSupported(s, p.x, p.y)) {
+      const L = s.level;
+      let nearHole = false;
+      for (const w of L.water) if (p.x > w.x0 - 24 && p.x < w.x1 + 24) nearHole = true;
+      for (const g of L.ground) {
+        if (g.x0 > 0 && Math.abs(p.x - g.x0) < 24) nearHole = true;
+        if (g.x1 < L.width && Math.abs(p.x - g.x1) < 24) nearHole = true;
+      }
+      if (!nearHole) s.lastSafeX = p.x;
     }
-    // Pond water / falling out of the world.
-    let inWater = p.y > 260;
-    for (const w of s.level.water) if (p.x > w.x0 && p.x < w.x1 && p.y >= w.y) inWater = true;
-    if (inWater) {
-      sfx(s, 'sfx-splash');
-      effect(s, 'splash', clamp(p.x, s.level.water[0] ? s.level.water[0].x0 : p.x, s.level.water[0] ? s.level.water[0].x1 : p.x), 198, 0.4);
+    // Pond water (splash) or falling out of the world (no splash). Both cost a heart.
+    let pond = null;
+    for (const w of s.level.water) if (p.x > w.x0 && p.x < w.x1 && p.y >= w.y) pond = w;
+    if (pond || p.y > 260) {
+      if (pond) { sfx(s, 'sfx-splash'); effect(s, 'splash', clamp(p.x, pond.x0, pond.x1), pond.y, 0.4); }
       const result = hurtPlayer(s, { hazard: true });
       if (result !== 'ko') {
         p.x = s.lastSafeX; p.y = G; p.vx = 0; p.vy = 0; p.grounded = true; p.groundKind = 'ground';
@@ -642,10 +649,17 @@
       if (q.start || q.jump) { s.mode = 'playing'; music(s, 'level'); sfx(s, 'sfx-start'); }
       return;
     }
-    if (s.mode === 'paused') { if (q.start) { s.mode = 'playing'; music(s, 'resume'); } return; }
+    if (s.mode === 'paused') {
+      if (q.restart) { resetLevel(s); s.mode = 'playing'; music(s, 'level'); }
+      else if (q.start) { s.mode = 'playing'; music(s, 'resume'); }
+      return;
+    }
     if (s.mode === 'clear') {
       s.clearT += DT;
-      s.player.animT += DT;
+      const p = s.player;
+      // Reached the exit mid-air: keep falling until he lands.
+      if (!p.grounded) { p.vx = 0; const b = playerBox(p); moveBody(s, p, b.w, b.h); }
+      p.animT += DT;
       updateEffects(s);
       if ((q.start || q.jump || q.restart) && s.clearT > 1.5) { resetLevel(s); s.mode = 'playing'; music(s, 'level'); }
       return;

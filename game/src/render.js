@@ -12,7 +12,7 @@
     S.spriteDraws[key] = (S.spriteDraws[key] || 0) + 1; // counted for the ?test= self-check
     ctx.save();
     ctx.translate(Math.round(x), Math.round(y));
-    if (face < 0) ctx.scale(-1, 1);
+    if (face < 0) { ctx.translate(1, 0); ctx.scale(-1, 1); } // mirror around the pivot column, not 1 px left of it
     // Feet-pivot sprites: the pivot row sits on the pixel row just above the ground line.
     ctx.drawImage(m.img, f * m.fw, 0, m.fw, m.fh, -m.px, -m.py - (m.feet ? 1 : 0), m.fw, m.fh);
     ctx.restore();
@@ -268,31 +268,33 @@
   }
   function drawHud(ctx, s) {
     const p = s.player;
-    R(ctx, K.hud, 0, 0, W, 14);
-    for (let i = 0; i < C.sammy.maxHp; i++) heart(ctx, 4 + i * 9, 4, i < p.hp);
+    // 16 px bar, tall enough for the 16x16 HUD icons. Left to right:
+    // hearts 4-29 | lid icon 34-49, pips 52-61 | PP 66-79, cooldown bar 82-101 | zombies 120 | time 200 | wave 240.
+    R(ctx, K.hud, 0, 0, W, 16);
+    for (let i = 0; i < C.sammy.maxHp; i++) heart(ctx, 4 + i * 9, 5, i < p.hp);
     if (p.shield > 0) {
-      if (!sprite(ctx, 'hud:lid', 0, 34, -1, 1)) { R(ctx, K.lid, 36, 3, 9, 8); S.drawText(ctx, 'L', 39, 4, K.black); }
-      for (let i = 0; i < p.shield; i++) R(ctx, K.lidHi, 48 + i * 4, 6, 2, 3);
+      if (!sprite(ctx, 'hud:lid', 0, 34, 0, 1)) { R(ctx, K.lid, 37, 4, 9, 8); S.drawText(ctx, 'L', 40, 6, K.black); }
+      for (let i = 0; i < p.shield; i++) R(ctx, K.lidHi, 52 + i * 4, 6, 2, 4);
     }
-    // Play Possum icon: greyed with a filling bar during the cooldown.
+    // Play Possum icon: greyed with a filling bar during the cooldown; flashes for a moment when ready again.
     const ready = p.possumCd <= 0 && p.state !== 'playdead' && p.state !== 'getup';
-    const blinkReady = ready && Math.floor(s.t * 3) % 2 === 0 && s.t < 30;
-    R(ctx, ready ? K.nose : K.grey, 66, 2, 14, 10);
-    S.drawText(ctx, 'PP', 68, 4, blinkReady ? K.white : K.black);
+    const blinkReady = ready && p.possumFlash > 0 && Math.floor(p.possumFlash * 6) % 2 === 1;
+    R(ctx, ready ? K.nose : K.grey, 66, 3, 14, 10);
+    S.drawText(ctx, 'PP', 68, 6, blinkReady ? K.white : K.black);
     if (!ready) {
       const frac = p.state === 'playdead' || p.state === 'getup' ? 0 : 1 - p.possumCd / C.possum.cooldown;
-      R(ctx, K.dark, 82, 6, 20, 3); R(ctx, K.nose, 82, 6, Math.round(20 * frac), 3);
+      R(ctx, K.dark, 82, 7, 20, 3); R(ctx, K.nose, 82, 7, Math.round(20 * frac), 3);
     }
-    S.drawText(ctx, 'ZOMBIES ' + s.stats.defeated, 120, 5, K.white);
+    S.drawText(ctx, 'ZOMBIES ' + s.stats.defeated, 120, 6, K.white);
     const secs = Math.floor(s.stats.time);
-    S.drawText(ctx, Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0'), 200, 5, K.white);
-    if (s.arena.state === 'fight') S.drawText(ctx, 'WAVE ' + (s.arena.wave + 1) + '/' + C.gauntlet.waves.length, 240, 5, K.umbrella);
+    S.drawText(ctx, Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0'), 200, 6, K.white);
+    if (s.arena.state === 'fight') S.drawText(ctx, 'WAVE ' + (s.arena.wave + 1) + '/' + C.gauntlet.waves.length, 240, 6, K.umbrella);
     // Tutorial prompt for the current part of the level.
     for (const pr of s.level.prompts) {
       if (p.x >= pr.x0 && p.x < pr.x1) {
         const w = S.textWidth(pr.text) + 8;
-        R(ctx, K.hud, (W - w) / 2, 20, w, 11);
-        S.drawTextCentered(ctx, pr.text, W / 2, 23, K.white);
+        R(ctx, K.hud, (W - w) / 2, 22, w, 11);
+        S.drawTextCentered(ctx, pr.text, W / 2, 25, K.white);
       }
     }
     if (p.state === 'ko') {

@@ -47,6 +47,7 @@
       getUpTime: 0.25,
       cooldown: 6.0,
       ignoreAfter: 1.5,        // prototype addition: zombies ignore Sammy briefly after he gets up
+      readyFlash: 1.0,         // prototype addition: HUD icon flashes this long when the cooldown ends
     },
 
     jogger: {                  // enemy-zombie-jogger ASSET.md
