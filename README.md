@@ -50,21 +50,21 @@ The game draws at 320×224 pixels, like a classic console, and scales up by whol
 
 ## Controls
 
-| Action | Keyboard | Gamepad (standard layout) |
-|---|---|---|
-| Move | ← → or A D | D-pad (the cross-shaped direction pad) left/right, or left stick |
-| Jump (hold for a higher jump) | Z, Space, ↑, W or K | A / Cross, or D-pad up |
-| Tail-whip | X or J | X / Square |
-| Play Possum (play dead) | C or L | B / Circle or Y / Triangle |
-| Pause / start | Enter, Esc or P | Start |
-| Restart the level | R | Select / Back |
-| Mute | M | — |
+| Action | Keyboard | Gamepad (standard layout) | Touch (phones and tablets) |
+|---|---|---|---|
+| Move | ← → or A D | D-pad (the cross-shaped direction pad) left/right, or left stick | Arrow pad, bottom left (slide your thumb across to turn round) |
+| Jump (hold for a higher jump) | Z, Space, ↑, W or K | A / Cross, or D-pad up | Green JUMP button, bottom right |
+| Tail-whip | X or J | X / Square | Red WHIP button |
+| Play Possum (play dead) | C or L | B / Circle or Y / Triangle | Pink POSSUM button |
+| Pause / start | Enter, Esc or P | Start | Blue pause button (‖); JUMP or a tap on the picture starts the game |
+| Restart the level | R | Select / Back | RESTART (shown while paused) |
+| Mute | M | — | MUTE (shown while paused) |
 
 (Down is read too, but nothing uses it yet.)
 
 Gamepads have not been tested by a real person yet.
 
-**Phones and tablets:** looking great and playing well on mobile as well as desktop is a **major priority**. The first step is done: the game is now bigger and sharper on phones and tablets (held sideways, in our checks it now fills 90–95% of an iPhone's height instead of under 60%). Touch controls aren't built yet, so you can't play on a phone yet. See the roadmap below.
+**Phones and tablets:** looking great and playing well on mobile as well as desktop is a **major priority**. Two steps are done: the game is bigger and sharper on phones and tablets (held sideways, in our checks it fills 90–95% of an iPhone's height instead of under 60%), and it now has **on-screen touch buttons**. They appear only on touch screens, never on a normal computer. Sideways, they sit in the black space beside the picture; upright, below it. The whole level can be played by touch in our automatic checks, but **nobody has tried it on a real phone yet**, and phones still need the game put on a website to open it. See the roadmap below.
 
 ## What's in level 1
 
@@ -107,7 +107,7 @@ These drawings were made for this page only. They are not the game's art. In the
 - Design docs, templates and worked examples for every kind of art and sound.
 
 **Next:**
-1. **Desktop and mobile (major priority):** the game now fills phone and tablet screens crisply (done). Still to do: on-screen touch controls, the phone layout, and tests on real phones. The plan is in [design/DECISIONS.md](design/DECISIONS.md).
+1. **Desktop and mobile (major priority):** the game now fills phone and tablet screens crisply, and has on-screen touch buttons (both done). Still to do: the phone layout (a "turn your phone sideways" message, full screen, notches), and tests on real phones. The plan is in [design/DECISIONS.md](design/DECISIONS.md).
 2. **You (the owner) answer the open questions** in **[design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)**. There are 12, each with a suggested answer. Examples: the final title, how gory it gets, who makes the art and music, and what goes in the first release.
 3. You review the draft style guide, [design/STYLE_GUIDE.md](design/STYLE_GUIDE.md).
 4. Real art and sound arrive, starting with the most important files ("Tier 1") in [design/ASSET_REQUEST_CHECKLIST.md](design/ASSET_REQUEST_CHECKLIST.md).
@@ -222,8 +222,8 @@ node tests/browser-smoke.mjs
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | **41 game-rule tests:** every move, enemy and item in level 1, a full autopilot run, the screen-size maths, and the art, sound and license checks. |
-| `node tests/browser-smoke.mjs` | **28 browser checks:** opens the game in a hidden Chromium browser, plays the whole level in both the normal and the shareable copy, presses real keys, draws every screen, loads test art and sound, and checks the picture is big and sharp at a phone size and a laptop size. Needs Chrome, Edge or another Chromium browser. |
+| `node --test tests/sim.test.mjs` | **44 game-rule tests:** every move, enemy and item in level 1, a full autopilot run, the screen-size and touch-button maths, and the art, sound and license checks. |
+| `node tests/browser-smoke.mjs` | **33 browser checks:** opens the game in a hidden Chromium browser, plays the whole level in both the normal and the shareable copy, presses real keys, taps the real touch buttons at phone sizes, draws every screen, loads test art and sound, checks the picture is big and sharp at a phone size and a laptop size, and checks the touch buttons stay hidden on a computer. Needs Chrome, Edge or another Chromium browser. |
 | `?test=full` | Open `game/index.html`, click the address bar, type `?test=full` at the very end and press Enter. The game then plays itself ("autopilot") so you can watch a full run. |
 
 If you changed the game's code, run the build (see [Building a shareable copy](#building-a-shareable-copy)) before the browser check. Otherwise the check fails and asks you to run `node tools/build.mjs`.

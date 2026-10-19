@@ -14,6 +14,10 @@
 //  5. Screen fitting: at a landscape phone size (852x393, 3 real pixels per point) and a common laptop size
 //     (1366x768), the canvas is the size layout.js works out, fills the phone's height, the page doesn't scroll,
 //     and a screenshot shows every game pixel as an exact square block of real pixels (sharp, not blurred).
+//     Neither size shows the touch buttons (a headless browser has a mouse, not a finger).
+//  6. Touch buttons (?test=touch&touch=1) at a sideways phone (852x393) in both the source and built game, and an
+//     upright phone (393x852): real touch events on the real buttons start the game, move, jump higher when held,
+//     tail-whip, pause, mute and restart, two fingers at once work, and every way of lifting a finger lets go.
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import os from 'node:os';
@@ -111,6 +115,9 @@ for (const [label, file] of [['source game (game/index.html)', path.join(gameDir
   check(label + ': every hurt/K.O./play-dead/pause/mute screen draws without errors', r.ok && r.renderSweep >= 27, 'states drawn: ' + r.renderSweep);
   const k = runPage(file, 'test=keys');
   check(label + ': real key presses start the game and move Sammy', k.ok, `mode ${k.mode}, x ${k.x}, errors ${JSON.stringify(k.errors)}`);
+  const t = runPage(file, 'test=touch&touch=1', ['--window-size=852,393', '--force-device-scale-factor=3']);
+  check(label + ': touch buttons on a sideways phone play the game (move, jump, whip, pause, mute, restart)', t.ok,
+    `checks ${JSON.stringify(t.checks)}, errors ${JSON.stringify(t.errors)}`);
   check(label + ': no art files expected yet, so none loaded', r.assets && r.assets.tried === 0, 'tried ' + (r.assets && r.assets.tried));
   check(label + ': no sound files expected yet, so none loaded', r.sounds && r.sounds.tried === 0, 'tried ' + (r.sounds && r.sounds.tried));
 }
@@ -161,6 +168,8 @@ for (const [label, w, h, dpr, minFill] of [['landscape phone 852x393, 3 real px 
   check(`${label}: canvas is x${want.scale} (${want.cssW.toFixed(1)}x${want.cssH.toFixed(1)}) and centred, as layout.js works out`,
     r.ok && f.scale === want.scale && close(rect.w, want.cssW) && close(rect.h, want.cssH) && close(rect.x, want.cssLeft) && close(rect.y, want.cssTop),
     `got ${JSON.stringify(f)}`);
+  check(`${label}: no touch buttons shown (not a touch screen)`, r.fit && r.fit.touch === false && Object.keys(f.buttons || {}).length === 0,
+    `touch ${f.touch}, buttons ${JSON.stringify(f.buttons)}`);
   check(`${label}: game fills at least ${minFill * 100}% of the screen height, nothing cut off, page doesn't scroll`,
     rect.h / h >= minFill && rect.x >= 0 && rect.y >= 0 && rect.x + rect.w <= w + 0.01 && rect.y + rect.h <= h + 0.01 && f.scrollW <= w && f.scrollH <= h,
     `height ${(rect.h / h * 100).toFixed(1)}%, page ${f.scrollW}x${f.scrollH}`);
@@ -185,10 +194,20 @@ for (const [label, w, h, dpr, minFill] of [['landscape phone 852x393, 3 real px 
 }
 fs.rmSync(fitTmp, { recursive: true, force: true });
 
+// 6: touch buttons on an upright phone: the picture at the top, every button below it, and the game plays.
+{
+  const t = runPage(path.join(gameDir, 'index.html'), 'test=touch&touch=1', ['--window-size=393,852', '--force-device-scale-factor=3']);
+  const f = t.fit || {}, b = f.buttons || {}, bottom = (f.rect ? f.rect.y + f.rect.h : 0);
+  check('upright phone 393x852: touch buttons sit below the picture and play the game', t.ok &&
+    ['pad', 'jump', 'whip', 'possum', 'pause'].every((n) => b[n] && b[n].y >= bottom - 0.01 && b[n].y + b[n].h <= 852.01),
+    `buttons ${JSON.stringify(b)}, picture bottom ${bottom}, checks ${JSON.stringify(t.checks)}, errors ${JSON.stringify(t.errors)}`);
+}
+
 if (shots) {
   fs.mkdirSync(shots, { recursive: true });
   const src = path.join(gameDir, 'index.html');
   for (const [n, q] of [['title', 'frames=1&title=1'], ['level', 'frames=1060'], ['arena', 'frames=2700'], ['clear', 'frames=3265']]) screenshot(src, 'test=shot&' + q, path.join(shots, n + '.png'));
+  for (const [n, q] of [['touch-phone-level', 'frames=1060'], ['touch-phone-paused', 'frames=1060&paused=1']]) screenshot(src, 'test=shot&touch=1&' + q, path.join(shots, n + '.png'), ['--window-size=852,393', '--force-device-scale-factor=3']);
   screenshot(path.join(tmp, 'game', 'index.html'), 'test=shot&frames=120', path.join(shots, 'real-art-test.png'));
   screenshot(path.join(tmp, 'game', 'index.html'), 'test=shot&frames=1&title=1', path.join(shots, 'real-art-title.png'));
   console.log('Screenshots written to ' + shots);

@@ -1,4 +1,4 @@
-// Keyboard and gamepad -> the abstract buttons the game rules use.
+// Keyboard, gamepad and other sources (the on-screen touch buttons in touch.js) -> the abstract buttons the game rules use.
 // Defaults match the on-screen prompts in LEVEL.md: Z jump, X tail-whip, C Play Possum.
 (function (S) {
   const KEYS = {
@@ -15,6 +15,7 @@
 
   S.createInput = function (target) {
     const keyHeld = {};
+    const sources = {}; // held buttons from other sources, e.g. sources.touch = { right: true }
     const pending = new Set();
     let padPrev = {};
     target.addEventListener('keydown', (e) => {
@@ -26,6 +27,7 @@
     });
     target.addEventListener('keyup', (e) => { const a = KEYS[e.code]; if (a) keyHeld[a] = false; });
     target.addEventListener('blur', () => { for (const k in keyHeld) keyHeld[k] = false; });
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.hidden) for (const k in keyHeld) keyHeld[k] = false; });
 
     function readPad() {
       const out = {};
@@ -40,19 +42,27 @@
       return out;
     }
 
-    // Called once per simulation step. Presses are only reported once.
+    const fromSources = (k) => { for (const n in sources) if (sources[n][k]) return true; return false; };
+
     return {
+      // Called once per simulation step. Presses are only reported once.
       poll() {
         const inp = S.makeInput();
         const pad = readPad();
         for (const k in pad) if (pad[k] && !padPrev[k]) pending.add(k);
         padPrev = pad;
-        for (const k in inp.held) inp.held[k] = !!(keyHeld[k] || pad[k]);
+        for (const k in inp.held) inp.held[k] = !!(keyHeld[k] || pad[k] || fromSources(k));
         for (const k of pending) if (k in inp.pressed) inp.pressed[k] = true;
         inp.mute = pending.has('mute');
         pending.clear();
         return inp;
       },
+      // Other sources: a one-shot press (like a key going down) and held buttons (like a key staying down).
+      press(action) { pending.add(action); },
+      setHeld(source, action, on) { (sources[source] = sources[source] || {})[action] = !!on; },
+      releaseAll(source) { if (sources[source]) for (const k in sources[source]) sources[source][k] = false; },
+      // Which buttons are held right now, from every source (for the self-checks).
+      held() { const pad = readPad(), out = {}; for (const k in S.makeInput().held) out[k] = !!(keyHeld[k] || pad[k] || fromSources(k)); return out; },
     };
   };
 })(globalThis.SAMMY = globalThis.SAMMY || {});

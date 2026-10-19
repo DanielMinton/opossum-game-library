@@ -4,7 +4,7 @@ A 16-bit Genesis-style 2D platformer prototype: Sammy the opossum fights cartoon
 
 ## Repo map
 - `game/`: the game. Plain HTML5 canvas + classic `<script>` JS, no engine, no npm packages. Native 320×224, scaled by whole numbers of *device* pixels (`src/layout.js` `S.computeFit`, positioned on whole device pixels; don't reintroduce flex centring or CSS-point scaling). Runs by double-clicking `game/index.html` (file://).
-  - `src/config.js` tuning numbers · `src/level.js` level 1 layout · `src/sim.js` game rules · `src/render.js` + `src/font.js` drawing · `src/audio.js` sound · `src/layout.js` screen-fit maths (pure, Node-tested) · `src/input.js`, `src/main.js` loop, fitting and `?test=` self-checks (results include `fit`) · `src/bot.js` test autopilot.
+  - `src/config.js` tuning numbers · `src/level.js` level 1 layout · `src/sim.js` game rules · `src/render.js` + `src/font.js` drawing · `src/audio.js` sound · `src/layout.js` screen-fit and touch-button layout maths (pure, Node-tested) · `src/touch.js` on-screen touch buttons (DOM, pixel-art canvases; feed `input.js` via `press`/`setHeld`; shown only on coarse pointers, first touch, or `?touch=1`) · `src/input.js`, `src/main.js` loop, fitting and `?test=` self-checks (results include `fit`) · `src/bot.js` test autopilot.
   - `src/assets.js`: planned art and sound names, plus frame data. `src/asset-files.js` is **generated** by `tools/scan-assets.mjs`.
   - `tools/`: `build.mjs` (makes `dist/`), `scan-assets.mjs` (+ `png.mjs` checks), `licenses.mjs` (ship rules), `convert-audio.mjs` (WAV → OGG/MP3 via ffmpeg).
   - `tests/`: `sim.test.mjs` (Node rule tests), `browser-smoke.mjs` (headless Chromium).
@@ -22,7 +22,7 @@ A 16-bit Genesis-style 2D platformer prototype: Sammy the opossum fights cartoon
 - **Proposed vs Confirmed:** in design docs, only owner-stated facts are "Confirmed". Everything else is "Proposed (not approved)". Record any choice between two defensible options in `design/DECISIONS.md` under a dated heading, marked Proposed (reversible). Mark superseded lines; don't delete history.
 - **Licenses:** a file ships in `dist/` only when its `design/ASSET_SOURCES.csv` row has `commercial_use` = `yes` and a license that is filled in (not blank/TBD/unknown/none) and isn't non-commercial (`NC`, "non-commercial") or reference-only. Rules: `game/tools/licenses.mjs`. `attribution_required` = `yes` adds a line to `dist/CREDITS.txt`. **Never ship `assets/references/`.**
 - No "Sega"/"Genesis" in titles or branding; homage through feel only, never copied art or audio.
-- **Desktop + mobile is a confirmed major priority.** The game must look beautiful and be fully playable on desktop and on phones and tablets (touch controls, landscape layout, crisp scaling that fills the screen). Check every visual, layout or input change at phone sizes (e.g. 844×390 and 390×844) as well as desktop. Step 1 (crisp scaling) is done; touch controls and phone layout aren't built yet; see `design/DECISIONS.md` "Desktop and mobile confirmed".
+- **Desktop + mobile is a confirmed major priority.** The game must look beautiful and be fully playable on desktop and on phones and tablets (touch controls, landscape layout, crisp scaling that fills the screen). Check every visual, layout or input change at phone sizes (e.g. 844×390 and 390×844) as well as desktop. Steps 1 (crisp scaling) and 2 (touch buttons) are done; the phone layout (step 3: rotate prompt, full screen, notches for the picture) isn't built yet; see `design/DECISIONS.md` "Desktop and mobile confirmed".
 
 ## How to…
 
@@ -56,5 +56,6 @@ node tools/build.mjs && node tests/browser-smoke.mjs  # rebuild dist/, then brow
 ```
 - The smoke test first checks that `dist/index.html` contains the current code of every `src/*.js` file (except `asset-files.js`) and that `dist/BUILD_INFO.txt` carries its hash. After any `src/` edit, rebuild before running it.
 - The build is repeatable: `BUILD_INFO.txt` holds a 12-character hash of `index.html`, not a time, so rebuilding unchanged code leaves git clean.
+- Touch: `index.html?test=touch&touch=1` taps the real buttons (the smoke test runs it at 852×393 and 393×852). `?touch=1` also works with `?test=shot` (add `&paused=1` for the pause menu). Desktop must never show the buttons.
 - Screenshots: `node tests/browser-smoke.mjs --shots <dir>`, or `index.html?test=shot&frames=N` in headless Chrome (flags in `screenshot()`).
 - Update the test counts in `game/README.md` when they change.

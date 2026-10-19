@@ -310,9 +310,10 @@
     // Tutorial prompt for the current part of the level.
     for (const pr of s.level.prompts) {
       if (p.x >= pr.x0 && p.x < pr.x1) {
-        const w = S.textWidth(pr.text) + 8;
+        const text = (S.touchActive && pr.touch) || pr.text;
+        const w = S.textWidth(text) + 8;
         R(ctx, K.hud, (W - w) / 2, 22, w, 11);
-        S.drawTextCentered(ctx, pr.text, W / 2, 25, K.white);
+        S.drawTextCentered(ctx, text, W / 2, 25, K.white);
       }
     }
     if (p.state === 'ko') {
@@ -321,13 +322,26 @@
     }
   }
 
+  // Bottom right; centred at the bottom when touch buttons are showing, so they never hide it.
   function watermark(ctx) {
-    const t = 'PLACEHOLDER ART - NOT FINAL';
-    R(ctx, K.black, W - S.textWidth(t) - 6, H - 9, S.textWidth(t) + 6, 9);
-    S.drawText(ctx, t, W - S.textWidth(t) - 3, H - 7, K.umbrella);
+    const t = 'PLACEHOLDER ART - NOT FINAL', tw = S.textWidth(t);
+    const x = S.touchActive ? Math.round((W - tw) / 2) : W - tw - 3;
+    R(ctx, K.black, x - 3, H - 9, tw + 6, 9);
+    S.drawText(ctx, t, x, H - 7, K.umbrella);
   }
 
   // ---------- screens ----------
+  // Screen text for keyboard players and for the on-screen touch buttons (the tests check every line fits).
+  S.TEXT = {
+    keys: {
+      title1: 'ARROWS/WASD MOVE  Z JUMP  X WHIP  C PLAY POSSUM', title2: 'ENTER PAUSE   R RESTART   M MUTE',
+      start: 'PRESS ENTER OR Z TO START', again: 'PRESS ENTER TO PLAY AGAIN', paused: 'ENTER TO RESUME  R RESTART',
+    },
+    touch: {
+      title1: 'BUTTONS: MOVE, JUMP, WHIP, PLAY POSSUM', title2: 'PAUSE BUTTON: RESTART AND MUTE',
+      start: 'TAP JUMP TO START', again: 'TAP JUMP TO PLAY AGAIN', paused: 'TAP PLAY TO RESUME',
+    },
+  };
   function panel(ctx, x, y, w, h) { R(ctx, K.black, x - 1, y - 1, w + 2, h + 2); R(ctx, K.hud, x, y, w, h); R(ctx, K.sky1, x, y, w, 2); }
 
   function drawTitle(ctx, s) {
@@ -339,9 +353,10 @@
     S.drawTextCentered(ctx, 'SAMMY THE OPOSSUM WAKES UP IN CENTRAL PARK.', W / 2, 78, K.white);
     S.drawTextCentered(ctx, 'NO MEMORY. AND EVERY HUMAN IS A ZOMBIE.', W / 2, 86, K.white);
     S.drawTextCentered(ctx, 'LEVEL 1: SHEEP MEADOW', W / 2, 100, K.umbrella);
-    S.drawTextCentered(ctx, 'ARROWS/WASD MOVE  Z JUMP  X WHIP  C PLAY POSSUM', W / 2, 116, K.white);
-    S.drawTextCentered(ctx, 'ENTER PAUSE   R RESTART   M MUTE', W / 2, 124, K.white);
-    if (Math.floor((s.titleT || 0) * 2) % 2 === 0) S.drawTextCentered(ctx, 'PRESS ENTER OR Z TO START', W / 2, 142, K.nose, 1);
+    const t = S.TEXT[S.touchActive ? 'touch' : 'keys'];
+    S.drawTextCentered(ctx, t.title1, W / 2, 116, K.white);
+    S.drawTextCentered(ctx, t.title2, W / 2, 124, K.white);
+    if (Math.floor((s.titleT || 0) * 2) % 2 === 0) S.drawTextCentered(ctx, t.start, W / 2, 142, K.nose, 1);
     const r = S.assetReport;
     S.drawTextCentered(ctx, 'REAL ART LOADED: ' + r.loaded.length + ' OF ' + r.expected + ' FILES', W / 2, 160, K.grey);
     if (r.warnings.length) S.drawTextCentered(ctx, 'ART WARNINGS: ' + r.warnings.length + ' - SEE CONSOLE', W / 2, 167, K.heart);
@@ -361,7 +376,7 @@
       ['K.O.S', Math.round(st.kos * k)],
     ];
     rows.forEach((r, i) => { S.drawText(ctx, r[0], 76, 76 + i * 12, K.white); S.drawText(ctx, String(r[1]), 220, 76 + i * 12, K.umbrella); });
-    if (s.clearT > 1.5 && Math.floor(s.clearT * 2) % 2 === 0) S.drawTextCentered(ctx, 'PRESS ENTER TO PLAY AGAIN', W / 2, 152, K.nose);
+    if (s.clearT > 1.5 && Math.floor(s.clearT * 2) % 2 === 0) S.drawTextCentered(ctx, S.TEXT[S.touchActive ? 'touch' : 'keys'].again, W / 2, 152, K.nose);
     S.drawTextCentered(ctx, 'END OF THE PROTOTYPE LEVEL', W / 2, 164, K.grey);
   }
 
@@ -390,10 +405,10 @@
     if (s.mode === 'paused') {
       panel(ctx, 100, 80, 120, 50);
       S.drawTextCentered(ctx, 'PAUSED', W / 2, 90, K.white, 2, K.black);
-      S.drawTextCentered(ctx, 'ENTER TO RESUME  R RESTART', W / 2, 112, K.grey);
+      S.drawTextCentered(ctx, S.TEXT[S.touchActive ? 'touch' : 'keys'].paused, W / 2, 112, K.grey);
     }
     if (s.mode === 'clear') drawClear(ctx, s);
-    if (s.muted) S.drawText(ctx, 'MUTED', 4, H - 7, K.grey);
+    if (s.muted) { if (S.touchActive) S.drawText(ctx, 'MUTED', W - 26, 6, K.grey); else S.drawText(ctx, 'MUTED', 4, H - 7, K.grey); }
     watermark(ctx);
   };
 })(globalThis.SAMMY = globalThis.SAMMY || {});

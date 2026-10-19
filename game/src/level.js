@@ -59,12 +59,13 @@
     arena: { x0: 3520, x1: 3840, trigger: 3560, gateX: 3800, gateW: 24, exitX: 3820 },
 
     // On-screen tutorial prompts by x range (screen-by-screen beats in LEVEL.md).
+    // touch: the wording used instead when the on-screen touch buttons are showing.
     prompts: [
-      { x0: 0,    x1: 300,  text: 'ARROWS: MOVE   Z: JUMP' },
-      { x0: 340,  x1: 660,  text: 'X: TAIL-WHIP' },
+      { x0: 0,    x1: 300,  text: 'ARROWS: MOVE   Z: JUMP', touch: 'ARROW PAD: MOVE   JUMP BUTTON: JUMP' },
+      { x0: 340,  x1: 660,  text: 'X: TAIL-WHIP', touch: 'WHIP BUTTON: TAIL-WHIP' },
       { x0: 1060, x1: 1160, text: 'GRAB THE TRASH LID: BLOCKS 3 HITS' },
       { x0: 1620, x1: 1760, text: 'WHIP THE CART!' },
-      { x0: 1920, x1: 2080, text: 'C: PLAY POSSUM - ZOMBIES LOSE TRACK OF YOU' },
+      { x0: 1920, x1: 2080, text: 'C: PLAY POSSUM - ZOMBIES LOSE TRACK OF YOU', touch: 'POSSUM BUTTON: PLAY DEAD - ZOMBIES LOSE YOU' },
       { x0: 3380, x1: 3520, text: 'THE PARK EXIT IS AHEAD...' },
     ],
   };

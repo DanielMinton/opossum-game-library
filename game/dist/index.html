@@ -7,8 +7,17 @@
   <style>
     html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; overscroll-behavior: none; }
     /* main.js sets the canvas size and position (src/layout.js does the maths) so its pixels line up with the screen's. */
-    canvas { position: absolute; left: 0; top: 0; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
-    #test-result { position: absolute; left: 0; top: 0; margin: 0; color: #0f0; font: 10px monospace; white-space: pre-wrap; max-width: 100%; }
+    #screen { position: absolute; left: 0; top: 0; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+    /* On-screen touch buttons (src/touch.js places them; src/layout.js does the maths). Hidden unless on a touch screen. */
+    #touch-controls { position: fixed; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 2; }
+    #touch-controls.on { display: block; }
+    .tbtn { position: absolute; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none;
+      -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+    .tbtn canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
+    .tbtn.over { opacity: 0.6; }
+    .tbtn.over.down { opacity: 0.9; }
+    .tbtn.hide { display: none; }
+    #test-result { z-index: 3; position: absolute; left: 0; top: 0; margin: 0; color: #0f0; font: 10px monospace; white-space: pre-wrap; max-width: 100%; }
   </style>
 </head>
 <body>
@@ -249,12 +258,13 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     arena: { x0: 3520, x1: 3840, trigger: 3560, gateX: 3800, gateW: 24, exitX: 3820 },
 
     // On-screen tutorial prompts by x range (screen-by-screen beats in LEVEL.md).
+    // touch: the wording used instead when the on-screen touch buttons are showing.
     prompts: [
-      { x0: 0,    x1: 300,  text: 'ARROWS: MOVE   Z: JUMP' },
-      { x0: 340,  x1: 660,  text: 'X: TAIL-WHIP' },
+      { x0: 0,    x1: 300,  text: 'ARROWS: MOVE   Z: JUMP', touch: 'ARROW PAD: MOVE   JUMP BUTTON: JUMP' },
+      { x0: 340,  x1: 660,  text: 'X: TAIL-WHIP', touch: 'WHIP BUTTON: TAIL-WHIP' },
       { x0: 1060, x1: 1160, text: 'GRAB THE TRASH LID: BLOCKS 3 HITS' },
       { x0: 1620, x1: 1760, text: 'WHIP THE CART!' },
-      { x0: 1920, x1: 2080, text: 'C: PLAY POSSUM - ZOMBIES LOSE TRACK OF YOU' },
+      { x0: 1920, x1: 2080, text: 'C: PLAY POSSUM - ZOMBIES LOSE TRACK OF YOU', touch: 'POSSUM BUTTON: PLAY DEAD - ZOMBIES LOSE YOU' },
       { x0: 3380, x1: 3520, text: 'THE PARK EXIT IS AHEAD...' },
     ],
   };
@@ -1487,9 +1497,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     // Tutorial prompt for the current part of the level.
     for (const pr of s.level.prompts) {
       if (p.x >= pr.x0 && p.x < pr.x1) {
-        const w = S.textWidth(pr.text) + 8;
+        const text = (S.touchActive && pr.touch) || pr.text;
+        const w = S.textWidth(text) + 8;
         R(ctx, K.hud, (W - w) / 2, 22, w, 11);
-        S.drawTextCentered(ctx, pr.text, W / 2, 25, K.white);
+        S.drawTextCentered(ctx, text, W / 2, 25, K.white);
       }
     }
     if (p.state === 'ko') {
@@ -1498,13 +1509,26 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     }
   }
 
+  // Bottom right; centred at the bottom when touch buttons are showing, so they never hide it.
   function watermark(ctx) {
-    const t = 'PLACEHOLDER ART - NOT FINAL';
-    R(ctx, K.black, W - S.textWidth(t) - 6, H - 9, S.textWidth(t) + 6, 9);
-    S.drawText(ctx, t, W - S.textWidth(t) - 3, H - 7, K.umbrella);
+    const t = 'PLACEHOLDER ART - NOT FINAL', tw = S.textWidth(t);
+    const x = S.touchActive ? Math.round((W - tw) / 2) : W - tw - 3;
+    R(ctx, K.black, x - 3, H - 9, tw + 6, 9);
+    S.drawText(ctx, t, x, H - 7, K.umbrella);
   }
 
   // ---------- screens ----------
+  // Screen text for keyboard players and for the on-screen touch buttons (the tests check every line fits).
+  S.TEXT = {
+    keys: {
+      title1: 'ARROWS/WASD MOVE  Z JUMP  X WHIP  C PLAY POSSUM', title2: 'ENTER PAUSE   R RESTART   M MUTE',
+      start: 'PRESS ENTER OR Z TO START', again: 'PRESS ENTER TO PLAY AGAIN', paused: 'ENTER TO RESUME  R RESTART',
+    },
+    touch: {
+      title1: 'BUTTONS: MOVE, JUMP, WHIP, PLAY POSSUM', title2: 'PAUSE BUTTON: RESTART AND MUTE',
+      start: 'TAP JUMP TO START', again: 'TAP JUMP TO PLAY AGAIN', paused: 'TAP PLAY TO RESUME',
+    },
+  };
   function panel(ctx, x, y, w, h) { R(ctx, K.black, x - 1, y - 1, w + 2, h + 2); R(ctx, K.hud, x, y, w, h); R(ctx, K.sky1, x, y, w, 2); }
 
   function drawTitle(ctx, s) {
@@ -1516,9 +1540,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     S.drawTextCentered(ctx, 'SAMMY THE OPOSSUM WAKES UP IN CENTRAL PARK.', W / 2, 78, K.white);
     S.drawTextCentered(ctx, 'NO MEMORY. AND EVERY HUMAN IS A ZOMBIE.', W / 2, 86, K.white);
     S.drawTextCentered(ctx, 'LEVEL 1: SHEEP MEADOW', W / 2, 100, K.umbrella);
-    S.drawTextCentered(ctx, 'ARROWS/WASD MOVE  Z JUMP  X WHIP  C PLAY POSSUM', W / 2, 116, K.white);
-    S.drawTextCentered(ctx, 'ENTER PAUSE   R RESTART   M MUTE', W / 2, 124, K.white);
-    if (Math.floor((s.titleT || 0) * 2) % 2 === 0) S.drawTextCentered(ctx, 'PRESS ENTER OR Z TO START', W / 2, 142, K.nose, 1);
+    const t = S.TEXT[S.touchActive ? 'touch' : 'keys'];
+    S.drawTextCentered(ctx, t.title1, W / 2, 116, K.white);
+    S.drawTextCentered(ctx, t.title2, W / 2, 124, K.white);
+    if (Math.floor((s.titleT || 0) * 2) % 2 === 0) S.drawTextCentered(ctx, t.start, W / 2, 142, K.nose, 1);
     const r = S.assetReport;
     S.drawTextCentered(ctx, 'REAL ART LOADED: ' + r.loaded.length + ' OF ' + r.expected + ' FILES', W / 2, 160, K.grey);
     if (r.warnings.length) S.drawTextCentered(ctx, 'ART WARNINGS: ' + r.warnings.length + ' - SEE CONSOLE', W / 2, 167, K.heart);
@@ -1538,7 +1563,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       ['K.O.S', Math.round(st.kos * k)],
     ];
     rows.forEach((r, i) => { S.drawText(ctx, r[0], 76, 76 + i * 12, K.white); S.drawText(ctx, String(r[1]), 220, 76 + i * 12, K.umbrella); });
-    if (s.clearT > 1.5 && Math.floor(s.clearT * 2) % 2 === 0) S.drawTextCentered(ctx, 'PRESS ENTER TO PLAY AGAIN', W / 2, 152, K.nose);
+    if (s.clearT > 1.5 && Math.floor(s.clearT * 2) % 2 === 0) S.drawTextCentered(ctx, S.TEXT[S.touchActive ? 'touch' : 'keys'].again, W / 2, 152, K.nose);
     S.drawTextCentered(ctx, 'END OF THE PROTOTYPE LEVEL', W / 2, 164, K.grey);
   }
 
@@ -1567,10 +1592,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     if (s.mode === 'paused') {
       panel(ctx, 100, 80, 120, 50);
       S.drawTextCentered(ctx, 'PAUSED', W / 2, 90, K.white, 2, K.black);
-      S.drawTextCentered(ctx, 'ENTER TO RESUME  R RESTART', W / 2, 112, K.grey);
+      S.drawTextCentered(ctx, S.TEXT[S.touchActive ? 'touch' : 'keys'].paused, W / 2, 112, K.grey);
     }
     if (s.mode === 'clear') drawClear(ctx, s);
-    if (s.muted) S.drawText(ctx, 'MUTED', 4, H - 7, K.grey);
+    if (s.muted) { if (S.touchActive) S.drawText(ctx, 'MUTED', W - 26, 6, K.grey); else S.drawText(ctx, 'MUTED', 4, H - 7, K.grey); }
     watermark(ctx);
   };
 })(globalThis.SAMMY = globalThis.SAMMY || {});
@@ -1807,7 +1832,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 })(globalThis.SAMMY = globalThis.SAMMY || {});
 
 // ---- src/input.js ----
-// Keyboard and gamepad -> the abstract buttons the game rules use.
+// Keyboard, gamepad and other sources (the on-screen touch buttons in touch.js) -> the abstract buttons the game rules use.
 // Defaults match the on-screen prompts in LEVEL.md: Z jump, X tail-whip, C Play Possum.
 (function (S) {
   const KEYS = {
@@ -1824,6 +1849,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 
   S.createInput = function (target) {
     const keyHeld = {};
+    const sources = {}; // held buttons from other sources, e.g. sources.touch = { right: true }
     const pending = new Set();
     let padPrev = {};
     target.addEventListener('keydown', (e) => {
@@ -1835,6 +1861,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     });
     target.addEventListener('keyup', (e) => { const a = KEYS[e.code]; if (a) keyHeld[a] = false; });
     target.addEventListener('blur', () => { for (const k in keyHeld) keyHeld[k] = false; });
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.hidden) for (const k in keyHeld) keyHeld[k] = false; });
 
     function readPad() {
       const out = {};
@@ -1849,19 +1876,27 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       return out;
     }
 
-    // Called once per simulation step. Presses are only reported once.
+    const fromSources = (k) => { for (const n in sources) if (sources[n][k]) return true; return false; };
+
     return {
+      // Called once per simulation step. Presses are only reported once.
       poll() {
         const inp = S.makeInput();
         const pad = readPad();
         for (const k in pad) if (pad[k] && !padPrev[k]) pending.add(k);
         padPrev = pad;
-        for (const k in inp.held) inp.held[k] = !!(keyHeld[k] || pad[k]);
+        for (const k in inp.held) inp.held[k] = !!(keyHeld[k] || pad[k] || fromSources(k));
         for (const k of pending) if (k in inp.pressed) inp.pressed[k] = true;
         inp.mute = pending.has('mute');
         pending.clear();
         return inp;
       },
+      // Other sources: a one-shot press (like a key going down) and held buttons (like a key staying down).
+      press(action) { pending.add(action); },
+      setHeld(source, action, on) { (sources[source] = sources[source] || {})[action] = !!on; },
+      releaseAll(source) { if (sources[source]) for (const k in sources[source]) sources[source][k] = false; },
+      // Which buttons are held right now, from every source (for the self-checks).
+      held() { const pad = readPad(), out = {}; for (const k in S.makeInput().held) out[k] = !!(keyHeld[k] || pad[k] || fromSources(k)); return out; },
     };
   };
 })(globalThis.SAMMY = globalThis.SAMMY || {});
@@ -1872,7 +1907,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 // per point, so this fills far more of a phone screen while every game pixel stays an exact square block of real pixels.
 (function (S) {
   // view: available size in CSS px; dpr: real pixels per CSS px; game: native size in game pixels.
-  // reserveTop/Bottom/Left/Right: CSS px kept free (for on-screen buttons later). Default 0.
+  // reserveTop/Bottom/Left/Right: CSS px kept free (for on-screen buttons). Default 0.
+  // maxScale: never bigger than this (optional).
   S.computeFit = function computeFit(o) {
     const dpr = o.dpr > 0 ? o.dpr : 1;
     const rt = o.reserveTop || 0, rb = o.reserveBottom || 0, rl = o.reserveLeft || 0, rr = o.reserveRight || 0;
@@ -1881,7 +1917,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     const availH = Math.max(0, (o.viewH - rt - rb) * dpr);
     // Tiny epsilon so 1920/320 = 6 isn't read as 5.999...
     const fits = Math.floor(Math.min(availW / o.gameW, availH / o.gameH) + 1e-9);
-    const scale = Math.max(1, fits);
+    const scale = Math.max(1, o.maxScale > 0 ? Math.min(fits, o.maxScale) : fits);
     const devW = o.gameW * scale, devH = o.gameH * scale;
     // Centre in the available area, rounded to whole device pixels so pixel edges line up with the screen's.
     // If the screen is too small even at x1, pin to the top-left so the HUD stays visible.
@@ -1894,6 +1930,341 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       deviceW: devW, deviceH: devH,
       overflows: fits < 1, // the screen is smaller than the game even at its smallest size
     };
+  };
+
+  // ---------- on-screen touch buttons ----------
+  // Parts of the picture (in game pixels) that buttons may cover: only the outer bottom corners.
+  // Everything else is kept clear: the HUD and tutorial prompt at the top, and the middle where Sammy usually is.
+  S.TOUCH_CORNERS = [{ x0: 0, x1: 64, y0: 128, y1: 224 }, { x0: 256, x1: 320, y0: 128, y1: 224 }];
+
+  // Where the picture and each button go when touch controls are on.
+  // o: { viewW, viewH, dpr, gameW, gameH, safe: { top, right, bottom, left } } (sizes in CSS px; safe = notch/rounded-corner margins).
+  // Buttons are pixel art: each button pixel is k x k real pixels, so they stay as sharp as the game.
+  // Returns { fit (like computeFit), orientation, unit (CSS px per button pixel), controls: { name: { x, y, w, h, artW, artH, over } } }.
+  S.touchLayout = function touchLayout(o) {
+    const dpr = o.dpr > 0 ? o.dpr : 1, gw = o.gameW, gh = o.gameH;
+    const sf = o.safe || {};
+    const DW = Math.round(o.viewW * dpr), DH = Math.round(o.viewH * dpr);
+    const portrait = o.viewH > o.viewW;
+    // Thumb size: about a sixth of the short side, 56-84 CSS px.
+    const B = Math.min(84, Math.max(56, Math.round(Math.min(o.viewW, o.viewH) * 0.17)));
+    const k = Math.max(2, Math.round(B * dpr / 40)); // real pixels per button pixel (buttons are ~40 button pixels)
+    const u = k / dpr;                                // CSS px per button pixel
+    const a = Math.ceil(B / u);                        // button size in button pixels (never under B CSS px)
+    const px = (n) => Math.ceil(n / u);               // CSS px -> button pixels (rounded up)
+    const art = {
+      pad: [2 * a, a], jump: [a + Math.round(a * 0.15), a + Math.round(a * 0.15)], whip: [a, a],
+      possum: [Math.max(Math.round(a * 0.8), 29, px(56)), Math.max(Math.round(a * 0.8), 29, px(56))],
+      pause: [Math.max(Math.round(a * 0.8), px(44)), Math.max(Math.round(a * 0.7), px(44))],
+      restart: [Math.max(Math.round(a * 1.6), 40), Math.max(Math.round(a * 0.75), px(44))],
+      mute: [Math.max(Math.round(a * 1.6), 40), Math.max(Math.round(a * 0.75), px(44))],
+    };
+    const g = Math.max(2, Math.round(a * 0.2)) * k;   // gap between buttons (real px)
+    const m = px(16) * k;                              // margin from the screen edge (real px)
+    const edge = (inset) => Math.max(m, Math.ceil((inset || 0) * dpr) + Math.round(6 * dpr));
+    const eL = edge(sf.left), eR = edge(sf.right), eT = edge(sf.top), eB = edge(sf.bottom);
+    const size = (n) => ({ w: art[n][0] * k, h: art[n][1] * k });
+
+    // The action cluster at the bottom right: JUMP in the corner, WHIP to its left (a little higher), POSSUM above JUMP.
+    // bottom: real px from the screen's bottom edge to the lowest button.
+    function place(bottom) {
+      const c = {};
+      const J = size('jump'), Wh = size('whip'), P = size('possum'), Pd = size('pad');
+      c.pad = { x: eL, y: DH - bottom - Pd.h, w: Pd.w, h: Pd.h };
+      c.jump = { x: DW - eR - J.w, y: DH - bottom - J.h, w: J.w, h: J.h };
+      c.whip = { x: c.jump.x - g - Wh.w, y: DH - bottom - Wh.h - Math.round(a * 0.35) * k, w: Wh.w, h: Wh.h };
+      c.possum = { x: c.jump.x + Math.round((J.w - P.w) / 2 / k) * k, y: c.jump.y - g - P.h, w: P.w, h: P.h };
+      return c;
+    }
+    const inGame = (r, pic) => { // a control's rectangle in game pixels, clipped to the picture (null if outside)
+      const x0 = Math.max(r.x, pic.x), y0 = Math.max(r.y, pic.y), x1 = Math.min(r.x + r.w, pic.x + pic.w), y1 = Math.min(r.y + r.h, pic.y + pic.h);
+      if (x0 >= x1 || y0 >= y1) return null;
+      return { x0: (x0 - pic.x) / pic.s, y0: (y0 - pic.y) / pic.s, x1: (x1 - pic.x) / pic.s, y1: (y1 - pic.y) / pic.s };
+    };
+    const allowed = (r, pic) => {
+      const q = inGame(r, pic);
+      return !q || S.TOUCH_CORNERS.some((z) => q.x0 >= z.x0 - 1e-9 && q.x1 <= z.x1 + 1e-9 && q.y0 >= z.y0 - 1e-9 && q.y1 <= z.y1 + 1e-9);
+    };
+    const picAt = (s, top) => {
+      const w = gw * s, h = gh * s;
+      return { s, w, h, x: Math.max(0, Math.round((DW - w) / 2)), y: top == null ? Math.max(0, Math.round((DH - h) / 2)) : top };
+    };
+    const maxScale = S.computeFit({ viewW: o.viewW, viewH: o.viewH, dpr, gameW: gw, gameH: gh }).scale;
+    let pic = null, c = null;
+
+    if (!portrait) {
+      // Landscape: buttons in the bottom corners. Use the biggest picture whose overlap with the buttons stays in the
+      // allowed corners; try it centred first, then moved to the top. Otherwise shrink one step and try again.
+      c = place(eB);
+      const P = size('pause');
+      const pauseSpots = [
+        { x: DW - eR - P.w, y: eT }, { x: eL, y: eT },                            // top corners of the screen
+        { x: eL, y: c.pad.y - g - P.h }, { x: DW - eR - P.w, y: c.possum.y - g - P.h }, // above the pad / above POSSUM
+      ].map((p) => Object.assign(p, P));
+      search: for (let s = maxScale; s >= 1; s--) {
+        for (const top of [null, Math.ceil((sf.top || 0) * dpr)]) {
+          const cand = picAt(s, top);
+          if (!['pad', 'jump', 'whip', 'possum'].every((n) => allowed(c[n], cand))) continue;
+          const spot = pauseSpots.find((p) => allowed(p, cand));
+          if (!spot) continue;
+          pic = cand; c.pause = spot; break search;
+        }
+      }
+      if (!pic) { pic = picAt(1); c.pause = pauseSpots[0]; }
+    } else {
+      // Portrait: picture at the top, buttons in the space below it, raised a tenth of the screen above the bottom
+      // edge so thumbs rest on them comfortably.
+      const bottom = Math.max(eB, Math.round(DH * 0.1));
+      c = place(bottom);
+      const clusterTop = Math.min(c.pad.y, c.whip.y, c.possum.y);
+      const P = size('pause');
+      const below = P.h + 2 * g + (DH - clusterTop);    // room the buttons need under the picture (real px)
+      const top = Math.ceil((sf.top || 0) * dpr);
+      const f = S.computeFit({ viewW: o.viewW, viewH: o.viewH, dpr, gameW: gw, gameH: gh, reserveTop: top / dpr, reserveBottom: below / dpr });
+      pic = picAt(f.scale, top);
+      c.pause = Object.assign({ x: DW - eR - P.w, y: pic.y + pic.h + g }, P);
+    }
+
+    // Pause menu (shown only while paused): RESTART and SOUND side by side over the picture, under the PAUSED panel.
+    const R = size('restart'), Mu = size('mute');
+    const rowW = R.w + g + Mu.w;
+    const rowY = pic.y + Math.round(140 * pic.s);
+    c.restart = Object.assign({ x: Math.round((DW - rowW) / 2), y: rowY }, R);
+    c.mute = Object.assign({ x: c.restart.x + R.w + g, y: rowY }, Mu);
+
+    const controls = {};
+    for (const n in c) {
+      const r = c[n];
+      controls[n] = { x: r.x / dpr, y: r.y / dpr, w: r.w / dpr, h: r.h / dpr, artW: r.w / k, artH: r.h / k,
+        over: !!inGame(r, pic), dev: { x: r.x, y: r.y, w: r.w, h: r.h } };
+    }
+    return {
+      orientation: portrait ? 'portrait' : 'landscape', unit: u, k, maxScale,
+      fit: { scale: pic.s, dpr, cssW: pic.w / dpr, cssH: pic.h / dpr, cssLeft: pic.x / dpr, cssTop: pic.y / dpr,
+        deviceW: pic.w, deviceH: pic.h, overflows: pic.w > DW || pic.h > DH },
+      controls,
+    };
+  };
+})(globalThis.SAMMY = globalThis.SAMMY || {});
+
+// ---- src/touch.js ----
+// On-screen touch buttons for phones and tablets: a left/right pad, JUMP, WHIP, POSSUM and PAUSE
+// (plus RESTART and MUTE while paused). They feed the same buttons as the keyboard (input.js).
+// Shown only on touch screens: when the browser says the main pointer is a finger, on the first touch, or with ?touch=1.
+// Where each button goes is worked out in layout.js (S.touchLayout); this file builds, draws and listens to them.
+(function (S) {
+  const K = S.PAL;
+  // Button colours (9-bit palette): face, highlight, shadow.
+  const COLORS = {
+    pad: ['#6c6c6c', '#909090', '#484848'],
+    jump: ['#48b424', '#90d848', '#246c24'],
+    whip: ['#d82424', '#fc6c48', '#902424'],
+    possum: ['#d86c90', '#fcb4b4', '#904848'],
+    menu: ['#244890', '#486cb4', '#002448'],
+  };
+  // Small pixel icons ('#' = filled), drawn at 2x with a dark shadow.
+  const ICONS = {
+    up: ['...#...', '..###..', '.#####.', '#######', '..###..', '..###..', '..###..'],
+    tail: ['....##.', '.....##', '......#', '#.....#', '##...##', '.#####.', '..###..'],
+    dead: ['#...#', '##.##', '.###.', '##.##', '#...#'],
+    left: ['....#', '...##', '..###', '.####', '#####', '.####', '..###', '...##', '....#'],
+    right: ['#....', '##...', '###..', '####.', '#####', '####.', '###..', '##...', '#....'],
+    pause: ['##.##', '##.##', '##.##', '##.##', '##.##', '##.##', '##.##'],
+    play: ['#....', '##...', '###..', '####.', '###..', '##...', '#....'],
+  };
+  // name -> what it does. press: one-shot button; hold: also held while the finger stays down.
+  const BUTTONS = {
+    pad: { label: 'Move left or right', color: 'pad' },
+    jump: { label: 'Jump', color: 'jump', icon: 'up', text: 'JUMP', press: 'jump', hold: 'jump' },
+    whip: { label: 'Tail-whip', color: 'whip', icon: 'tail', text: 'WHIP', press: 'attack', hold: 'attack' },
+    possum: { label: 'Play Possum', color: 'possum', icon: 'dead', text: 'POSSUM', press: 'possum', hold: 'possum' },
+    pause: { label: 'Pause', color: 'menu', icon: 'pause', press: 'start' },
+    restart: { label: 'Restart the level', color: 'menu', text: 'RESTART', press: 'restart', menu: true },
+    mute: { label: 'Sound on or off', color: 'menu', text: 'MUTE', press: 'mute', menu: true },
+  };
+
+  const R = (g, col, x, y, w, h) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+  function icon(g, name, x, y, col, s) {
+    const rows = ICONS[name];
+    for (let pass = 0; pass < 2; pass++) {
+      const c = pass ? col : K.black, o = pass ? 0 : 1;
+      rows.forEach((row, r) => { for (let i = 0; i < row.length; i++) if (row[i] === '#') R(g, c, x + i * s + o, y + r * s + o, s, s); });
+    }
+  }
+  const iconW = (n, s) => ICONS[n][0].length * s, iconH = (n, s) => ICONS[n].length * s;
+
+  // A chunky pixel button: black outline with cut corners, a light top edge and a dark lip at the bottom.
+  // Pressed: darker, no lip, and the picture on it moves down 2 pixels.
+  function body(g, x, y, w, h, col, down) {
+    const [face, hi, lo] = col;
+    R(g, K.black, x + 2, y, w - 4, h); R(g, K.black, x + 1, y + 1, w - 2, h - 2); R(g, K.black, x, y + 2, w, h - 4);
+    const ix = x + 1, iy = y + 1, iw = w - 2, ih = h - 2;
+    R(g, down ? lo : face, ix + 1, iy, iw - 2, ih); R(g, down ? lo : face, ix, iy + 1, iw, ih - 2);
+    if (!down) {
+      R(g, lo, ix + 1, iy + ih - 3, iw - 2, 3); R(g, lo, ix, iy + ih - 4, iw, 2);
+      R(g, hi, ix + 2, iy + 1, iw - 4, 1); R(g, hi, ix + 1, iy + 2, 1, ih - 7);
+    } else {
+      R(g, K.black, ix + 1, iy, iw - 2, 1); // shadow along the top while pushed in
+    }
+  }
+
+  function drawButton(cv, name, down, extra) {
+    const g = cv.getContext('2d'), w = cv.width, h = cv.height, B = BUTTONS[name];
+    g.clearRect(0, 0, w, h);
+    const lift = down ? 2 : 0, base = 4; // content sits above the 3-4 px bottom lip
+    if (name === 'pad') {
+      // One rounded pad with a dividing line; each half pushes in on its own.
+      const half = Math.floor(w / 2);
+      body(g, 0, 0, half + 1, h, COLORS.pad, extra.left);
+      body(g, half - 1, 0, w - half + 1, h, COLORS.pad, extra.right);
+      for (const [side, x0, on] of [['left', 0, extra.left], ['right', half, extra.right]]) {
+        const s = Math.max(2, Math.floor(h / 18)), iw = iconW(side, s), ih = iconH(side, s);
+        icon(g, side, x0 + Math.round((half - iw) / 2), Math.round((h - base - ih) / 2) + (on ? 2 : 0), K.white, s);
+      }
+      return;
+    }
+    body(g, 0, 0, w, h, COLORS[B.color], down);
+    const text = name === 'mute' && extra.muted ? 'UNMUTE' : B.text;
+    const ic = name === 'pause' && extra.paused ? 'play' : B.icon;
+    const s = 2;
+    const ih = ic ? iconH(ic, s) : 0, th = text ? 5 : 0, gap = ic && text ? 3 : 0;
+    let y = Math.round((h - base - (ih + gap + th)) / 2) + lift;
+    if (ic) { icon(g, ic, Math.round((w - iconW(ic, s)) / 2), y, K.white, s); y += ih + gap; }
+    if (text) S.drawText(g, text, Math.round((w - S.textWidth(text)) / 2), y, K.white, 1, K.black);
+  }
+
+  // input: from S.createInput. canvas: the game screen (tapping it on the title screen starts the game).
+  // forced: ?touch=1. onChange: called when the buttons appear or disappear (main.js then re-fits the screen).
+  S.createTouch = function (opts) {
+    const input = opts.input, forced = !!opts.forced;
+    const coarse = () => !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    const root = document.createElement('div');
+    root.id = 'touch-controls';
+    document.body.appendChild(root);
+    // Reads the notch / rounded-corner margins the browser reports (all 0 on screens without them).
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;' +
+      'padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
+    root.appendChild(probe);
+
+    const els = {}, down = {}; // down[name] = true while pushed in
+    let mode = 'title', muted = false, padDir = { left: false, right: false };
+    const pointers = new Map(); // pointerId -> { name, dir }
+    for (const name in BUTTONS) {
+      const el = document.createElement('div');
+      el.className = 'tbtn tbtn-' + name + (BUTTONS[name].menu ? ' hide' : '');
+      el.setAttribute('role', 'button'); el.setAttribute('aria-label', BUTTONS[name].label);
+      const cv = document.createElement('canvas');
+      el.appendChild(cv); root.appendChild(el);
+      els[name] = { el, cv };
+      el.addEventListener('pointerdown', (e) => onDown(e, name));
+      el.addEventListener('pointermove', onMove);
+      for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) el.addEventListener(t, onUp);
+    }
+    for (const t of ['contextmenu', 'selectstart', 'dblclick']) root.addEventListener(t, (e) => e.preventDefault());
+
+    function redraw(name) {
+      const cv = els[name].cv;
+      if (!cv.width) return;
+      drawButton(cv, name, !!down[name], { left: padDir.left, right: padDir.right, muted, paused: mode === 'paused' });
+      els[name].el.classList.toggle('down', name === 'pad' ? padDir.left || padDir.right : !!down[name]);
+    }
+    // Left or right from where the finger is on the pad. Near the middle line it keeps the current direction,
+    // so a resting thumb doesn't flicker; sliding across switches without lifting.
+    function dirAt(e, prev) {
+      const r = els.pad.el.getBoundingClientRect(), mid = r.left + r.width / 2, dead = r.width * 0.06;
+      if (prev && Math.abs(e.clientX - mid) < dead) return prev;
+      return e.clientX < mid ? 'left' : 'right';
+    }
+    // Recompute what is held from every finger still down, and hand it to the input.
+    function sync() {
+      const held = { left: false, right: false, jump: false, attack: false, possum: false };
+      const was = Object.assign({}, down), wasDir = padDir;
+      for (const n in down) down[n] = false;
+      for (const p of pointers.values()) {
+        down[p.name] = true;
+        if (p.name === 'pad') held[p.dir] = true;
+        else if (BUTTONS[p.name].hold) held[BUTTONS[p.name].hold] = true;
+      }
+      padDir = { left: held.left, right: held.right };
+      for (const k in held) input.setHeld('touch', k, held[k]);
+      for (const n in BUTTONS) if (!!was[n] !== !!down[n] || (n === 'pad' && (wasDir.left !== padDir.left || wasDir.right !== padDir.right))) redraw(n);
+    }
+    function onDown(e, name) {
+      e.preventDefault();
+      if (!api.active) activate();
+      try { els[name].el.setPointerCapture(e.pointerId); } catch (err) { /* not a live pointer (self-check) */ }
+      const p = { name };
+      if (name === 'pad') { p.dir = dirAt(e); input.press(p.dir); }
+      else if (BUTTONS[name].press) input.press(BUTTONS[name].press);
+      pointers.set(e.pointerId, p);
+      sync();
+    }
+    function onMove(e) {
+      const p = pointers.get(e.pointerId);
+      if (!p || p.name !== 'pad') return;
+      const d = dirAt(e, p.dir);
+      if (d !== p.dir) { p.dir = d; input.press(d); sync(); }
+    }
+    function onUp(e) { if (pointers.delete(e.pointerId)) sync(); }
+    function releaseAll() { pointers.clear(); input.releaseAll('touch'); sync(); }
+    window.addEventListener('blur', releaseAll);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
+
+    // Tapping the picture on the title or level-clear screen starts the game, like JUMP.
+    opts.canvas.addEventListener('pointerdown', (e) => {
+      if (api.active && e.pointerType !== 'mouse' && (mode === 'title' || mode === 'clear')) input.press('start');
+    });
+
+    function setActive(on) {
+      if (api.active === on) return;
+      api.active = on; S.touchActive = on;
+      root.classList.toggle('on', on);
+      if (!on) releaseAll();
+      if (opts.onChange) opts.onChange();
+    }
+    function activate() { setActive(true); }
+    // The first real touch anywhere turns the buttons on.
+    window.addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') activate(); }, true);
+    // A key press on a screen without a touch-first pointer hides them again (a laptop with a touch screen).
+    window.addEventListener('keydown', () => { if (!forced && !coarse()) setActive(false); }, true);
+
+    const api = {
+      active: false,
+      // Notch and rounded-corner margins in CSS px.
+      safe() {
+        const cs = getComputedStyle(probe);
+        return { top: parseFloat(cs.paddingTop) || 0, right: parseFloat(cs.paddingRight) || 0, bottom: parseFloat(cs.paddingBottom) || 0, left: parseFloat(cs.paddingLeft) || 0 };
+      },
+      // Put every button where layout.js says, at an exact whole number of real pixels per button pixel.
+      place(L) {
+        for (const name in BUTTONS) {
+          const c = L.controls[name], { el, cv } = els[name];
+          if (!c) continue;
+          el.style.left = c.x + 'px'; el.style.top = c.y + 'px'; el.style.width = c.w + 'px'; el.style.height = c.h + 'px';
+          el.classList.toggle('over', c.over && !BUTTONS[name].menu);
+          if (cv.width !== c.artW || cv.height !== c.artH) { cv.width = c.artW; cv.height = c.artH; }
+          redraw(name);
+        }
+        api.layout = L;
+      },
+      // Called every frame: show RESTART and MUTE only while paused, and keep the PAUSE and MUTE pictures current.
+      update(state, isMuted) {
+        if (state.mode !== mode) {
+          const wasPaused = mode === 'paused';
+          mode = state.mode;
+          for (const n of ['restart', 'mute']) els[n].el.classList.toggle('hide', mode !== 'paused');
+          if (wasPaused !== (mode === 'paused')) redraw('pause');
+          if (mode !== 'paused') { for (const [id, p] of pointers) if (BUTTONS[p.name].menu) pointers.delete(id); sync(); }
+        }
+        if (!!isMuted !== muted) { muted = !!isMuted; redraw('mute'); }
+      },
+      held: () => input.held(),
+      elements: els,
+      releaseAll,
+    };
+    if (forced || coarse()) { api.active = true; S.touchActive = true; root.classList.add('on'); }
+    return api;
   };
 })(globalThis.SAMMY = globalThis.SAMMY || {});
 
@@ -1909,17 +2280,25 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   const errors = [];
   window.addEventListener('error', (e) => errors.push(String(e.message || e)));
 
+  const input = S.createInput(window);
+  // On-screen buttons for phones and tablets (touch.js). Off on desktops; ?touch=1 forces them on.
+  const touch = S.createTouch({ input, canvas, forced: params.get('touch') === '1', onChange: () => fit() });
+
   // Whole-number scaling in the screen's real pixels keeps every game pixel a sharp square (maths in layout.js).
+  // With touch buttons on, layout.js also places the buttons and may move or shrink the picture to keep them clear of it.
   function fit() {
     const vv = window.visualViewport;
     // The visual viewport leaves out phone browser bars; ignore it while pinch-zoomed (it shrinks then).
     const useVV = vv && Math.abs((vv.scale || 1) - 1) < 0.01;
     const viewW = useVV ? vv.width : window.innerWidth, viewH = useVV ? vv.height : window.innerHeight;
     const dpr = window.devicePixelRatio || 1;
-    const f = S.computeFit({ viewW, viewH, dpr, gameW: C.screenW, gameH: C.screenH });
+    const opts = { viewW, viewH, dpr, gameW: C.screenW, gameH: C.screenH };
+    const L = touch.active ? S.touchLayout(Object.assign({ safe: touch.safe() }, opts)) : null;
+    const f = L ? L.fit : S.computeFit(opts);
     canvas.style.width = f.cssW + 'px'; canvas.style.height = f.cssH + 'px';
     canvas.style.left = f.cssLeft + 'px'; canvas.style.top = f.cssTop + 'px';
-    window.__SAMMY_FIT = Object.assign({ viewW, viewH }, f);
+    if (L) touch.place(L);
+    window.__SAMMY_FIT = Object.assign({ viewW, viewH, touch: touch.active }, f);
   }
   window.addEventListener('resize', fit);
   window.addEventListener('orientationchange', fit);
@@ -1938,10 +2317,12 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 
   const state = S.newGame();
   window.__SAMMY_STATE = state;
-  const input = S.createInput(window);
   const audio = S.createAudio();
-  const unlock = () => audio.unlock();
-  window.addEventListener('keydown', unlock); window.addEventListener('pointerdown', unlock);
+  // Browsers only allow sound after the player does something. On phones a finger counts only when it lifts
+  // (pointerup / touchend), so listen to those too. The touch buttons' events reach the window as well.
+  let unlocks = 0;
+  const unlock = () => { unlocks++; audio.unlock(); };
+  for (const t of ['keydown', 'pointerdown', 'pointerup', 'touchend']) window.addEventListener(t, unlock);
 
   function drainEvents() {
     for (const ev of state.events) {
@@ -1958,6 +2339,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   const ready = () => {
     pending -= 1; if (pending) return;
     if (params.get('test') === 'keys') keysTest();
+    else if (params.get('test') === 'touch') touchTest();
     else if (params.has('test')) runTest(params.get('test'));
     else requestAnimationFrame(loop);
   };
@@ -1985,6 +2367,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       drainEvents();
       acc -= C.step;
     }
+    touch.update(state, state.muted);
     S.render(ctx, state);
   }
 
@@ -1994,7 +2377,16 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     const b = canvas.getBoundingClientRect();
     const de = document.documentElement;
     return Object.assign({}, window.__SAMMY_FIT, { rect: { x: b.x, y: b.y, w: b.width, h: b.height },
-      scrollW: de.scrollWidth, scrollH: de.scrollHeight });
+      scrollW: de.scrollWidth, scrollH: de.scrollHeight, buttons: buttonReport() });
+  }
+  // Where each touch button really is on the page (shown ones only).
+  function buttonReport() {
+    const out = {};
+    for (const n in touch.elements) {
+      const b = touch.elements[n].el.getBoundingClientRect();
+      if (b.width > 0 && b.height > 0) out[n] = { x: b.x, y: b.y, w: b.width, h: b.height };
+    }
+    return out;
   }
   // ?test=keys: real key presses through the normal loop (Enter to start, then hold Right).
   function keysTest() {
@@ -2015,6 +2407,86 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     r.ok = r.mode === 'playing' && r.x > state.level.start.x + 50 && r.airborne && errors.length === 0;
     out.textContent = JSON.stringify(r);
     requestAnimationFrame(loop); // keep running normally afterwards
+  }
+
+  // ?test=touch&touch=1: real touch events on the real buttons, through the normal loop.
+  function touchTest() {
+    const out = document.getElementById('test-result');
+    let now = 1000, nextId = 1;
+    const run = (n) => { for (let i = 0; i < n; i++) { now += 1000 / 60; frame(now); } };
+    const el = (n) => touch.elements[n].el;
+    // A finger on a button: where on the button (0-1 across and down), and its own id so several can be down at once.
+    const finger = (n, fx = 0.5, fy = 0.5) => {
+      const id = nextId++;
+      const at = (t, x) => {
+        const b = el(n).getBoundingClientRect();
+        el(n).dispatchEvent(new PointerEvent(t, { pointerId: id, pointerType: 'touch', isPrimary: id === 1, bubbles: true, cancelable: true,
+          clientX: b.x + b.width * x, clientY: b.y + b.height * fy }));
+      };
+      at('pointerdown', fx);
+      return { move: (x) => at('pointermove', x), up: () => at('pointerup', fx), cancel: () => at('pointercancel', fx), lost: () => at('lostpointercapture', fx) };
+    };
+    const tap = (n) => { const f = finger(n); run(1); f.up(); run(1); };
+    const p = state.player, c = {};
+    const noneHeld = () => { const h = touch.held(); return !Object.keys(h).some((k) => h[k]); };
+    // How high Sammy rises from the ground (game pixels) while the jump finger stays down for `hold` frames.
+    const rise = (hold) => {
+      const y0 = p.y; let top = p.y;
+      const f = finger('jump'); for (let i = 0; i < 70; i++) { if (i === hold) f.up(); run(1); top = Math.min(top, p.y); }
+      run(30); return Math.round(y0 - top);
+    };
+    try {
+      c.visibleOnTitle = ['pad', 'jump', 'whip', 'possum', 'pause'].every((n) => buttonReport()[n]) && !buttonReport().restart;
+      run(5);
+      const unlocksBefore = unlocks;
+      tap('jump');
+      c.jumpStarts = state.mode === 'playing';
+      c.soundUnlocked = unlocks > unlocksBefore;
+      run(5);
+      // Hold the right half of the pad for a second.
+      const x0 = p.x, pad = finger('pad', 0.8);
+      run(60);
+      c.movedRight = Math.round(p.x - x0);
+      // Slide the same finger to the left half without lifting.
+      const x1 = p.x; pad.move(0.2); run(20);
+      c.slideLeft = p.face === -1 && p.x < x1 && touch.held().left && !touch.held().right;
+      pad.up(); run(30);
+      c.releasedPad = noneHeld();
+      // A tap is a short hop; holding JUMP goes higher (the game reads the held button).
+      c.tapRise = rise(1); c.holdRise = rise(60);
+      // Move and jump at the same time with two fingers.
+      const x2 = p.x, mv = finger('pad', 0.8); run(5); const jf = finger('jump'); run(10);
+      c.moveAndJump = !p.grounded && p.x > x2 && touch.held().right && touch.held().jump;
+      jf.up(); mv.up(); run(60);
+      // Tail-whip.
+      const wf = finger('whip'); run(2); c.whip = p.state === 'attack'; wf.up(); run(30);
+      // Every way a finger can be lost clears what it held.
+      let f = finger('pad', 0.9); run(1); f.cancel(); c.cancelClears = noneHeld();
+      f = finger('jump'); run(1); f.lost(); c.lostCaptureClears = noneHeld();
+      finger('pad', 0.9); finger('whip'); run(1); window.dispatchEvent(new Event('blur')); c.blurClears = noneHeld();
+      finger('possum'); run(1);
+      Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+      delete document.hidden;
+      c.hiddenClears = noneHeld();
+      run(5);
+      // Pause shows RESTART and MUTE; MUTE toggles sound; RESTART goes back to the start.
+      tap('pause');
+      c.paused = state.mode === 'paused' && !!buttonReport().restart && !!buttonReport().mute;
+      tap('mute'); c.muted = state.muted === true; tap('mute'); c.unmuted = state.muted === false;
+      tap('restart');
+      c.restarted = state.mode === 'playing' && state.player.x === state.level.start.x && !buttonReport().restart; // a new player object
+      // Tapping the picture on the title screen starts the game too.
+      state.mode = 'title'; run(2);
+      canvas.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 99, pointerType: 'touch', bubbles: true }));
+      run(2); c.tapPictureStarts = state.mode === 'playing';
+    } catch (e) { errors.push(String(e && e.stack || e)); }
+    const r = { test: 'touch', fit: fitReport(), mode: state.mode, checks: c, errors };
+    r.ok = c.visibleOnTitle && c.jumpStarts && c.soundUnlocked && c.movedRight > 50 && c.slideLeft && c.releasedPad &&
+      c.holdRise > c.tapRise + 10 && c.moveAndJump && c.whip && c.cancelClears && c.lostCaptureClears && c.blurClears &&
+      c.hiddenClears && c.paused && c.muted && c.unmuted && c.restarted && c.tapPictureStarts && errors.length === 0;
+    out.textContent = JSON.stringify(r);
+    requestAnimationFrame(loop);
   }
 
   // Draw every state the autopilot can't reach (it never takes damage), to catch drawing errors.
@@ -2084,6 +2556,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         result.ok = errors.length === 0;
       }
       if (params.has('title')) state.mode = 'title';
+      if (params.has('paused')) state.mode = 'paused';
+      touch.update(state, state.muted);
       S.render(ctx, state);
     } catch (e) {
       errors.push(String(e && e.stack || e));

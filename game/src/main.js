@@ -9,17 +9,25 @@
   const errors = [];
   window.addEventListener('error', (e) => errors.push(String(e.message || e)));
 
+  const input = S.createInput(window);
+  // On-screen buttons for phones and tablets (touch.js). Off on desktops; ?touch=1 forces them on.
+  const touch = S.createTouch({ input, canvas, forced: params.get('touch') === '1', onChange: () => fit() });
+
   // Whole-number scaling in the screen's real pixels keeps every game pixel a sharp square (maths in layout.js).
+  // With touch buttons on, layout.js also places the buttons and may move or shrink the picture to keep them clear of it.
   function fit() {
     const vv = window.visualViewport;
     // The visual viewport leaves out phone browser bars; ignore it while pinch-zoomed (it shrinks then).
     const useVV = vv && Math.abs((vv.scale || 1) - 1) < 0.01;
     const viewW = useVV ? vv.width : window.innerWidth, viewH = useVV ? vv.height : window.innerHeight;
     const dpr = window.devicePixelRatio || 1;
-    const f = S.computeFit({ viewW, viewH, dpr, gameW: C.screenW, gameH: C.screenH });
+    const opts = { viewW, viewH, dpr, gameW: C.screenW, gameH: C.screenH };
+    const L = touch.active ? S.touchLayout(Object.assign({ safe: touch.safe() }, opts)) : null;
+    const f = L ? L.fit : S.computeFit(opts);
     canvas.style.width = f.cssW + 'px'; canvas.style.height = f.cssH + 'px';
     canvas.style.left = f.cssLeft + 'px'; canvas.style.top = f.cssTop + 'px';
-    window.__SAMMY_FIT = Object.assign({ viewW, viewH }, f);
+    if (L) touch.place(L);
+    window.__SAMMY_FIT = Object.assign({ viewW, viewH, touch: touch.active }, f);
   }
   window.addEventListener('resize', fit);
   window.addEventListener('orientationchange', fit);
@@ -38,10 +46,12 @@
 
   const state = S.newGame();
   window.__SAMMY_STATE = state;
-  const input = S.createInput(window);
   const audio = S.createAudio();
-  const unlock = () => audio.unlock();
-  window.addEventListener('keydown', unlock); window.addEventListener('pointerdown', unlock);
+  // Browsers only allow sound after the player does something. On phones a finger counts only when it lifts
+  // (pointerup / touchend), so listen to those too. The touch buttons' events reach the window as well.
+  let unlocks = 0;
+  const unlock = () => { unlocks++; audio.unlock(); };
+  for (const t of ['keydown', 'pointerdown', 'pointerup', 'touchend']) window.addEventListener(t, unlock);
 
   function drainEvents() {
     for (const ev of state.events) {
@@ -58,6 +68,7 @@
   const ready = () => {
     pending -= 1; if (pending) return;
     if (params.get('test') === 'keys') keysTest();
+    else if (params.get('test') === 'touch') touchTest();
     else if (params.has('test')) runTest(params.get('test'));
     else requestAnimationFrame(loop);
   };
@@ -85,6 +96,7 @@
       drainEvents();
       acc -= C.step;
     }
+    touch.update(state, state.muted);
     S.render(ctx, state);
   }
 
@@ -94,7 +106,16 @@
     const b = canvas.getBoundingClientRect();
     const de = document.documentElement;
     return Object.assign({}, window.__SAMMY_FIT, { rect: { x: b.x, y: b.y, w: b.width, h: b.height },
-      scrollW: de.scrollWidth, scrollH: de.scrollHeight });
+      scrollW: de.scrollWidth, scrollH: de.scrollHeight, buttons: buttonReport() });
+  }
+  // Where each touch button really is on the page (shown ones only).
+  function buttonReport() {
+    const out = {};
+    for (const n in touch.elements) {
+      const b = touch.elements[n].el.getBoundingClientRect();
+      if (b.width > 0 && b.height > 0) out[n] = { x: b.x, y: b.y, w: b.width, h: b.height };
+    }
+    return out;
   }
   // ?test=keys: real key presses through the normal loop (Enter to start, then hold Right).
   function keysTest() {
@@ -115,6 +136,86 @@
     r.ok = r.mode === 'playing' && r.x > state.level.start.x + 50 && r.airborne && errors.length === 0;
     out.textContent = JSON.stringify(r);
     requestAnimationFrame(loop); // keep running normally afterwards
+  }
+
+  // ?test=touch&touch=1: real touch events on the real buttons, through the normal loop.
+  function touchTest() {
+    const out = document.getElementById('test-result');
+    let now = 1000, nextId = 1;
+    const run = (n) => { for (let i = 0; i < n; i++) { now += 1000 / 60; frame(now); } };
+    const el = (n) => touch.elements[n].el;
+    // A finger on a button: where on the button (0-1 across and down), and its own id so several can be down at once.
+    const finger = (n, fx = 0.5, fy = 0.5) => {
+      const id = nextId++;
+      const at = (t, x) => {
+        const b = el(n).getBoundingClientRect();
+        el(n).dispatchEvent(new PointerEvent(t, { pointerId: id, pointerType: 'touch', isPrimary: id === 1, bubbles: true, cancelable: true,
+          clientX: b.x + b.width * x, clientY: b.y + b.height * fy }));
+      };
+      at('pointerdown', fx);
+      return { move: (x) => at('pointermove', x), up: () => at('pointerup', fx), cancel: () => at('pointercancel', fx), lost: () => at('lostpointercapture', fx) };
+    };
+    const tap = (n) => { const f = finger(n); run(1); f.up(); run(1); };
+    const p = state.player, c = {};
+    const noneHeld = () => { const h = touch.held(); return !Object.keys(h).some((k) => h[k]); };
+    // How high Sammy rises from the ground (game pixels) while the jump finger stays down for `hold` frames.
+    const rise = (hold) => {
+      const y0 = p.y; let top = p.y;
+      const f = finger('jump'); for (let i = 0; i < 70; i++) { if (i === hold) f.up(); run(1); top = Math.min(top, p.y); }
+      run(30); return Math.round(y0 - top);
+    };
+    try {
+      c.visibleOnTitle = ['pad', 'jump', 'whip', 'possum', 'pause'].every((n) => buttonReport()[n]) && !buttonReport().restart;
+      run(5);
+      const unlocksBefore = unlocks;
+      tap('jump');
+      c.jumpStarts = state.mode === 'playing';
+      c.soundUnlocked = unlocks > unlocksBefore;
+      run(5);
+      // Hold the right half of the pad for a second.
+      const x0 = p.x, pad = finger('pad', 0.8);
+      run(60);
+      c.movedRight = Math.round(p.x - x0);
+      // Slide the same finger to the left half without lifting.
+      const x1 = p.x; pad.move(0.2); run(20);
+      c.slideLeft = p.face === -1 && p.x < x1 && touch.held().left && !touch.held().right;
+      pad.up(); run(30);
+      c.releasedPad = noneHeld();
+      // A tap is a short hop; holding JUMP goes higher (the game reads the held button).
+      c.tapRise = rise(1); c.holdRise = rise(60);
+      // Move and jump at the same time with two fingers.
+      const x2 = p.x, mv = finger('pad', 0.8); run(5); const jf = finger('jump'); run(10);
+      c.moveAndJump = !p.grounded && p.x > x2 && touch.held().right && touch.held().jump;
+      jf.up(); mv.up(); run(60);
+      // Tail-whip.
+      const wf = finger('whip'); run(2); c.whip = p.state === 'attack'; wf.up(); run(30);
+      // Every way a finger can be lost clears what it held.
+      let f = finger('pad', 0.9); run(1); f.cancel(); c.cancelClears = noneHeld();
+      f = finger('jump'); run(1); f.lost(); c.lostCaptureClears = noneHeld();
+      finger('pad', 0.9); finger('whip'); run(1); window.dispatchEvent(new Event('blur')); c.blurClears = noneHeld();
+      finger('possum'); run(1);
+      Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+      delete document.hidden;
+      c.hiddenClears = noneHeld();
+      run(5);
+      // Pause shows RESTART and MUTE; MUTE toggles sound; RESTART goes back to the start.
+      tap('pause');
+      c.paused = state.mode === 'paused' && !!buttonReport().restart && !!buttonReport().mute;
+      tap('mute'); c.muted = state.muted === true; tap('mute'); c.unmuted = state.muted === false;
+      tap('restart');
+      c.restarted = state.mode === 'playing' && state.player.x === state.level.start.x && !buttonReport().restart; // a new player object
+      // Tapping the picture on the title screen starts the game too.
+      state.mode = 'title'; run(2);
+      canvas.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 99, pointerType: 'touch', bubbles: true }));
+      run(2); c.tapPictureStarts = state.mode === 'playing';
+    } catch (e) { errors.push(String(e && e.stack || e)); }
+    const r = { test: 'touch', fit: fitReport(), mode: state.mode, checks: c, errors };
+    r.ok = c.visibleOnTitle && c.jumpStarts && c.soundUnlocked && c.movedRight > 50 && c.slideLeft && c.releasedPad &&
+      c.holdRise > c.tapRise + 10 && c.moveAndJump && c.whip && c.cancelClears && c.lostCaptureClears && c.blurClears &&
+      c.hiddenClears && c.paused && c.muted && c.unmuted && c.restarted && c.tapPictureStarts && errors.length === 0;
+    out.textContent = JSON.stringify(r);
+    requestAnimationFrame(loop);
   }
 
   // Draw every state the autopilot can't reach (it never takes damage), to catch drawing errors.
@@ -184,6 +285,8 @@
         result.ok = errors.length === 0;
       }
       if (params.has('title')) state.mode = 'title';
+      if (params.has('paused')) state.mode = 'paused';
+      touch.update(state, state.muted);
       S.render(ctx, state);
     } catch (e) {
       errors.push(String(e && e.stack || e));

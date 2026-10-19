@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const src = path.join(here, '..', 'src');
-for (const f of ['config', 'font', 'level', 'assets', 'sim', 'bot', 'layout']) {
+for (const f of ['config', 'font', 'level', 'assets', 'sim', 'bot', 'layout', 'render']) {
   vm.runInThisContext(fs.readFileSync(path.join(src, f + '.js'), 'utf8'), { filename: f + '.js' });
 }
 const S = globalThis.SAMMY;
@@ -765,4 +765,88 @@ test('screen fit: tiny or odd screens never go below x1 and keep the top-left (H
   assert.equal(fitFor(320, 224, 1.5).scale, 1);
   assert.equal(fitFor(1280, 896, 1).scale, 4);
   assert.equal(fitFor(1920 / 3, 1344 / 3, 3).scale, 6);
+});
+
+// ---------- on-screen touch buttons (layout.js) ----------
+const touchFor = (viewW, viewH, dpr, safe) => S.touchLayout({ viewW, viewH, dpr, gameW: C.screenW, gameH: C.screenH, safe });
+const TOUCH_DEVICES = [
+  // [name, css width, css height, real px per css px, expected picture scale]
+  ['iPhone SE landscape', 667, 375, 2, 3], ['iPhone SE portrait', 375, 667, 2, 2],
+  ['iPhone 15 landscape', 852, 393, 3, 5], ['iPhone 15 portrait', 393, 852, 3, 3],
+  ['Pixel 7 landscape', 915, 412, 2.625, 4], ['iPad landscape', 1180, 820, 2, 7], ['iPad portrait', 820, 1180, 2, 5],
+];
+// Checks every rule for one layout: thumb-sized, on screen and clear of notches, not on top of each other,
+// and covering only the allowed bottom corners of the picture (never the HUD or the middle).
+function checkTouchLayout(name, L, w, h, dpr, safe = {}) {
+  const c = L.controls, f = L.fit, s = f.scale / dpr; // css px per game px
+  const play = ['pad', 'jump', 'whip', 'possum', 'pause'];
+  for (const n of play) {
+    const r = c[n];
+    assert.ok(Math.min(r.w, r.h) >= (n === 'pause' ? 44 : 56) - 1e-9, `${name}: ${n} is thumb-sized (${r.w.toFixed(0)}x${r.h.toFixed(0)})`);
+    assert.ok(r.x >= (safe.left || 0) && r.y >= (safe.top || 0) && r.x + r.w <= w - (safe.right || 0) + 1e-9 && r.y + r.h <= h - (safe.bottom || 0) + 1e-9, `${name}: ${n} on screen, clear of notches`);
+    // Sharp: whole real pixels, and a whole number of real pixels per button pixel.
+    for (const v of [r.dev.x, r.dev.y, r.dev.w, r.dev.h]) assert.ok(Number.isInteger(v), `${name}: ${n} on whole real pixels`);
+    assert.ok(Number.isInteger(r.artW) && Number.isInteger(r.artH), `${name}: ${n} whole button pixels`);
+    // Overlap with the picture only inside the allowed corners.
+    const x0 = Math.max(r.x, f.cssLeft), x1 = Math.min(r.x + r.w, f.cssLeft + f.cssW), y0 = Math.max(r.y, f.cssTop), y1 = Math.min(r.y + r.h, f.cssTop + f.cssH);
+    if (x0 < x1 - 1e-9 && y0 < y1 - 1e-9) {
+      const g = { x0: (x0 - f.cssLeft) / s, x1: (x1 - f.cssLeft) / s, y0: (y0 - f.cssTop) / s, y1: (y1 - f.cssTop) / s };
+      assert.ok(S.TOUCH_CORNERS.some((z) => g.x0 >= z.x0 - 1e-6 && g.x1 <= z.x1 + 1e-6 && g.y0 >= z.y0 - 1e-6 && g.y1 <= z.y1 + 1e-6),
+        `${name}: ${n} covers only a bottom corner of the picture (${JSON.stringify(g)})`);
+      assert.ok(g.y0 >= 128, `${name}: ${n} keeps clear of the HUD`);
+    }
+  }
+  for (let i = 0; i < play.length; i++) for (let j = i + 1; j < play.length; j++) {
+    const a = c[play[i]], b = c[play[j]];
+    assert.ok(a.x + a.w <= b.x + 1e-9 || b.x + b.w <= a.x + 1e-9 || a.y + a.h <= b.y + 1e-9 || b.y + b.h <= a.y + 1e-9, `${name}: ${play[i]} and ${play[j]} don't overlap`);
+  }
+  // Left thumb: the pad on the left half; right thumb: the action buttons on the right half.
+  assert.ok(c.pad.x + c.pad.w <= w / 2 && ['jump', 'whip', 'possum'].every((n) => c[n].x >= w / 2), `${name}: pad left, actions right`);
+  // Pause menu buttons sit over the picture, under the PAUSED panel, side by side.
+  assert.ok(c.restart.y >= f.cssTop + 131 * s && c.restart.y + c.restart.h <= f.cssTop + f.cssH + 1e-9 && c.mute.x >= c.restart.x + c.restart.w, `${name}: pause menu under the panel`);
+  // Picture still sharp: whole steps, whole real-pixel position.
+  assert.ok(Number.isInteger(Math.round(f.cssLeft * dpr * 1e6) / 1e6) && Number.isInteger(Math.round(f.cssTop * dpr * 1e6) / 1e6), `${name}: picture on whole real pixels`);
+}
+
+test('touch layout: thumb-sized buttons that cover only the bottom corners, at the biggest picture size', () => {
+  for (const [name, w, h, dpr, scale] of TOUCH_DEVICES) {
+    const L = touchFor(w, h, dpr);
+    checkTouchLayout(name, L, w, h, dpr);
+    assert.equal(L.fit.scale, scale, name + ' keeps the biggest picture');
+    if (L.orientation === 'portrait') {
+      // Portrait: picture at the top, every button below it.
+      assert.equal(L.fit.cssTop, 0, name + ' picture at the top');
+      for (const n of ['pad', 'jump', 'whip', 'possum', 'pause']) assert.ok(L.controls[n].y >= L.fit.cssTop + L.fit.cssH, `${name}: ${n} below the picture`);
+    }
+  }
+  // Landscape iPhone 15: nothing but WHIP touches the picture, and only its bottom-right corner.
+  const i15 = touchFor(852, 393, 3);
+  assert.deepEqual(['pad', 'jump', 'possum', 'pause'].filter((n) => i15.controls[n].over), []);
+});
+
+test('touch layout: notches push buttons inward, and too-narrow sides shrink the picture one step instead of covering it', () => {
+  // iPhone 15 sideways with its notch and home bar margins.
+  const safe = { left: 59, right: 59, bottom: 21 };
+  const n = touchFor(852, 393, 3, safe);
+  checkTouchLayout('iPhone 15 landscape with notch', n, 852, 393, 3, safe);
+  assert.equal(n.fit.scale, 5);
+  // Upright with a notch at the top: the picture moves below the notch.
+  const p = touchFor(393, 852, 3, { top: 59, bottom: 34 });
+  checkTouchLayout('iPhone 15 portrait with notch', p, 393, 852, 3, { top: 59, bottom: 34 });
+  assert.ok(p.fit.cssTop >= 59);
+  // Narrow black sides: the full-size picture would put buttons over the middle,
+  // so it shrinks one step (and stays sharp).
+  // (680x470 at 1 real px per point: x2 leaves only 20 px at each side.)
+  const narrow = touchFor(680, 470, 1);
+  assert.equal(narrow.maxScale, 2); assert.equal(narrow.fit.scale, 1);
+  checkTouchLayout('narrow-sided screen', narrow, 680, 470, 1);
+  // computeFit's maxScale limit.
+  assert.equal(S.computeFit({ viewW: 1920, viewH: 1080, dpr: 1, gameW: 320, gameH: 224, maxScale: 3 }).scale, 3);
+});
+
+test('touch wording: every touch prompt and screen line fits on the screen', () => {
+  for (const pr of S.LEVEL1.prompts) assert.ok(S.textWidth(pr.touch || pr.text) + 8 <= C.screenW - 8, pr.touch || pr.text);
+  assert.ok(S.LEVEL1.prompts.filter((p) => p.touch).length >= 3, 'move/jump, whip and possum prompts have touch wording');
+  for (const mode of ['keys', 'touch']) for (const k in S.TEXT[mode]) assert.ok(S.textWidth(S.TEXT[mode][k]) <= 232, `${mode}.${k} fits in the title panel`);
+  assert.equal(S.TEXT.touch.start, 'TAP JUMP TO START');
 });
