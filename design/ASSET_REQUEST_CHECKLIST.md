@@ -123,3 +123,18 @@ Without these, Claude can only build with grey placeholder boxes.
 - Your own original art and audio: write "original — <your name>" and your chosen terms.
 - Free/stock assets: include the link and the exact license name (e.g. CC0, CC-BY 4.0) and any attribution text.
 - Reference screenshots and commercial-game material: mark as **reference-only**.
+
+**Columns in `design/ASSET_SOURCES.csv`** (one row per file; a new version like `-v02` needs its own row):
+
+| Column | Allowed values |
+|---|---|
+| `asset_id` | Short name, e.g. `sammy-run` |
+| `path` | The file, starting with `assets/`, e.g. `assets/characters/character-sammy/sammy-run-strip-v02.png` |
+| `creator` | Who made it |
+| `source_url` | Link to where it came from (blank for your own work) |
+| `license` | Exact license name, e.g. `CC0`, `CC-BY 4.0`, `Original work`. Not blank, `TBD` or `unknown` |
+| `commercial_use` | `yes` or `no` |
+| `attribution_required` | `yes` or `no` |
+| `notes` | Free text |
+
+**What the build ships:** only files with `commercial_use` = `yes` and a filled-in license that isn't non-commercial (`NC`, "non-commercial") or `reference-only`. Everything else is left out, and `game/dist/BUILD_INFO.txt` says why. Files with `attribution_required` = `yes` are listed in `game/dist/CREDITS.txt`.

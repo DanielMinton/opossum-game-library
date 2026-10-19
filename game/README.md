@@ -49,9 +49,20 @@ The level is 12 screens long, about 1 minute for a fast run and 3–5 minutes fo
 ## Adding art
 
 1. Put real files in `assets/` using the exact names from `templates/examples/` (for example, `assets/characters/character-sammy/sammy-run-strip-v01.png`). The full list is in `game/src/assets.js`.
-2. Run `node game/tools/scan-assets.mjs` from the library folder. It reports which files it found, and any images whose names the game doesn't recognize.
+2. Run `node game/tools/scan-assets.mjs` from the library folder. It lists the files it found, any images whose names the game doesn't recognize, and any art warnings (below).
 3. Reload the game. Any sprite with a real file uses it; everything else stays a placeholder.
-4. If a strip is the wrong size, the browser console says so, for example "expected 384x48 px, got 100x48".
+
+**New versions:** save `sammy-run-strip-v02.png` beside `v01`. The highest version wins; older ones stay in the folder and are skipped quietly. Run the scanner again afterwards.
+
+**What the scanner warns about** (a warning never stops a file from being listed):
+- **Wrong size**, for example "expected 384x48 px, got 100x48". The game does **not** use a wrong-size file, because it would be cut into frames wrongly. The placeholder stays, the browser console says why, and the title screen shows "ART WARNINGS".
+- **Colour-profile or gamma data** in the PNG. Colours may shift. Export without a profile.
+- **Semi-transparent pixels.** Every pixel must be fully clear or fully solid.
+- **Colours off the 9-bit grid.** Each red, green and blue value must be one of 0, 36, 72, 108, 144, 180, 216, 252.
+- **More than 15 solid colours** in one file (one palette line).
+- Some PNG types (16-bit, interlaced, greyscale) can't have their pixels checked; the scanner says "pixel checks skipped". Size is always checked.
+
+**Licenses:** art only goes into the shareable build when its row in `design/ASSET_SOURCES.csv` clears it (see **Build a shareable copy**). The game on your own computer uses every file either way.
 
 Frame sizes, frame counts, speeds and the feet point (24, 47) follow `templates/STYLE_GUIDE.md` and each example's animation table. One exception: Sammy's tail-whip strip uses wider 64×48 frames with the feet point at (32, 47), so the tail has room. Background band rows, scroll speeds and loop widths are in the `bg:` lines of `game/src/assets.js`.
 
@@ -107,9 +118,23 @@ node tools/build.mjs
 
 This makes `game/dist/`:
 - `index.html`: the whole game in one file.
-- `BUILD_INFO.txt`: what art was included or left out.
+- `BUILD_INFO.txt`: what art and sound was included, and why anything was left out.
+- `CREDITS.txt`: the credit line for every included file that needs one.
 
-Art and sound are copied **only if** `design/ASSET_SOURCES.csv` records a license for them, and nothing from `assets/references/` is ever copied. Today no art or sound exists, so the build is placeholders only.
+**License rules.** Each art or sound file needs its own row in `design/ASSET_SOURCES.csv` (a new version, like `-v02`, needs a new row). Columns:
+
+| Column | What to write |
+|---|---|
+| `asset_id` | A short name, e.g. `sammy-run` |
+| `path` | The file, starting with `assets/`, e.g. `assets/characters/character-sammy/sammy-run-strip-v02.png` |
+| `creator` | Who made it |
+| `source_url` | Where it came from (blank for your own work) |
+| `license` | The exact license, e.g. `CC0`, `CC-BY 4.0`, `Original work` |
+| `commercial_use` | `yes` or `no` |
+| `attribution_required` | `yes` or `no`. `yes` adds it to `CREDITS.txt` |
+| `notes` | Anything else |
+
+A file is copied **only if** `commercial_use` is `yes` **and** the license is filled in (not blank, TBD or unknown) **and** the license isn't non-commercial (NC) or reference-only. Anything else is left out, with the reason in `BUILD_INFO.txt`. Nothing from `assets/references/` is ever copied. Today no art or sound exists, so the build is placeholders only.
 
 **Publishing (not done; needs your go-ahead).** The `dist/` folder is a static website, so it can be zipped and uploaded as an HTML game to itch.io, or hosted with GitHub Pages or Netlify. Before any public release:
 - Replace the placeholders.
@@ -122,8 +147,8 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | 34 game-rule checks (see the list below) |
-| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 18 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
+| `node --test tests/sim.test.mjs` | 38 game-rule checks (see the list below) |
+| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 20 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 
 **Game-rule checks** cover:
@@ -137,15 +162,18 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - the background bands (rows match the tileset doc and don't overlap), the tail-whip frame width, and the placeholder font (M, W, H and N look different)
 - the sound list: every sound the game triggers has a planned name and a beep; file names, versions and variations are read correctly
 - the audio converter picks only `.wav` files missing an `.ogg` (or an `.mp3` with `--mp3`), and never overwrites
+- animation timings in `config.js` match the frame counts and speeds of the art strips
+- art versions (the newest wins), the license rules for the build, and the scanner's PNG checks (size, colour profile, semi-transparent pixels, off-grid colours, too many colours, broken files)
 
 **Browser checks** cover:
 - the source game and the built game each play title → level → gauntlet → clear → restart with no errors
 - real key presses through the normal game loop start the game and move Sammy
 - every screen the autopilot never reaches draws without errors: hurt, K.O., play-dead, shield, confused zombies, pause and mute
-- art loading: a correct test image loads and is drawn, and a wrong-size test image is reported
+- art scanning: the newest version of a strip is picked, and a wrong-size file is warned about
+- art loading: correct test images load and are drawn, the hit flash works on real art, and a wrong-size test image is reported and not drawn
 - sound loading: a test sound effect and test music load, and real key presses play them instead of the beeps
 
-These two checks use a temporary copy of the library, never your `assets/` folder.
+The art and sound checks use a temporary copy of the library, never your `assets/` folder.
 
 **Not tested by machine:**
 - how the controls feel in human hands
@@ -170,7 +198,7 @@ These two checks use a temporary copy of the library, never your `assets/` folde
 | `src/audio.js` | Plays real sound files when present, placeholder beeps otherwise |
 | `src/input.js`, `src/main.js` | Controls, main loop and `?test=` self-checks |
 | `src/bot.js` | Autopilot used only by the tests |
-| `tools/` | Art and sound scanner, WAV-to-OGG converter, and build script |
+| `tools/` | Art and sound scanner (with PNG checks in `png.mjs`), WAV-to-OGG converter, build script, and license rules (`licenses.mjs`) |
 | `tests/` | Game-rule tests and the browser check |
 | `dist/` | Latest shareable build (made by `tools/build.mjs`) |
 

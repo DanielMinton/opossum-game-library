@@ -5,21 +5,25 @@
   const R = (ctx, col, x, y, w, h) => { ctx.fillStyle = col; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
 
   // Draw a frame from a real sprite strip. Returns false when no art is loaded for that key.
-  function sprite(ctx, key, t, x, y, face, reverse, frame) {
+  // white = draw the all-white copy instead (hit flash), when one was made at load time.
+  function sprite(ctx, key, t, x, y, face, reverse, frame, white) {
     const m = S.images[key];
     if (!m) return false;
     const f = frame != null ? Math.min(frame, m.frames - 1) : S.frameAt(m, t, reverse);
     S.spriteDraws[key] = (S.spriteDraws[key] || 0) + 1; // counted for the ?test= self-check
+    const src = white && m.flash ? m.flash : m.img;
+    if (src !== m.img) S.flashDraws[key] = (S.flashDraws[key] || 0) + 1;
     ctx.save();
     ctx.translate(Math.round(x), Math.round(y));
     if (face < 0) { ctx.translate(1, 0); ctx.scale(-1, 1); } // mirror around the pivot column, not 1 px left of it
     // Feet-pivot sprites: the pivot row sits on the pixel row just above the ground line.
-    ctx.drawImage(m.img, f * m.fw, 0, m.fw, m.fh, -m.px, -m.py - (m.feet ? 1 : 0), m.fw, m.fh);
+    ctx.drawImage(src, f * m.fw, 0, m.fw, m.fh, -m.px, -m.py - (m.feet ? 1 : 0), m.fw, m.fh);
     ctx.restore();
     return true;
   }
   S.drawSprite = sprite;
   S.spriteDraws = {};
+  S.flashDraws = {};
 
   // ---------- background (parallax) ----------
   // Band rows, scroll speeds and loop widths come from the bg:* entries in assets.js.
@@ -155,9 +159,17 @@
     }
   }
 
+  // Enemies and Sammy: real sprite or placeholder first, then the state marks (?, !, BOING…) on top of either.
   function drawJogger(ctx, e) {
-    const a = e.anim;
-    if (sprite(ctx, 'jogger:' + a, e.animT, e.x, e.y, e.face)) { if (e.state === 'confused') S.drawTextCentered(ctx, '?', e.x, e.y - 50, K.white, 2, K.black); return; }
+    const flash = e.state === 'hitreact';
+    if (!sprite(ctx, 'jogger:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawJoggerPlaceholder(ctx, e, flash);
+    const x = Math.round(e.x), y = Math.round(e.y);
+    if ((e.state === 'defeat' || e.state === 'dead') && e.t < 0.3) S.drawTextCentered(ctx, 'BOING', x, y - 56, K.white, 1, K.black);
+    if (e.state === 'confused') S.drawTextCentered(ctx, '?', x, y - 50, K.white, 2, K.black);
+    if (e.state === 'spawn') S.drawTextCentered(ctx, '!', x, y - 50, K.heart, 2, K.black);
+  }
+
+  function drawJoggerPlaceholder(ctx, e, flash) {
     const x = Math.round(e.x), y = Math.round(e.y), f = e.face;
     if (e.state === 'defeat' || e.state === 'dead') {
       // Placeholder comedy: the head pops off and bounces away, the body sinks into a pile of sweatsuit.
@@ -167,10 +179,8 @@
       R(ctx, K.band, x - 10, y - 4, 20, 4);
       const hx = x - f * t * 70, hy = y - 40 - Math.abs(Math.sin(t * 9)) * 24 * (1 - t);
       R(ctx, K.jogger, hx - 4, hy - 8, 8, 8); R(ctx, K.band, hx - 4, hy - 7, 8, 2);
-      if (t < 0.3) S.drawTextCentered(ctx, 'BOING', x, y - 56, K.white, 1, K.black);
       return;
     }
-    const flash = e.state === 'hitreact';
     const lean = e.state === 'attack' && e.t > 0.15 && e.t < 0.32 ? f * 4 : 0;
     const step = Math.floor(e.animT * 8) % 2;
     R(ctx, K.joggerDark, x - 7 + step * 2, y - 12, 5, 12); R(ctx, K.joggerDark, x + 2 - step * 2, y - 12, 5, 12);
@@ -179,23 +189,25 @@
     R(ctx, K.black, x + f * 4 - 1 + lean, y - 30, 2, 2);
     R(ctx, K.nose, x + f * 7 + lean, y - 24, 3 * f, 2);  // tongue
     R(ctx, flash ? K.white : K.jogger, x + f * 8 + lean, y - 26, f * (e.state === 'attack' ? 10 : 6), 3); // arms out
-    if (e.state === 'confused') S.drawTextCentered(ctx, '?', x, y - 50, K.white, 2, K.black);
-    if (e.state === 'spawn') S.drawTextCentered(ctx, '!', x, y - 50, K.heart, 2, K.black);
   }
 
   function drawVendor(ctx, e) {
-    if (sprite(ctx, 'vendor:' + e.anim, e.animT, e.x, e.y, e.face)) { if (e.state === 'shrug') S.drawTextCentered(ctx, '?', e.x, e.y - 50, K.white, 2, K.black); return; }
+    const flash = e.state === 'hitreact';
+    if (!sprite(ctx, 'vendor:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawVendorPlaceholder(ctx, e, flash);
+    const x = Math.round(e.x), y = Math.round(e.y);
+    if (e.state === 'shrug') S.drawTextCentered(ctx, '?', x, y - 50, K.white, 2, K.black);
+    if (e.state === 'defeat') S.drawTextCentered(ctx, 'PFFFT', x, y - 48, K.white, 1, K.black);
+  }
+
+  function drawVendorPlaceholder(ctx, e, flash) {
     const x = Math.round(e.x), y = Math.round(e.y), f = e.face;
     let hgt = 36;
     if (e.state === 'defeat' || e.state === 'dead') hgt = Math.max(6, 36 * (1 - e.t / C.vendor.defeatTime)); // deflates like a balloon
-    const flash = e.state === 'hitreact';
     R(ctx, flash ? K.white : K.vendor, x - 10, y - hgt, 20, hgt);
     R(ctx, K.white, x - 8, y - hgt + 14, 16, Math.max(0, hgt - 18)); // apron
     R(ctx, K.hat, x - 7, y - hgt - 5, 14, 5);
     if (hgt > 20) { R(ctx, K.black, x + f * 4 - 1, y - hgt + 6, 2, 2); R(ctx, K.vendorDark, x + f * 2 - 3, y - hgt + 10, 7, 2); }
     if (e.state === 'throw') R(ctx, K.vendor, x + f * 8, y - hgt - 2, 4 * f, 10);
-    if (e.state === 'shrug') S.drawTextCentered(ctx, '?', x, y - 50, K.white, 2, K.black);
-    if (e.state === 'defeat') S.drawTextCentered(ctx, 'PFFFT', x, y - 48, K.white, 1, K.black);
   }
 
   function drawProjectile(ctx, pr) {
@@ -209,8 +221,12 @@
     const p = s.player;
     if (p.invuln > 0 && p.state !== 'ko' && Math.floor(p.invuln * 15) % 2 === 0) return; // blink while invincible
     const anim = p.anim === 'get-up' ? 'play-dead' : p.anim;
-    const real = sprite(ctx, 'sammy:' + anim, p.anim === 'get-up' ? p.animT * 2 : p.animT, p.x, p.y, p.face, p.anim === 'get-up');
-    if (!real) drawSammyPlaceholder(ctx, s);
+    const flash = p.state === 'hurt';
+    const real = sprite(ctx, 'sammy:' + anim, p.anim === 'get-up' ? p.animT * 2 : p.animT, p.x, p.y, p.face, p.anim === 'get-up', null, flash);
+    if (!real) drawSammyPlaceholder(ctx, s, flash);
+    const x = Math.round(p.x), y = Math.round(p.y);
+    if (p.state === 'playdead') S.drawTextCentered(ctx, 'Z z', x, y - 26, K.white, 1, K.black);
+    if (p.state === 'ko') S.drawTextCentered(ctx, '* * *', x, y - 24 - Math.round(Math.sin(p.t * 8) * 2), K.umbrella, 1, K.black);
     if (p.shield > 0 && p.state !== 'playdead' && p.state !== 'ko') {
       const ox = p.x + p.face * 12, oy = p.y - 14;
       if (!sprite(ctx, 'overlay:lid', 0, ox, oy, p.face, false, 3 - p.shield)) {
@@ -219,9 +235,8 @@
     }
   }
 
-  function drawSammyPlaceholder(ctx, s) {
+  function drawSammyPlaceholder(ctx, s, flash) {
     const p = s.player, x = Math.round(p.x), y = Math.round(p.y), f = p.face;
-    const flash = p.state === 'hurt';
     const body = flash ? K.white : K.sammy;
     if (p.state === 'playdead' || p.state === 'getup' || p.state === 'ko') {
       // Lying flat on his back, feet up, X eyes, tongue out.
@@ -230,8 +245,6 @@
       S.drawText(ctx, 'X', x + f * 8 - 1, y - 10, K.black);
       R(ctx, K.nose, x + f * 13, y - 8, 2 * f, 3);
       R(ctx, K.nose, x - f * 14, y - 3, -f * 10, 2); // tail
-      if (p.state === 'playdead') S.drawTextCentered(ctx, 'Z z', x, y - 26, K.white, 1, K.black);
-      if (p.state === 'ko') S.drawTextCentered(ctx, '* * *', x, y - 24 - Math.round(Math.sin(p.t * 8) * 2), K.umbrella, 1, K.black);
       return;
     }
     const squash = p.anim === 'land' ? 3 : 0;
@@ -331,6 +344,7 @@
     if (Math.floor((s.titleT || 0) * 2) % 2 === 0) S.drawTextCentered(ctx, 'PRESS ENTER OR Z TO START', W / 2, 142, K.nose, 1);
     const r = S.assetReport;
     S.drawTextCentered(ctx, 'REAL ART LOADED: ' + r.loaded.length + ' OF ' + r.expected + ' FILES', W / 2, 160, K.grey);
+    if (r.warnings.length) S.drawTextCentered(ctx, 'ART WARNINGS: ' + r.warnings.length + ' - SEE CONSOLE', W / 2, 167, K.heart);
     watermark(ctx);
   }
 

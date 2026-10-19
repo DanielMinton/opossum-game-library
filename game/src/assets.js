@@ -4,6 +4,9 @@
 //
 // The game only loads files listed in src/asset-files.js (made by `node tools/scan-assets.mjs`),
 // so missing art never causes browser errors. Add ?probe=1 to the URL to try every file anyway.
+// Each path below names version 01. A newer file beside it (-v02.png, -v03.png, …) is used instead.
+// hitFrame / releaseFrame count from 0: the frame where the hit lands or the hot dog leaves the hand.
+// config.js timings must equal frames / fps of these strips (checked by tests/sim.test.mjs).
 (function (S) {
   const strip = (key, path, frames, fps, loop, extra) =>
     Object.assign({ key, path, fw: 48, fh: 48, frames, fps, loop, px: 24, py: 47, feet: true }, extra || {});
@@ -24,20 +27,20 @@
     strip('sammy:fall', SAM + 'sammy-fall-strip-v01.png', 2, 10, 'loop'),
     strip('sammy:land', SAM + 'sammy-land-strip-v01.png', 2, 15, 'once'),
     // Wider 64x48 cell, pivot (32, 47): the whip reaches 26 px in front of Sammy, more than a 48 px cell allows.
-    strip('sammy:tail-whip', SAM + 'sammy-tail-whip-strip-v01.png', 4, 15, 'once', { fw: 64, px: 32 }),
+    strip('sammy:tail-whip', SAM + 'sammy-tail-whip-strip-v01.png', 4, 15, 'once', { fw: 64, px: 32, hitFrame: 2 }),
     strip('sammy:hurt', SAM + 'sammy-hurt-strip-v01.png', 2, 10, 'once'),
     strip('sammy:play-dead', SAM + 'sammy-play-dead-strip-v01.png', 4, 8, 'hold'),
     strip('sammy:ko', SAM + 'sammy-ko-strip-v01.png', 6, 10, 'once'),
     strip('sammy:victory', SAM + 'sammy-victory-strip-v01.png', 4, 8, 'loop'),
 
     strip('jogger:walk', JOG + 'zombie-jogger-walk-strip-v01.png', 6, 8, 'loop'),
-    strip('jogger:attack', JOG + 'zombie-jogger-attack-strip-v01.png', 4, 10, 'once'),
+    strip('jogger:attack', JOG + 'zombie-jogger-attack-strip-v01.png', 4, 10, 'once', { hitFrame: 2 }),
     strip('jogger:hit', JOG + 'zombie-jogger-hit-strip-v01.png', 2, 12, 'once'),
     strip('jogger:defeat', JOG + 'zombie-jogger-defeat-strip-v01.png', 8, 12, 'once'),
     strip('jogger:idle', JOG + 'zombie-jogger-idle-strip-v01.png', 4, 6, 'loop'),
 
     strip('vendor:idle', VEN + 'zombie-vendor-idle-strip-v01.png', 4, 6, 'loop'),
-    strip('vendor:throw', VEN + 'zombie-vendor-throw-strip-v01.png', 4, 10, 'once'),
+    strip('vendor:throw', VEN + 'zombie-vendor-throw-strip-v01.png', 4, 10, 'once', { releaseFrame: 2 }),
     strip('vendor:hit', VEN + 'zombie-vendor-hit-strip-v01.png', 2, 12, 'once'),
     strip('vendor:defeat', VEN + 'zombie-vendor-defeat-strip-v01.png', 6, 12, 'once'),
     strip('projectile:hotdog', VEN + 'hot-dog-projectile-strip-v01.png', 4, 12, 'loop', mid),
@@ -90,32 +93,57 @@
     const m = new RegExp('^' + id.replace(/[-]/g, '\\-') + '-v(\\d+)(?:-([a-z]))?\\.(ogg|mp3|wav)$', 'i').exec(name);
     return m ? { version: parseInt(m[1], 10), variant: (m[2] || '').toLowerCase(), format: m[3].toLowerCase() } : null;
   };
+  // Version number of an art file name for a manifest path, e.g. sammy-run-strip-v02.png -> 2 (null if it doesn't match).
+  S.artFileVersion = function (manifestPath, name) {
+    const stem = manifestPath.split('/').pop().replace(/-v\d+\.png$/i, '');
+    const m = new RegExp('^' + stem.replace(/[-.]/g, '\\$&') + '-v(\\d+)\\.png$', 'i').exec(name);
+    return m ? parseInt(m[1], 10) : null;
+  };
 
   S.images = {};
   S.assetReport = { expected: S.ASSET_MANIFEST.length, tried: 0, loaded: [], failed: [], warnings: [], base: '' };
 
+  // White copy of a strip, drawn on hurt / hit-react flash frames. Skipped where there is no canvas (Node tests).
+  function whiteCopy(img) {
+    if (typeof document === 'undefined') return null;
+    try {
+      const c = document.createElement('canvas');
+      c.width = img.width; c.height = img.height;
+      const g = c.getContext('2d');
+      g.drawImage(img, 0, 0);
+      g.globalCompositeOperation = 'source-in';
+      g.fillStyle = (S.PAL && S.PAL.white) || '#fcfcfc';
+      g.fillRect(0, 0, c.width, c.height);
+      return c;
+    } catch (e) { return null; }
+  }
+
+  // PRESENT_ASSET_FILES maps each manifest path to the newest version found (see tools/scan-assets.mjs).
   S.loadAssets = function (opts, done) {
     const base = opts.base;
-    const present = new Set(S.PRESENT_ASSET_FILES || []);
-    const list = S.ASSET_MANIFEST.filter((m) => opts.probe || present.has(m.path));
+    const present = S.PRESENT_ASSET_FILES || {};
+    const list = S.ASSET_MANIFEST.filter((m) => opts.probe || present[m.path]);
     const R = S.assetReport;
     R.base = base; R.tried = list.length;
     if (!list.length || typeof Image === 'undefined') { done(R); return; }
     let left = list.length;
     const finish = () => { left -= 1; if (left === 0) done(R); };
     for (const m of list) {
+      const file = present[m.path] || m.path;
       const img = new Image();
       img.onload = () => {
         const wantW = m.fw * m.frames, wantH = m.fh;
         if (img.width !== wantW || img.height !== wantH) {
-          R.warnings.push(m.path + ': expected ' + wantW + 'x' + wantH + ' px, got ' + img.width + 'x' + img.height);
+          // Wrong size would be cut into frames wrongly, so the placeholder stays.
+          R.warnings.push(file + ': expected ' + wantW + 'x' + wantH + ' px, got ' + img.width + 'x' + img.height + ' (not used)');
+        } else {
+          S.images[m.key] = Object.assign({ img, file, flash: whiteCopy(img) }, m);
+          R.loaded.push(file);
         }
-        S.images[m.key] = Object.assign({ img }, m);
-        R.loaded.push(m.path);
         finish();
       };
-      img.onerror = () => { R.failed.push(m.path); finish(); };
-      img.src = base + m.path;
+      img.onerror = () => { R.failed.push(file); finish(); };
+      img.src = base + file;
     }
   };
 

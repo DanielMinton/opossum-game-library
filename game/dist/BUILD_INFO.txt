@@ -1,4 +1,4 @@
-Sammy placeholder prototype — build 2026-10-19T13:00:56.226Z
+Sammy placeholder prototype — build 2026-10-19T13:11:50.027Z
 Open index.html in a browser. Everything is in this folder; nothing is fetched from the internet.
 
 Art included (0):
@@ -7,3 +7,4 @@ Sound files included (0):
 Sound files left out (0):
 
 Placeholder shapes and code-generated beeps are used for everything not included.
+A file is included only when design/ASSET_SOURCES.csv says commercial_use "yes" and names a commercial-use license.

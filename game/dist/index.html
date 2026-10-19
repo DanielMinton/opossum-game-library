@@ -267,6 +267,9 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 //
 // The game only loads files listed in src/asset-files.js (made by `node tools/scan-assets.mjs`),
 // so missing art never causes browser errors. Add ?probe=1 to the URL to try every file anyway.
+// Each path below names version 01. A newer file beside it (-v02.png, -v03.png, …) is used instead.
+// hitFrame / releaseFrame count from 0: the frame where the hit lands or the hot dog leaves the hand.
+// config.js timings must equal frames / fps of these strips (checked by tests/sim.test.mjs).
 (function (S) {
   const strip = (key, path, frames, fps, loop, extra) =>
     Object.assign({ key, path, fw: 48, fh: 48, frames, fps, loop, px: 24, py: 47, feet: true }, extra || {});
@@ -287,20 +290,20 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     strip('sammy:fall', SAM + 'sammy-fall-strip-v01.png', 2, 10, 'loop'),
     strip('sammy:land', SAM + 'sammy-land-strip-v01.png', 2, 15, 'once'),
     // Wider 64x48 cell, pivot (32, 47): the whip reaches 26 px in front of Sammy, more than a 48 px cell allows.
-    strip('sammy:tail-whip', SAM + 'sammy-tail-whip-strip-v01.png', 4, 15, 'once', { fw: 64, px: 32 }),
+    strip('sammy:tail-whip', SAM + 'sammy-tail-whip-strip-v01.png', 4, 15, 'once', { fw: 64, px: 32, hitFrame: 2 }),
     strip('sammy:hurt', SAM + 'sammy-hurt-strip-v01.png', 2, 10, 'once'),
     strip('sammy:play-dead', SAM + 'sammy-play-dead-strip-v01.png', 4, 8, 'hold'),
     strip('sammy:ko', SAM + 'sammy-ko-strip-v01.png', 6, 10, 'once'),
     strip('sammy:victory', SAM + 'sammy-victory-strip-v01.png', 4, 8, 'loop'),
 
     strip('jogger:walk', JOG + 'zombie-jogger-walk-strip-v01.png', 6, 8, 'loop'),
-    strip('jogger:attack', JOG + 'zombie-jogger-attack-strip-v01.png', 4, 10, 'once'),
+    strip('jogger:attack', JOG + 'zombie-jogger-attack-strip-v01.png', 4, 10, 'once', { hitFrame: 2 }),
     strip('jogger:hit', JOG + 'zombie-jogger-hit-strip-v01.png', 2, 12, 'once'),
     strip('jogger:defeat', JOG + 'zombie-jogger-defeat-strip-v01.png', 8, 12, 'once'),
     strip('jogger:idle', JOG + 'zombie-jogger-idle-strip-v01.png', 4, 6, 'loop'),
 
     strip('vendor:idle', VEN + 'zombie-vendor-idle-strip-v01.png', 4, 6, 'loop'),
-    strip('vendor:throw', VEN + 'zombie-vendor-throw-strip-v01.png', 4, 10, 'once'),
+    strip('vendor:throw', VEN + 'zombie-vendor-throw-strip-v01.png', 4, 10, 'once', { releaseFrame: 2 }),
     strip('vendor:hit', VEN + 'zombie-vendor-hit-strip-v01.png', 2, 12, 'once'),
     strip('vendor:defeat', VEN + 'zombie-vendor-defeat-strip-v01.png', 6, 12, 'once'),
     strip('projectile:hotdog', VEN + 'hot-dog-projectile-strip-v01.png', 4, 12, 'loop', mid),
@@ -353,32 +356,57 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     const m = new RegExp('^' + id.replace(/[-]/g, '\\-') + '-v(\\d+)(?:-([a-z]))?\\.(ogg|mp3|wav)$', 'i').exec(name);
     return m ? { version: parseInt(m[1], 10), variant: (m[2] || '').toLowerCase(), format: m[3].toLowerCase() } : null;
   };
+  // Version number of an art file name for a manifest path, e.g. sammy-run-strip-v02.png -> 2 (null if it doesn't match).
+  S.artFileVersion = function (manifestPath, name) {
+    const stem = manifestPath.split('/').pop().replace(/-v\d+\.png$/i, '');
+    const m = new RegExp('^' + stem.replace(/[-.]/g, '\\$&') + '-v(\\d+)\\.png$', 'i').exec(name);
+    return m ? parseInt(m[1], 10) : null;
+  };
 
   S.images = {};
   S.assetReport = { expected: S.ASSET_MANIFEST.length, tried: 0, loaded: [], failed: [], warnings: [], base: '' };
 
+  // White copy of a strip, drawn on hurt / hit-react flash frames. Skipped where there is no canvas (Node tests).
+  function whiteCopy(img) {
+    if (typeof document === 'undefined') return null;
+    try {
+      const c = document.createElement('canvas');
+      c.width = img.width; c.height = img.height;
+      const g = c.getContext('2d');
+      g.drawImage(img, 0, 0);
+      g.globalCompositeOperation = 'source-in';
+      g.fillStyle = (S.PAL && S.PAL.white) || '#fcfcfc';
+      g.fillRect(0, 0, c.width, c.height);
+      return c;
+    } catch (e) { return null; }
+  }
+
+  // PRESENT_ASSET_FILES maps each manifest path to the newest version found (see tools/scan-assets.mjs).
   S.loadAssets = function (opts, done) {
     const base = opts.base;
-    const present = new Set(S.PRESENT_ASSET_FILES || []);
-    const list = S.ASSET_MANIFEST.filter((m) => opts.probe || present.has(m.path));
+    const present = S.PRESENT_ASSET_FILES || {};
+    const list = S.ASSET_MANIFEST.filter((m) => opts.probe || present[m.path]);
     const R = S.assetReport;
     R.base = base; R.tried = list.length;
     if (!list.length || typeof Image === 'undefined') { done(R); return; }
     let left = list.length;
     const finish = () => { left -= 1; if (left === 0) done(R); };
     for (const m of list) {
+      const file = present[m.path] || m.path;
       const img = new Image();
       img.onload = () => {
         const wantW = m.fw * m.frames, wantH = m.fh;
         if (img.width !== wantW || img.height !== wantH) {
-          R.warnings.push(m.path + ': expected ' + wantW + 'x' + wantH + ' px, got ' + img.width + 'x' + img.height);
+          // Wrong size would be cut into frames wrongly, so the placeholder stays.
+          R.warnings.push(file + ': expected ' + wantW + 'x' + wantH + ' px, got ' + img.width + 'x' + img.height + ' (not used)');
+        } else {
+          S.images[m.key] = Object.assign({ img, file, flash: whiteCopy(img) }, m);
+          R.loaded.push(file);
         }
-        S.images[m.key] = Object.assign({ img }, m);
-        R.loaded.push(m.path);
         finish();
       };
-      img.onerror = () => { R.failed.push(m.path); finish(); };
-      img.src = base + m.path;
+      img.onerror = () => { R.failed.push(file); finish(); };
+      img.src = base + file;
     }
   };
 
@@ -393,7 +421,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 })(globalThis.SAMMY = globalThis.SAMMY || {});
 
 // ---- src/asset-files.js ----
-(function (S) { S.PRESENT_ASSET_FILES = []; S.PRESENT_SOUND_FILES = {}; })(globalThis.SAMMY = globalThis.SAMMY || {});
+(function (S) { S.PRESENT_ASSET_FILES = {}; S.PRESENT_SOUND_FILES = {}; })(globalThis.SAMMY = globalThis.SAMMY || {});
 
 // ---- src/sim.js ----
 // Game rules for the Sammy prototype. No drawing, no browser APIs: it runs the same in Node tests.
@@ -1154,21 +1182,25 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   const R = (ctx, col, x, y, w, h) => { ctx.fillStyle = col; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
 
   // Draw a frame from a real sprite strip. Returns false when no art is loaded for that key.
-  function sprite(ctx, key, t, x, y, face, reverse, frame) {
+  // white = draw the all-white copy instead (hit flash), when one was made at load time.
+  function sprite(ctx, key, t, x, y, face, reverse, frame, white) {
     const m = S.images[key];
     if (!m) return false;
     const f = frame != null ? Math.min(frame, m.frames - 1) : S.frameAt(m, t, reverse);
     S.spriteDraws[key] = (S.spriteDraws[key] || 0) + 1; // counted for the ?test= self-check
+    const src = white && m.flash ? m.flash : m.img;
+    if (src !== m.img) S.flashDraws[key] = (S.flashDraws[key] || 0) + 1;
     ctx.save();
     ctx.translate(Math.round(x), Math.round(y));
     if (face < 0) { ctx.translate(1, 0); ctx.scale(-1, 1); } // mirror around the pivot column, not 1 px left of it
     // Feet-pivot sprites: the pivot row sits on the pixel row just above the ground line.
-    ctx.drawImage(m.img, f * m.fw, 0, m.fw, m.fh, -m.px, -m.py - (m.feet ? 1 : 0), m.fw, m.fh);
+    ctx.drawImage(src, f * m.fw, 0, m.fw, m.fh, -m.px, -m.py - (m.feet ? 1 : 0), m.fw, m.fh);
     ctx.restore();
     return true;
   }
   S.drawSprite = sprite;
   S.spriteDraws = {};
+  S.flashDraws = {};
 
   // ---------- background (parallax) ----------
   // Band rows, scroll speeds and loop widths come from the bg:* entries in assets.js.
@@ -1304,9 +1336,17 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     }
   }
 
+  // Enemies and Sammy: real sprite or placeholder first, then the state marks (?, !, BOING…) on top of either.
   function drawJogger(ctx, e) {
-    const a = e.anim;
-    if (sprite(ctx, 'jogger:' + a, e.animT, e.x, e.y, e.face)) { if (e.state === 'confused') S.drawTextCentered(ctx, '?', e.x, e.y - 50, K.white, 2, K.black); return; }
+    const flash = e.state === 'hitreact';
+    if (!sprite(ctx, 'jogger:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawJoggerPlaceholder(ctx, e, flash);
+    const x = Math.round(e.x), y = Math.round(e.y);
+    if ((e.state === 'defeat' || e.state === 'dead') && e.t < 0.3) S.drawTextCentered(ctx, 'BOING', x, y - 56, K.white, 1, K.black);
+    if (e.state === 'confused') S.drawTextCentered(ctx, '?', x, y - 50, K.white, 2, K.black);
+    if (e.state === 'spawn') S.drawTextCentered(ctx, '!', x, y - 50, K.heart, 2, K.black);
+  }
+
+  function drawJoggerPlaceholder(ctx, e, flash) {
     const x = Math.round(e.x), y = Math.round(e.y), f = e.face;
     if (e.state === 'defeat' || e.state === 'dead') {
       // Placeholder comedy: the head pops off and bounces away, the body sinks into a pile of sweatsuit.
@@ -1316,10 +1356,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       R(ctx, K.band, x - 10, y - 4, 20, 4);
       const hx = x - f * t * 70, hy = y - 40 - Math.abs(Math.sin(t * 9)) * 24 * (1 - t);
       R(ctx, K.jogger, hx - 4, hy - 8, 8, 8); R(ctx, K.band, hx - 4, hy - 7, 8, 2);
-      if (t < 0.3) S.drawTextCentered(ctx, 'BOING', x, y - 56, K.white, 1, K.black);
       return;
     }
-    const flash = e.state === 'hitreact';
     const lean = e.state === 'attack' && e.t > 0.15 && e.t < 0.32 ? f * 4 : 0;
     const step = Math.floor(e.animT * 8) % 2;
     R(ctx, K.joggerDark, x - 7 + step * 2, y - 12, 5, 12); R(ctx, K.joggerDark, x + 2 - step * 2, y - 12, 5, 12);
@@ -1328,23 +1366,25 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     R(ctx, K.black, x + f * 4 - 1 + lean, y - 30, 2, 2);
     R(ctx, K.nose, x + f * 7 + lean, y - 24, 3 * f, 2);  // tongue
     R(ctx, flash ? K.white : K.jogger, x + f * 8 + lean, y - 26, f * (e.state === 'attack' ? 10 : 6), 3); // arms out
-    if (e.state === 'confused') S.drawTextCentered(ctx, '?', x, y - 50, K.white, 2, K.black);
-    if (e.state === 'spawn') S.drawTextCentered(ctx, '!', x, y - 50, K.heart, 2, K.black);
   }
 
   function drawVendor(ctx, e) {
-    if (sprite(ctx, 'vendor:' + e.anim, e.animT, e.x, e.y, e.face)) { if (e.state === 'shrug') S.drawTextCentered(ctx, '?', e.x, e.y - 50, K.white, 2, K.black); return; }
+    const flash = e.state === 'hitreact';
+    if (!sprite(ctx, 'vendor:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawVendorPlaceholder(ctx, e, flash);
+    const x = Math.round(e.x), y = Math.round(e.y);
+    if (e.state === 'shrug') S.drawTextCentered(ctx, '?', x, y - 50, K.white, 2, K.black);
+    if (e.state === 'defeat') S.drawTextCentered(ctx, 'PFFFT', x, y - 48, K.white, 1, K.black);
+  }
+
+  function drawVendorPlaceholder(ctx, e, flash) {
     const x = Math.round(e.x), y = Math.round(e.y), f = e.face;
     let hgt = 36;
     if (e.state === 'defeat' || e.state === 'dead') hgt = Math.max(6, 36 * (1 - e.t / C.vendor.defeatTime)); // deflates like a balloon
-    const flash = e.state === 'hitreact';
     R(ctx, flash ? K.white : K.vendor, x - 10, y - hgt, 20, hgt);
     R(ctx, K.white, x - 8, y - hgt + 14, 16, Math.max(0, hgt - 18)); // apron
     R(ctx, K.hat, x - 7, y - hgt - 5, 14, 5);
     if (hgt > 20) { R(ctx, K.black, x + f * 4 - 1, y - hgt + 6, 2, 2); R(ctx, K.vendorDark, x + f * 2 - 3, y - hgt + 10, 7, 2); }
     if (e.state === 'throw') R(ctx, K.vendor, x + f * 8, y - hgt - 2, 4 * f, 10);
-    if (e.state === 'shrug') S.drawTextCentered(ctx, '?', x, y - 50, K.white, 2, K.black);
-    if (e.state === 'defeat') S.drawTextCentered(ctx, 'PFFFT', x, y - 48, K.white, 1, K.black);
   }
 
   function drawProjectile(ctx, pr) {
@@ -1358,8 +1398,12 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     const p = s.player;
     if (p.invuln > 0 && p.state !== 'ko' && Math.floor(p.invuln * 15) % 2 === 0) return; // blink while invincible
     const anim = p.anim === 'get-up' ? 'play-dead' : p.anim;
-    const real = sprite(ctx, 'sammy:' + anim, p.anim === 'get-up' ? p.animT * 2 : p.animT, p.x, p.y, p.face, p.anim === 'get-up');
-    if (!real) drawSammyPlaceholder(ctx, s);
+    const flash = p.state === 'hurt';
+    const real = sprite(ctx, 'sammy:' + anim, p.anim === 'get-up' ? p.animT * 2 : p.animT, p.x, p.y, p.face, p.anim === 'get-up', null, flash);
+    if (!real) drawSammyPlaceholder(ctx, s, flash);
+    const x = Math.round(p.x), y = Math.round(p.y);
+    if (p.state === 'playdead') S.drawTextCentered(ctx, 'Z z', x, y - 26, K.white, 1, K.black);
+    if (p.state === 'ko') S.drawTextCentered(ctx, '* * *', x, y - 24 - Math.round(Math.sin(p.t * 8) * 2), K.umbrella, 1, K.black);
     if (p.shield > 0 && p.state !== 'playdead' && p.state !== 'ko') {
       const ox = p.x + p.face * 12, oy = p.y - 14;
       if (!sprite(ctx, 'overlay:lid', 0, ox, oy, p.face, false, 3 - p.shield)) {
@@ -1368,9 +1412,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     }
   }
 
-  function drawSammyPlaceholder(ctx, s) {
+  function drawSammyPlaceholder(ctx, s, flash) {
     const p = s.player, x = Math.round(p.x), y = Math.round(p.y), f = p.face;
-    const flash = p.state === 'hurt';
     const body = flash ? K.white : K.sammy;
     if (p.state === 'playdead' || p.state === 'getup' || p.state === 'ko') {
       // Lying flat on his back, feet up, X eyes, tongue out.
@@ -1379,8 +1422,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       S.drawText(ctx, 'X', x + f * 8 - 1, y - 10, K.black);
       R(ctx, K.nose, x + f * 13, y - 8, 2 * f, 3);
       R(ctx, K.nose, x - f * 14, y - 3, -f * 10, 2); // tail
-      if (p.state === 'playdead') S.drawTextCentered(ctx, 'Z z', x, y - 26, K.white, 1, K.black);
-      if (p.state === 'ko') S.drawTextCentered(ctx, '* * *', x, y - 24 - Math.round(Math.sin(p.t * 8) * 2), K.umbrella, 1, K.black);
       return;
     }
     const squash = p.anim === 'land' ? 3 : 0;
@@ -1480,6 +1521,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     if (Math.floor((s.titleT || 0) * 2) % 2 === 0) S.drawTextCentered(ctx, 'PRESS ENTER OR Z TO START', W / 2, 142, K.nose, 1);
     const r = S.assetReport;
     S.drawTextCentered(ctx, 'REAL ART LOADED: ' + r.loaded.length + ' OF ' + r.expected + ' FILES', W / 2, 160, K.grey);
+    if (r.warnings.length) S.drawTextCentered(ctx, 'ART WARNINGS: ' + r.warnings.length + ' - SEE CONSOLE', W / 2, 167, K.heart);
     watermark(ctx);
   }
 
@@ -1870,7 +1912,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     else requestAnimationFrame(loop);
   };
   S.loadAssets({ base, probe: params.has('probe') }, (report) => {
-    console.info('[sammy] art loaded:', report.loaded.length, 'of', report.expected, report.warnings.length ? report.warnings : '');
+    console.info('[sammy] art loaded:', report.loaded.length, 'of', report.expected);
+    for (const w of report.warnings) console.warn('[sammy] art warning:', w);
     ready();
   });
   S.loadSounds({ base, probe: params.has('probe') }, (report) => {
@@ -1969,6 +2012,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       result.modesSeen = Array.from(seen);
       result.stats = state.stats;
       result.realArtDraws = S.spriteDraws;
+      result.flashDraws = S.flashDraws;
       result.player = { x: Math.round(state.player.x), hp: state.player.hp, state: state.player.state };
       if (name === 'full') {
         result.reachedClear = state.mode === 'clear';

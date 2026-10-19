@@ -577,3 +577,121 @@ test('sound scan: picks the newest version, skips .wav masters, and flags misnam
     assert.ok(fs.readFileSync(out, 'utf8').includes('PRESENT_SOUND_FILES'));
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 });
+
+// ---------- art pipeline ----------
+test('animation timings in config.js match frames / fps of their art strips', () => {
+  const strip = (key) => S.ASSET_MANIFEST.find((m) => m.key === key);
+  const len = (key) => strip(key).frames / strip(key).fps;
+  const at = (key, field) => strip(key)[field] / strip(key).fps;
+  // [config value, expected seconds, what it is]
+  const table = [
+    [C.sammy.attackTime, len('sammy:tail-whip'), 'sammy attackTime'],
+    [C.sammy.attackHitStart, at('sammy:tail-whip', 'hitFrame'), 'sammy attackHitStart'],
+    [C.sammy.attackHitEnd, (strip('sammy:tail-whip').hitFrame + 1) / strip('sammy:tail-whip').fps, 'sammy attackHitEnd'],
+    [C.sammy.hurtTime, len('sammy:hurt'), 'sammy hurtTime'],
+    [C.sammy.landTime, len('sammy:land'), 'sammy landTime'],
+    [C.sammy.koTime, len('sammy:ko'), 'sammy koTime'],
+    [C.possum.dropTime, len('sammy:play-dead'), 'possum dropTime'],
+    [C.jogger.attackTime, len('jogger:attack'), 'jogger attackTime'],
+    [C.jogger.attackHitStart, at('jogger:attack', 'hitFrame'), 'jogger attackHitStart'],
+    [C.jogger.attackHitEnd, (strip('jogger:attack').hitFrame + 1) / strip('jogger:attack').fps, 'jogger attackHitEnd'],
+    [C.jogger.hitReactTime, len('jogger:hit'), 'jogger hitReactTime'],
+    [C.jogger.defeatTime, len('jogger:defeat'), 'jogger defeatTime'],
+    [C.vendor.throwTime, len('vendor:throw'), 'vendor throwTime'],
+    [C.vendor.releaseAt, at('vendor:throw', 'releaseFrame'), 'vendor releaseAt'],
+    [C.vendor.hitReactTime, len('vendor:hit'), 'vendor hitReactTime'],
+    [C.vendor.defeatTime, len('vendor:defeat'), 'vendor defeatTime'],
+    [C.cart.tipTime, len('cart:tipping'), 'cart tipTime'],
+  ];
+  for (const [value, want, name] of table) {
+    assert.ok(Number.isFinite(want), name + ': strip has the frame info');
+    assert.ok(Math.abs(value - want) < 1e-9, `${name} is ${value}, art says ${want}`);
+  }
+});
+
+test('art versions: the newest -vNN.png wins; older versions are not flagged as unused', async () => {
+  const os = await import('node:os');
+  const { scan } = await import('../tools/scan-assets.mjs');
+  const { png } = await import('./png-writer.mjs');
+  assert.equal(S.artFileVersion('a/sammy-run-strip-v01.png', 'sammy-run-strip-v12.PNG'), 12);
+  assert.equal(S.artFileVersion('a/sammy-run-strip-v01.png', 'sammy-run-strip-v1.png'), 1);
+  assert.equal(S.artFileVersion('a/sammy-run-strip-v01.png', 'sammy-run-strip.png'), null);
+  assert.equal(S.artFileVersion('a/hot-dog-cart-upright-v01.png', 'hot-dog-cart-upright-strip-v01.png'), null);
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sammy-art-scan-'));
+  try {
+    const put = (rel, buf) => { const f = path.join(tmp, 'assets', rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, buf); };
+    const SAM = 'characters/character-sammy/';
+    const clear = () => [0, 0, 0, 0];
+    put(SAM + 'sammy-run-strip-v01.png', png(384, 48, clear));
+    put(SAM + 'sammy-run-strip-v02.png', png(384, 48, clear));   // newer: wins
+    put(SAM + 'sammy-idle-strip-v01.png', png(192, 48, clear));  // only version
+    put(SAM + 'sammy-hurt-strip-v03.png', png(96, 48, clear));   // v03 alone still counts
+    put(SAM + 'sammy-runn-strip-v01.png', png(384, 48, clear));  // misnamed
+    const out = path.join(tmp, 'asset-files.js');
+    const r = scan(tmp, out);
+    assert.deepEqual(r.files, {
+      [SAM + 'sammy-idle-strip-v01.png']: SAM + 'sammy-idle-strip-v01.png',
+      [SAM + 'sammy-run-strip-v01.png']: SAM + 'sammy-run-strip-v02.png',
+      [SAM + 'sammy-hurt-strip-v01.png']: SAM + 'sammy-hurt-strip-v03.png',
+    });
+    assert.deepEqual(r.older, [SAM + 'sammy-run-strip-v01.png']);
+    assert.deepEqual(r.unused, [SAM + 'sammy-runn-strip-v01.png']);
+    assert.deepEqual(r.warnings, [], 'right-size, clear images give no warnings');
+    const ctx = { globalThis: {} }; ctx.globalThis = ctx; vm.createContext(ctx);
+    vm.runInContext(fs.readFileSync(out, 'utf8'), ctx);
+    assert.equal(ctx.SAMMY.PRESENT_ASSET_FILES[SAM + 'sammy-run-strip-v01.png'], SAM + 'sammy-run-strip-v02.png');
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+test('license gate: only commercial-use licenses ship; reasons and credits are reported', async () => {
+  const { cleared, excludeReason, needsCredit, parseCsv } = await import('../tools/licenses.mjs');
+  const row = (license, commercial_use, attribution_required = 'no') => ({ license, commercial_use, attribution_required });
+  assert.equal(cleared(row('CC0', 'yes')), true);
+  assert.equal(cleared(row('CC0', '')), false);
+  assert.equal(cleared(row('CC-BY-NC 4.0', 'yes')), false);
+  assert.equal(cleared(row('reference-only', 'yes')), false);
+  assert.equal(cleared(row('Original work', 'yes')), true);
+  assert.equal(cleared(row('CC-BY 4.0', ' Yes ')), true);
+  assert.equal(cleared(row('Non-commercial only', 'yes')), false);
+  assert.equal(cleared(row('TBD', 'yes')), false);
+  assert.equal(cleared(row('CC0', 'maybe')), false);
+  assert.equal(cleared(undefined), false);
+  assert.match(excludeReason(undefined), /no row/);
+  assert.match(excludeReason(row('CC0', '')), /commercial_use/);
+  assert.match(excludeReason(row('', 'yes')), /license/);
+  assert.match(excludeReason(row('CC-BY-NC 4.0', 'yes')), /non-commercial/);
+  assert.equal(needsCredit(row('CC-BY 4.0', 'yes', 'YES')), true);
+  assert.equal(needsCredit(row('CC0', 'yes', 'no')), false);
+  const rows = parseCsv('asset_id,path,license,notes\r\nsammy-run,assets/a.png,"CC-BY 4.0","says ""hi"", ok"\n');
+  assert.deepEqual(rows, [{ asset_id: 'sammy-run', path: 'assets/a.png', license: 'CC-BY 4.0', notes: 'says "hi", ok' }]);
+  assert.deepEqual(parseCsv('asset_id,path\n'), []);
+});
+
+test('PNG checks: size, colour profile, semi-transparency, off-grid colours, and bad files never crash', async () => {
+  const { checkPng } = await import('../tools/png.mjs');
+  const { png } = await import('./png-writer.mjs');
+  const art = (x, y) => (x % 8 < 4 && y > 2 ? [36, 72, 216, 255] : x % 3 === 0 ? [252, 216, 0, 255] : [0, 0, 0, 0]);
+  // Right size, all five row filters, RGBA and RGB: no warnings.
+  assert.deepEqual(checkPng(png(32, 16, art, { filters: [0, 1, 2, 3, 4] }), 32, 16), []);
+  assert.deepEqual(checkPng(png(32, 16, (x, y) => [x % 2 ? 252 : 36, y * 36 % 288 % 252, 108, 255], { colourType: 2, filters: [4, 3, 2, 1, 0] }), 32, 16), []);
+  // Wrong size.
+  const w = checkPng(png(30, 16, art), 32, 16);
+  assert.equal(w.length, 1); assert.match(w[0], /wrong size: expected 32x16 px, got 30x16/);
+  // Colour profile / gamma chunk.
+  const gama = Buffer.alloc(4); gama.writeUInt32BE(45455);
+  assert.ok(checkPng(png(32, 16, art, { chunks: [['gAMA', gama]] }), 32, 16).some((s) => /colour-profile.*gAMA/.test(s)));
+  // Semi-transparent pixel.
+  const semi = checkPng(png(32, 16, (x, y) => (x === 5 && y === 7 ? [36, 36, 36, 128] : art(x, y)), { filters: [4] }), 32, 16);
+  assert.equal(semi.length, 1); assert.match(semi[0], /1 semi-transparent pixel\(s\), first at \(5, 7\)/);
+  // Colour off the 9-bit grid.
+  const off = checkPng(png(32, 16, (x, y) => (x === 9 && y === 3 ? [100, 72, 216, 255] : art(x, y)), { filters: [3] }), 32, 16);
+  assert.equal(off.length, 1); assert.match(off[0], /off the 9-bit colour grid.*\(9, 3\) is 100,72,216/);
+  // Too many colours for one palette line.
+  assert.ok(checkPng(png(32, 16, (x) => [x % 8 * 36, Math.floor(x / 8) * 36, 0, 255]), 32, 16).some((s) => /32 solid colours/.test(s)));
+  // Layouts not decoded, and broken files: a note, never a crash.
+  assert.deepEqual(checkPng(png(32, 16, art, { interlace: 1 }), 32, 16), ['pixel checks skipped (unsupported PNG layout)']);
+  assert.match(checkPng(Buffer.from('not a png at all'), 32, 16)[0], /could not read/);
+  const good = png(32, 16, art);
+  assert.ok(Array.isArray(checkPng(good.subarray(0, good.length - 30), 32, 16)));
+  assert.ok(Array.isArray(checkPng(Buffer.alloc(0), 32, 16)));
+});

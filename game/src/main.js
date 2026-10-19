@@ -43,7 +43,8 @@
     else requestAnimationFrame(loop);
   };
   S.loadAssets({ base, probe: params.has('probe') }, (report) => {
-    console.info('[sammy] art loaded:', report.loaded.length, 'of', report.expected, report.warnings.length ? report.warnings : '');
+    console.info('[sammy] art loaded:', report.loaded.length, 'of', report.expected);
+    for (const w of report.warnings) console.warn('[sammy] art warning:', w);
     ready();
   });
   S.loadSounds({ base, probe: params.has('probe') }, (report) => {
@@ -142,6 +143,7 @@
       result.modesSeen = Array.from(seen);
       result.stats = state.stats;
       result.realArtDraws = S.spriteDraws;
+      result.flashDraws = S.flashDraws;
       result.player = { x: Math.round(state.player.x), hp: state.player.hp, state: state.player.state };
       if (name === 'full') {
         result.reachedClear = state.mode === 'clear';

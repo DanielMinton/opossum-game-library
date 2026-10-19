@@ -5,17 +5,18 @@
 // Checks:
 //  1. game/index.html: autopilot plays title -> level -> gauntlet -> clear -> restart, with no errors.
 //  2. game/dist/index.html (run `node tools/build.mjs` first): the same.
-//  3. Real-art loading: a temporary copy of the library with two generated test images
-//     (one correct, one the wrong size) — proves files load, are drawn, and size mistakes are reported.
+//  3. Real-art loading: a temporary copy of the library with generated test images (a correct run strip,
+//     a wrong-size idle strip, and a hurt strip in two versions) — proves the newest version loads and is drawn,
+//     the hit flash uses real art, and a wrong-size file is reported and not drawn.
 //  4. Real-sound loading: the same copy gets two generated WAV files (a sound effect and the level music)
 //     — proves they are found, load in the browser, and play through real key presses without errors.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import zlib from 'node:zlib';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { scan } from '../tools/scan-assets.mjs';
+import { png } from './png-writer.mjs';
 
 const gameDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const shotsArg = process.argv.indexOf('--shots');
@@ -60,22 +61,6 @@ function screenshot(file, query, out) {
   spawnSync(chrome, ['--headless', '--disable-gpu', '--hide-scrollbars', '--window-size=960,672', '--virtual-time-budget=20000', '--screenshot=' + out, url], { timeout: 120000 });
 }
 
-// Tiny PNG writer (RGBA) for the generated test images.
-function png(w, h, pixel) {
-  const crcTable = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
-  const crc = (buf) => { let c = 0xffffffff; for (const b of buf) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
-  const chunk = (type, data) => {
-    const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
-    const td = Buffer.concat([Buffer.from(type), data]);
-    const c = Buffer.alloc(4); c.writeUInt32BE(crc(td));
-    return Buffer.concat([len, td, c]);
-  };
-  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 6;
-  const raw = Buffer.alloc((w * 4 + 1) * h);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) raw.set(pixel(x, y), y * (w * 4 + 1) + 1 + x * 4);
-  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
-}
-
 // Tiny WAV writer (16-bit mono) for the generated test sounds.
 function wav(seconds, hz) {
   const rate = 22050, n = Math.round(seconds * rate), data = Buffer.alloc(n * 2);
@@ -115,17 +100,24 @@ fs.mkdirSync(sam, { recursive: true });
 fs.writeFileSync(path.join(sam, 'sammy-run-strip-v01.png'), png(384, 48, (x, y) => ((x % 48) > 12 && (x % 48) < 36 && y > 14 ? [36, 72, 216, 255] : [0, 0, 0, 0])));
 // Wrong size on purpose: idle strip 100x48 instead of 192x48.
 fs.writeFileSync(path.join(sam, 'sammy-idle-strip-v01.png'), png(100, 48, () => [216, 36, 36, 255]));
+// Two versions of the hurt strip (2 frames = 96x48): v02 must win. The old v01 is the wrong size, so it would warn if used.
+fs.writeFileSync(path.join(sam, 'sammy-hurt-strip-v01.png'), png(48, 48, () => [216, 36, 36, 255]));
+fs.writeFileSync(path.join(sam, 'sammy-hurt-strip-v02.png'), png(96, 48, (x, y) => ((x % 48) > 10 && (x % 48) < 38 && y > 20 ? [216, 216, 0, 255] : [0, 0, 0, 0])));
 const put = (rel, buf) => { const f = path.join(tmp, 'assets', rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, buf); };
 put('audio/sfx/sfx-jump/sfx-jump-v01.wav', wav(0.15, 660));
 put('audio/music/music-level-01-central-park/music-level-01-central-park-v01.wav', wav(1.0, 220));
 const scanned = scan(tmp, path.join(tmp, 'game', 'src', 'asset-files.js'));
-check('art scan finds the 2 test images', scanned.found.length === 2, scanned.found.join(', '));
+const hurtFile = 'characters/character-sammy/sammy-hurt-strip-v02.png';
+check('art scan finds the 3 test strips and picks v02 of the hurt strip', scanned.found.length === 3 && scanned.found.includes(hurtFile), scanned.found.join(', '));
+check('art scan warns about the wrong-size idle strip only', scanned.warnings.length === 1 && /sammy-idle-strip-v01\.png: wrong size/.test(scanned.warnings[0]), JSON.stringify(scanned.warnings));
 check('sound scan finds the 2 test sounds', Object.keys(scanned.sounds).length === 2, JSON.stringify(scanned.sounds));
-const a = runPage(path.join(tmp, 'game', 'index.html'), 'test=smoke&frames=600');
-check('test images load in the browser', a.assets && a.assets.loaded.length === 2, JSON.stringify(a.assets && a.assets.loaded));
-check('wrong-size image is reported', a.assets && a.assets.warnings.length === 1 && /sammy-idle-strip/.test(a.assets.warnings[0]), JSON.stringify(a.assets && a.assets.warnings));
+const a = runPage(path.join(tmp, 'game', 'index.html'), 'test=full');
+check('correct test images load in the browser (newest hurt version)', a.assets && a.assets.loaded.length === 2 && a.assets.loaded.includes(hurtFile), JSON.stringify(a.assets && a.assets.loaded));
+check('wrong-size image is reported and not drawn', a.assets && a.assets.warnings.length === 1 && /sammy-idle-strip/.test(a.assets.warnings[0]) && a.realArtDraws && !a.realArtDraws['sammy:idle'],
+  JSON.stringify(a.assets && a.assets.warnings));
 check('real art is drawn instead of the placeholder', a.realArtDraws && a.realArtDraws['sammy:run'] > 0, JSON.stringify(a.realArtDraws));
-check('no errors with real art', a.ok && a.errors.length === 0, JSON.stringify(a.errors));
+check('hit flash on real art uses the white copy of the strip', a.flashDraws && a.flashDraws['sammy:hurt'] > 0, JSON.stringify(a.flashDraws));
+check('no errors with real art (full playthrough and every screen)', a.ok && a.errors.length === 0 && a.renderSweep >= 27, `sweep ${a.renderSweep}, errors ${JSON.stringify(a.errors)}`);
 check('test sounds load in the browser', a.sounds && a.sounds.loaded.length === 2 && a.sounds.failed.length === 0, JSON.stringify(a.sounds));
 const ks = runPage(path.join(tmp, 'game', 'index.html'), 'test=keys');
 check('real sounds play through real key presses without errors (start music, jump sound)',
@@ -137,6 +129,7 @@ if (shots) {
   const src = path.join(gameDir, 'index.html');
   for (const [n, q] of [['title', 'frames=1&title=1'], ['level', 'frames=1060'], ['arena', 'frames=2700'], ['clear', 'frames=3265']]) screenshot(src, 'test=shot&' + q, path.join(shots, n + '.png'));
   screenshot(path.join(tmp, 'game', 'index.html'), 'test=shot&frames=120', path.join(shots, 'real-art-test.png'));
+  screenshot(path.join(tmp, 'game', 'index.html'), 'test=shot&frames=1&title=1', path.join(shots, 'real-art-title.png'));
   console.log('Screenshots written to ' + shots);
 }
 fs.rmSync(tmp, { recursive: true, force: true });
