@@ -26,13 +26,15 @@ These are *looks to emulate* in a browser build, not hardware limits Claude will
 | Baseline | Feet at bottom-center **(24, 47)** zero-based; feet touch row 47 in every grounded frame |
 | Facing | Draw facing **right**; Claude mirrors for left unless you note an asymmetric detail |
 | Sheet layout | One horizontal strip per animation, frames left→right, zero-based, no padding (or state "1 px padding") |
-| Audio | FM-synth + PSG feel (YM2612 + SN76489 style). Deliver **WAV masters**; Claude makes OGG. Music must loop, with loop points written down |
+| Audio | FM-synth + PSG feel (YM2612 + SN76489 style). Deliver **OGG** (plus an MP3 beside it for older Safari), or **WAV masters** and Claude converts them. Music must loop cleanly end-to-start with no separate intro (loop points aren't supported yet) |
 
 ---
 
 ## Tier 1 — needed for the first playable level (placeholders can stand in for any of these)
 
 Without these, Claude can only build with grey placeholder boxes.
+
+**Folders that don't exist yet:** `assets/ui/palettes/`, `assets/ui/ui-font-8x8/`, `assets/ui/ui-hud/`, `design/abilities/`, `design/levels/` and `work/` are the intended homes. Each folder is created when its first file arrives.
 
 - **Blocks play** (the level can't be played without at least a placeholder): 1.1, 1.3, 1.4, 1.5, 1.7, 1.8, 1.9, 1.10, 1.12.
 - **Feel** (the level plays without it, but the first playable needs it to feel right): 1.2, 1.6, 1.11.
@@ -41,17 +43,17 @@ Without these, Claude can only build with grey placeholder boxes.
 | # | What to supply | Format / dimensions | Template to fill | Goes in |
 |---|---|---|---|---|
 | 1.1 | **Filled game brief** — at minimum: camera (side-view proposed), controls, goal, failure/recovery, session length, what to borrow from which era games | Text | `design/GAME_BRIEF.md` (edit in place) | `design/` |
-| 1.2 | **Style guide + palette sheets** — the 4 palette lines as swatches, plus a short "do / don't" | PNG swatch strip per line (16 swatches, index 0 = transparent key), values snapped to the 9-bit levels | `templates/STYLE_GUIDE.md` | `assets/ui/palettes/` (or beside the style guide in `design/`) |
-| 1.3 | **Sammy — core strips:** idle 4 @ 6 fps loop · run 8 @ 12 fps loop · jump-rise 2 @ 10 fps hold-last · fall 2 @ 10 fps loop · tail-whip 4 @ 15 fps one-shot (hit frame 2) · hurt 2 @ 10 fps one-shot · KO/defeat 6 @ 10 fps one-shot | One PNG strip per animation, 48×48 cells, baseline (24, 47), facing right | `templates/ASSET.md` | `assets/characters/character-sammy/` |
+| 1.2 | **Style guide + palette sheets** — the 4 palette lines as swatches, plus a short "do / don't" | PNG swatch strip per line (16 swatches, index 0 = transparent key), values snapped to the 9-bit levels | `templates/STYLE_GUIDE.md` | `assets/ui/palettes/` (all palette sheets live here, including Sammy's line 0) |
+| 1.3 | **Sammy — core strips:** idle 4 @ 6 fps loop · run 8 @ 12 fps loop · jump-rise 2 @ 10 fps hold-last · fall 2 @ 10 fps loop · tail-whip 4 @ 15 fps one-shot (hit frame 2; **64×48 cells, pivot (32, 47)**, strip 256×48, because the whip reaches 26 px in front of him) · hurt 2 @ 10 fps one-shot · KO/defeat 6 @ 10 fps one-shot | One PNG strip per animation, 48×48 cells (tail-whip 64×48), baseline (24, 47) (tail-whip (32, 47)), facing right | `templates/ASSET.md` | `assets/characters/character-sammy/` |
 | 1.4 | **One zombie (e.g. enemy-zombie-jogger):** shamble/walk 6 @ 8 fps loop · attack 4 @ 10 fps (hit frame 2) · hit-react 2 @ 12 fps · comedic defeat 6–8 @ 12 fps one-shot | PNG strips, 48×48 cells, same baseline rules | `templates/ASSET.md` (behavior section: speed, damage, how it notices Sammy) | `assets/enemies/enemy-zombie-jogger/` |
 | 1.5 | **One tileset + collision notes** (e.g. environment-central-park-tileset): ground, path, grass edges, one-way platforms, walls, slopes if wanted, plus a level exit / goal marker (e.g. a park exit gate) | PNG on an 8×8 grid, organized in 16×16 metatiles. Collision notes: which tiles are solid / one-way / hazard / decoration | `templates/ASSET.md` | `assets/environments/environment-central-park-tileset/` |
-| 1.6 | **One background / parallax set** — sky, far skyline, mid trees, near bushes as separate bands | Separate PNG per band, 256 or 512 px wide (real plane widths are 256/512/1024), tiling horizontally; heights noted; palette line 3 | `templates/ASSET.md` (list band order + scroll speed intent) | `assets/environments/environment-central-park-tileset/` (or its own `environment-central-park-background/`) |
+| 1.6 | **One background / parallax set** — sky, far skyline, mid trees, near bushes as separate bands | Separate PNG per band, 256 or 512 px wide (real plane widths are 256/512/1024), tiling horizontally; palette line 3. Game today: sky 320×224; skyline 512×64 on rows 80–143; trees 512×32 on rows 144–175; bushes 512×32 on rows 176–207. Bands must not overlap | `templates/ASSET.md` (list band order + scroll speed intent) | `assets/environments/environment-central-park-tileset/` (or its own `environment-central-park-background/`) |
 | 1.7 | **One interactive prop with every state** (e.g. prop-hot-dog-cart: upright → rocking → tipping → tipped-over → empty) | One PNG per state (or a strip per animated state), same cell size across states | `templates/ASSET.md` + `templates/INTERACTION.md` | `assets/props/prop-hot-dog-cart/` |
-| 1.8 | **One power-up** (e.g. item-powerup-trash-lid-shield): pickup sprite (small loop) + "active" look on/around Sammy + HUD icon | Pickup 16×16 or 24×24 strip; active overlay: either a 48×48 strip aligned to Sammy's cell and pivot (24, 47), or a small sprite plus a per-frame hand point (x, y) — say which; icon 16×16 | `templates/ASSET.md` + `templates/ABILITY.md` (duration, effect, how it ends) | `ASSET.md` + art in `assets/items/item-powerup-trash-lid-shield/`; `ABILITY.md` in `design/abilities/item-powerup-trash-lid-shield.md` |
+| 1.8 | **One power-up** (e.g. item-powerup-trash-lid-shield): pickup sprite (small loop) + "active" look on/around Sammy + HUD icon (the icon lives in the item's own folder) | Pickup 16×16 or 24×24 strip; active overlay: either a 48×48 strip aligned to Sammy's cell and pivot (24, 47), or a small sprite plus a per-frame hand point (x, y) — say which; icon 16×16 | `templates/ASSET.md` + `templates/ABILITY.md` (duration, effect, how it ends) | `ASSET.md`, art and HUD icon in `assets/items/item-powerup-trash-lid-shield/`; `ABILITY.md` in `design/abilities/item-powerup-trash-lid-shield.md` |
 | 1.9 | **Signature ability description** (proposed: "Play Possum" — Sammy plays dead and nearby zombies lose track of him for a short time). Art is Tier 2 (play-dead strip); the rules are needed now | Text | `templates/ABILITY.md` | `design/abilities/ability-play-possum.md` |
-| 1.10 | **HUD basics:** 8×8 pixel font (A–Z, 0–9, basic punctuation), health display (hearts/pips/bar), ability + power-up icons | Font as a grid PNG of 8×8 cells with the character order written down; icons 8×8 or 16×16 | `templates/ASSET.md` | `assets/ui/ui-font-8x8/`, `assets/ui/ui-hud/` |
-| 1.11 | **Minimum audio:** 1 level music loop (e.g. music-level-01-central-park) + core SFX (IDs as in the audio example): sfx-jump, sfx-land, sfx-tail-whip, sfx-hit-zombie, sfx-zombie-groan, sfx-pickup, sfx-hurt, sfx-play-dead, sfx-zombie-defeat-comedic, sfx-cart-crash (prop break), sfx-ko | WAV masters (44.1 kHz or 48 kHz, 16-bit). Music: loop start + end points (in seconds or samples) | `templates/AUDIO.md` (one per music track; one per SFX or one per SFX set) | `assets/audio/music/music-level-01-central-park/`, `assets/audio/sfx/` |
-| 1.12 | **Level layout sketch** (e.g. level-01-sheep-meadow): start point, where enemies/props/items go, the goal/exit | Any rough drawing, photo, or a list; tile-grid mockup if you have one | `templates/LEVEL.md` | `design/levels/<level-id>.md` (e.g. `design/levels/level-01-sheep-meadow.md`) |
+| 1.10 | **HUD basics:** 8×8 pixel font (A–Z, 0–9, basic punctuation), health display (hearts/pips/bar), ability icons (e.g. Play Possum) | Font as a grid PNG of 8×8 cells with the character order written down; icons 8×8 or 16×16. An 8×8 font fits only 40 characters across the screen (see `templates/STYLE_GUIDE.md`) | `templates/ASSET.md` | Font: `assets/ui/ui-font-8x8/`. Hearts and ability icons: `assets/ui/ui-hud/`. A power-up's HUD icon goes in that power-up's folder (see 1.8) |
+| 1.11 | **Minimum audio:** 1 level music loop (music-level-01-central-park) + core SFX (IDs as in the audio example): sfx-jump, sfx-land, sfx-tail-whip, sfx-hit-zombie, sfx-zombie-groan, sfx-pickup, sfx-hurt, sfx-play-dead, sfx-zombie-defeat-comedic, sfx-cart-crash (prop break), sfx-ko. Extra IDs the game already has slots for are in 2.10 | OGG, plus an MP3 beside it for older Safari; or WAV masters (44.1 kHz or 48 kHz, 16-bit) and Claude converts them. Music must loop cleanly end-to-start, with no separate intro (loop points aren't supported yet) | `templates/AUDIO.md` (one per music track; one per SFX or one per SFX set) | One folder per sound, named after it: `assets/audio/music/music-level-01-central-park/`, `assets/audio/sfx/sfx-jump/`, … |
+| 1.12 | **Level layout sketch** (e.g. level-01-sheep-meadow): start point, where enemies/props/items go, the goal/exit | Any rough drawing, photo, or a list; tile-grid mockup if you have one | `templates/LEVEL.md` | `design/levels/<level-id>.md` (e.g. `design/levels/level-01-sheep-meadow.md`; the folder is created with the first level) |
 | 1.13 | **Source + license for every file above** | One row per file | `design/ASSET_SOURCES.csv` | `design/` |
 
 ---
@@ -69,7 +71,7 @@ Without these, Claude can only build with grey placeholder boxes.
 | 2.7 | **Game-over screen** and continue/restart prompt | 320×224 PNG | `ASSET.md` | `assets/ui/ui-game-over/` |
 | 2.8 | **More props** (benches, trash cans, lamp posts, park signs) with every state | PNG per state | `ASSET.md` + `INTERACTION.md` | `assets/props/<prop-id>/` |
 | 2.9 | **Second and third power-ups** | as 1.8 | `ASSET.md` + `ABILITY.md` | `ASSET.md` + art in `assets/items/<item-id>/`; `ABILITY.md` in `design/abilities/<item-id>.md` |
-| 2.10 | Full SFX set + level-clear jingle + game-over jingle | WAV | `AUDIO.md` | `assets/audio/` |
+| 2.10 | Extra SFX the game already has slots for: sfx-cart-rock, sfx-shield-block, sfx-shield-break, sfx-throw, sfx-splat, sfx-splash, sfx-checkpoint, sfx-gate-open, sfx-level-clear (jingle), sfx-start. Gauntlet music: music-level-01-gauntlet (optional; same loop rule as 1.11). Game-over jingle (no slot yet) | As 1.11 | `AUDIO.md` | `assets/audio/sfx/<id>/`, `assets/audio/music/music-level-01-gauntlet/` |
 
 ## Tier 3 — polish and nostalgic nods
 
@@ -92,9 +94,9 @@ Without these, Claude can only build with grey placeholder boxes.
 |---|---|---|
 | Contact sheet / concept art | Use as **reference only**: design decisions, color/feel matching, and choosing or drawing placeholders | A contact sheet is not a sprite sheet. Claude won't cut sprites from it unless you say which parts are final and how they're aligned |
 | Aligned sprite strips + filled `ASSET.md` | **Animate directly** in the game | Fastest path. Frame size, count, fps, loop and baseline must be written down |
-| Loose individual frames | **Pack into strips** in `work/` if the files are numbered in order (e.g. `run-00.png … run-07.png` (planned — not yet supplied)) and the same size | Originals stay untouched; the packed strip is recorded with its source |
+| Loose individual frames | **Pack into strips** in `work/` (created when first needed) if the files are numbered in order (e.g. `run-00.png … run-07.png` (planned — not yet supplied)) and the same size | Originals stay untouched; the packed strip is recorded with its source |
 | Layered source files (`.aseprite`, `.psd`) | Keep as **source**; also send a **PNG export** | Claude may not be able to open layered formats directly; the PNG is what goes in the game |
-| Audio WAV masters | **Convert to OGG** in `work/` for the browser build | Keep the WAV as the master; write loop points in `AUDIO.md` |
+| Audio WAV masters | **Convert to OGG** (and MP3) beside the WAV with `node tools/convert-audio.mjs` (from `game/`) | Keep the WAV as the master. It never ships when an OGG or MP3 sits beside it. Music loops whole, so make it loop cleanly end-to-start |
 | Text only (no art yet) | Build the level with **clearly labeled placeholders** | Placeholders get swapped when real art arrives |
 
 ---

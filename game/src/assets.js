@@ -23,7 +23,8 @@
     strip('sammy:jump-rise', SAM + 'sammy-jump-rise-strip-v01.png', 2, 10, 'hold'),
     strip('sammy:fall', SAM + 'sammy-fall-strip-v01.png', 2, 10, 'loop'),
     strip('sammy:land', SAM + 'sammy-land-strip-v01.png', 2, 15, 'once'),
-    strip('sammy:tail-whip', SAM + 'sammy-tail-whip-strip-v01.png', 4, 15, 'once'),
+    // Wider 64x48 cell, pivot (32, 47): the whip reaches 26 px in front of Sammy, more than a 48 px cell allows.
+    strip('sammy:tail-whip', SAM + 'sammy-tail-whip-strip-v01.png', 4, 15, 'once', { fw: 64, px: 32 }),
     strip('sammy:hurt', SAM + 'sammy-hurt-strip-v01.png', 2, 10, 'once'),
     strip('sammy:play-dead', SAM + 'sammy-play-dead-strip-v01.png', 4, 8, 'hold'),
     strip('sammy:ko', SAM + 'sammy-ko-strip-v01.png', 6, 10, 'once'),
@@ -53,10 +54,12 @@
     strip('overlay:lid', LID + 'trash-lid-held-overlay-strip-v01.png', 3, 1, 'frame', mid),
     strip('hud:lid', LID + 'hud-icon-trash-lid-v01.png', 1, 1, 'hold', { fw: 16, fh: 16, px: 0, py: 0, feet: false }),
 
-    strip('bg:sky', ENV + 'central-park-bg-sky-v01.png', 1, 1, 'hold', { fw: 320, fh: 224, px: 0, py: 0, feet: false }),
-    strip('bg:skyline', ENV + 'central-park-bg-skyline-v01.png', 1, 1, 'hold', { fw: 512, fh: 64, px: 0, py: 0, feet: false }),
-    strip('bg:treeline', ENV + 'central-park-bg-treeline-v01.png', 1, 1, 'hold', { fw: 512, fh: 32, px: 0, py: 0, feet: false }),
-    strip('bg:bushes', ENV + 'central-park-bg-bushes-v01.png', 1, 1, 'hold', { fw: 512, fh: 32, px: 0, py: 0, feet: false }),
+    // Parallax bands: y = top row on screen, scroll = speed vs. the camera, fw = loop width.
+    // Bands must not overlap (rows 80-143, 144-175, 176-207), as in the tileset ASSET.md.
+    strip('bg:sky', ENV + 'central-park-bg-sky-v01.png', 1, 1, 'hold', { fw: 320, fh: 224, px: 0, py: 0, feet: false, y: 0, scroll: 0 }),
+    strip('bg:skyline', ENV + 'central-park-bg-skyline-v01.png', 1, 1, 'hold', { fw: 512, fh: 64, px: 0, py: 0, feet: false, y: 80, scroll: 0.125 }),
+    strip('bg:treeline', ENV + 'central-park-bg-treeline-v01.png', 1, 1, 'hold', { fw: 512, fh: 32, px: 0, py: 0, feet: false, y: 144, scroll: 0.25 }),
+    strip('bg:bushes', ENV + 'central-park-bg-bushes-v01.png', 1, 1, 'hold', { fw: 512, fh: 32, px: 0, py: 0, feet: false, y: 176, scroll: 0.5 }),
   ];
   // Not wired yet: central-park-tiles-v01.png needs a tile map (which metatile goes where) before it can be drawn.
 

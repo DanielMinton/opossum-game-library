@@ -44,6 +44,7 @@ One guide for the whole project. Copy to `design/STYLE_GUIDE.md` and fill in the
 
 ### Palette sheet instructions
 
+- Palette sheets go in `assets/ui/palettes/` (the folder is created when the first one arrives).
 - Provide one **16-swatch PNG per palette line** (e.g., 16×1 px, or 16 swatches of 8×8 px in a row — say which).
 - Swatch 0 = transparent key color, e.g., **magenta 252, 0, 252**. It must never appear as a visible color in art.
 - Swatches 1–15 = usable colors, all snapped to the 8 levels above.
@@ -96,13 +97,15 @@ One guide for the whole project. Copy to `design/STYLE_GUIDE.md` and fill in the
 - Heights are multiples of 8.
 - Background layers use palette line 3; foreground tiles use line 2.
 
-| Layer (far → near) | Width | Height | Scroll speed (**Proposed**) | File |
-|---|---|---|---|---|
-| Sky | 320 (static) or 512 | TBD | 0% | TBD |
-| Far skyline | 256 or 512 | TBD | 12.5% | TBD |
-| Mid trees | 256 or 512 | TBD | 25% | TBD |
-| Near bushes | 256 or 512 | TBD | 50% | TBD |
-| Near ground / foreground tiles | tileset | 16×16 metatiles | 100% | TBD |
+| Layer (far → near) | Width | Height | Screen rows | Scroll speed (**Proposed**) | File |
+|---|---|---|---|---|---|
+| Sky | 320 (static) or 512 | 224 | 0–223 (behind everything) | 0% | `central-park-bg-sky-v01.png` |
+| Far skyline | 256 or 512 | 64 | 80–143 | 12.5% | `central-park-bg-skyline-v01.png` |
+| Mid trees | 256 or 512 | 32 | 144–175 | 25% | `central-park-bg-treeline-v01.png` |
+| Near bushes | 256 or 512 | 32 | 176–207 (ground covers 192 and below) | 50% | `central-park-bg-bushes-v01.png` |
+| Near ground / foreground tiles | tileset | 16×16 metatiles | — | 100% | `central-park-tiles-v01.png` |
+
+- The scrolling bands **must not overlap** (on the real hardware each screen line belongs to one band). The game reads each band's row, speed and width from `game/src/assets.js`, which matches this table and the Central Park tileset `ASSET.md`.
 
 - Tilesets: one PNG on an 8×8 grid (16×16 metatiles), with a note listing which tiles are solid, one-way platforms, hazards, or decoration.
 
@@ -111,7 +114,9 @@ One guide for the whole project. Copy to `design/STYLE_GUIDE.md` and fill in the
 - Font: an **8×8 bitmap font sheet** (PNG), monospaced, on an 8×8 grid.
 - Character order: TBD (ASCII order from space (32) to tilde (126) suggested, then any extra glyphs such as `×` appended after 126 — list their order). List the order in the font's `ASSET.md`.
 - Minimum set: A–Z, 0–9, and `: . , ! ? - /`, plus `×` as an extra glyph after 126 (or use `x`).
-- HUD icons: 8×8 or 16×16, palette line 0.
+- **Width limit:** an 8×8 font fits at most **40 characters** across the 320 px screen. Keep each line of text to **38 characters or fewer** so it has a margin.
+- The game's current text was written for the small placeholder font (3–5 px wide letters), and some lines are longer than 38 characters (the title screen's controls line is 47 characters, the two intro lines are 43 and 39, and the Play Possum tip is 42). When the 8×8 font arrives, **either** those lines get shortened **or** a second, smaller font is used for long text. That's your decision.
+- HUD icons: 8×8 or 16×16, palette line 0. A power-up's icon lives in that power-up's folder (e.g. `assets/items/item-powerup-trash-lid-shield/`); hearts and ability icons live in `assets/ui/ui-hud/`.
 - HUD elements: TBD (health, lives, score, ability meter, power-up icon).
 
 ## Naming conventions
@@ -145,9 +150,9 @@ Feel target: a classic FM synth chip (6 channels) plus a simple PSG chip (3 squa
 
 | Item | Spec |
 |---|---|
-| Game format | OGG |
-| Masters | WAV (and tracker / DAW / VGM source files if available) |
-| Music | Loopable; document loop start and end (in samples or seconds) in `AUDIO.md` |
+| Game format | OGG, plus an MP3 of the same sound beside it for older Safari (optional) |
+| Masters | WAV (and tracker / DAW / VGM source files if available). Sending only WAV is fine: Claude converts with `node tools/convert-audio.mjs` |
+| Music | Must loop cleanly from the end straight back to the start, with no separate intro. Loop points aren't supported yet |
 | SFX | Short, one file per sound; trim silence at the start |
 | Variations | Optional: 2–3 variants for frequent sounds (hits, footsteps) |
 | Loudness | TBD (keep music below SFX; note target level) |

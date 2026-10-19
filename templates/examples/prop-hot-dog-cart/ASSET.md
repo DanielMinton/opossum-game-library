@@ -33,9 +33,9 @@ How to use this example: this shows how a filled-in `ASSET.md` for an interactiv
 - Grid columns / rows: one horizontal strip per animation, 1 row
 - Frame count and reading order: rocking 3, tipping 3, hot dog 4; left to right
 - Padding / spacing: none (0 px)
-- Pivot / feet baseline: bottom-center (32, 47) zero-based; the lowest part of the cart (wheels when upright, its side when tipped) touches row 47 in every frame
+- Pivot / feet baseline: bottom-center (32, 47) zero-based; the lowest part of the cart (wheels when upright, its side when tipped) touches row 47 in every frame. Hot dog pickup: bottom-center (8, 15), resting on row 15
 - Animation names and frame ranges (zero-based): rocking 0–2; tipping 0–2; hot-dog-spin 0–3
-- Frames per second per animation: **Proposed:** rocking 12 fps; tipping 12 fps; hot-dog-spin 10 fps
+- Frames per second per animation: **Proposed:** rocking 12 fps; tipping 12 fps; hot-dog-spin 8 fps
 - Looping / one-shot: rocking loops (until timeout or next hit); tipping one-shot then switch to tipped-over; hot-dog-spin loops
 - Facing directions and whether mirroring is allowed: cart faces right; mirroring allowed so it can tip either way **unless** the umbrella stripes or a sign must read correctly — note if so
 

@@ -22,41 +22,46 @@
   S.spriteDraws = {};
 
   // ---------- background (parallax) ----------
+  // Band rows, scroll speeds and loop widths come from the bg:* entries in assets.js.
+  const BG = {};
+  for (const m of S.ASSET_MANIFEST) if (m.key.startsWith('bg:')) BG[m.key] = m;
   function drawBackground(ctx, camX) {
-    if (!sprite(ctx, 'bg:sky', 0, 0, 0, 1)) {
+    if (!sprite(ctx, 'bg:sky', 0, 0, BG['bg:sky'].y, 1)) {
       const bands = [K.sky0, K.sky1, K.sky2, K.sky3, K.sky4];
       bands.forEach((c, i) => R(ctx, c, 0, i * 28, W, 28));
       R(ctx, K.sky4, 0, 140, W, 84);
     }
-    tiled(ctx, 'bg:skyline', camX * 0.125, 96, 512, (ox) => {
-      for (let i = 0; i < 16; i++) {
-        const bw = 16 + Math.floor(rnd(i + 7) * 20), bh = 20 + Math.floor(rnd(i + 31) * 44);
+    // Placeholder shapes stay inside each band's rows, like real art would.
+    tiled(ctx, 'bg:skyline', camX, (ox, y, w, h) => {
+      for (let i = 0; i < w / 32; i++) {
+        const bw = 16 + Math.floor(rnd(i + 7) * 20), bh = 16 + Math.floor(rnd(i + 31) * 40);
         const bx = ox + i * 32;
-        R(ctx, K.skyline, bx, 160 - bh, bw, bh);
-        if (rnd(i + 3) > 0.6) R(ctx, K.skyline, bx + bw / 2 - 1, 160 - bh - 8, 2, 8);
+        R(ctx, K.skyline, bx, y + h - bh, bw, bh);
+        if (rnd(i + 3) > 0.6) R(ctx, K.skyline, bx + bw / 2 - 1, y + h - bh - 8, 2, 8);
       }
     });
-    tiled(ctx, 'bg:treeline', camX * 0.25, 144, 512, (ox) => {
-      for (let i = 0; i < 32; i++) {
-        const r = 8 + Math.floor(rnd(i + 99) * 10);
-        R(ctx, K.trees, ox + i * 16, 168 - r, 18, r + 8);
+    tiled(ctx, 'bg:treeline', camX, (ox, y, w, h) => {
+      for (let i = 0; i < w / 16; i++) {
+        const r = 4 + Math.floor(rnd(i + 99) * 10);
+        R(ctx, K.trees, ox + i * 16, y + 14 - r, 18, r);
       }
-      R(ctx, K.trees, ox, 166, 512, 26);
+      R(ctx, K.trees, ox, y + 12, w, h - 12);
     });
-    tiled(ctx, 'bg:bushes', camX * 0.5, 160, 512, (ox) => {
-      for (let i = 0; i < 24; i++) {
+    tiled(ctx, 'bg:bushes', camX, (ox, y, w, h) => {
+      R(ctx, K.trees, ox, y, w, 8); // band is solid, so its top rows continue the tree line
+      for (let i = 0; i < w / 22; i++) {
         const r = 4 + Math.floor(rnd(i + 55) * 8);
-        R(ctx, K.bushes, ox + i * 22, 184 - r, 20, r + 8);
+        R(ctx, K.bushes, ox + i * 22, y + 12 - r, 20, r);
       }
-      R(ctx, K.bushes, ox, 182, 512, 10);
+      R(ctx, K.bushes, ox, y + 8, w, h - 8);
     });
   }
-  function tiled(ctx, key, scroll, y, loopW, fallback) {
-    const off = -(scroll % loopW);
-    const m = S.images[key];
-    for (let ox = off; ox < W; ox += loopW) {
-      if (m) ctx.drawImage(m.img, Math.round(ox), y);
-      else fallback(Math.round(ox));
+  function tiled(ctx, key, camX, fallback) {
+    const b = BG[key], m = S.images[key];
+    const off = -((camX * b.scroll) % b.fw);
+    for (let ox = off; ox < W; ox += b.fw) {
+      if (m) ctx.drawImage(m.img, Math.round(ox), b.y);
+      else fallback(Math.round(ox), b.y, b.fw, b.fh);
     }
   }
 

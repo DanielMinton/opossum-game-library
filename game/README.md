@@ -53,7 +53,19 @@ The level is 12 screens long, about 1 minute for a fast run and 3–5 minutes fo
 3. Reload the game. Any sprite with a real file uses it; everything else stays a placeholder.
 4. If a strip is the wrong size, the browser console says so, for example "expected 384x48 px, got 100x48".
 
-Frame sizes, frame counts, speeds and the feet point (24, 47) follow `templates/STYLE_GUIDE.md` and each example's animation table. The large tile sheet (`central-park-tiles-v01.png`) is **not wired up yet**, because it needs a map of which tile goes where.
+Frame sizes, frame counts, speeds and the feet point (24, 47) follow `templates/STYLE_GUIDE.md` and each example's animation table. One exception: Sammy's tail-whip strip uses wider 64×48 frames with the feet point at (32, 47), so the tail has room. Background band rows, scroll speeds and loop widths are in the `bg:` lines of `game/src/assets.js`.
+
+### Requested art the game can't show yet
+
+The docs ask for these, but the game has no place to draw them yet, so adding the files changes nothing on screen:
+- Play Possum HUD icon (the "PP" box stays)
+- hearts
+- the 8×8 font
+- trash lid break strip (`trash-lid-break-strip-v01.png`)
+- zombie jogger head (`zombie-jogger-head-v01.png`)
+- checkpoint marker and park exit gate
+- spark, dust, splash and sparkle effects
+- the tile sheet (`central-park-tiles-v01.png`): it needs a map of which tile goes where
 
 To try every planned file without scanning, add `?probe=1` to the address. Missing files will show as errors in the browser console.
 
@@ -64,6 +76,8 @@ To try every planned file without scanning, add `?probe=1` to the address. Missi
    - Music: `assets/audio/music/music-level-01-central-park/music-level-01-central-park-v01.ogg`
 2. Run `node game/tools/scan-assets.mjs`. It lists the sounds it found and flags any audio file with a name it doesn't recognize.
 3. Reload the game and press a key (browsers stay silent until you do). Each sound with a file uses it; the rest keep their beep.
+
+**Only have WAV files?** From the `game/` folder, run `node tools/convert-audio.mjs` (or `npm run convert`). It makes an `.ogg` beside every `.wav` in `assets/audio/` that doesn't have one yet. Add `--mp3` to also make `.mp3` copies for older Safari. It needs ffmpeg (`brew install ffmpeg`); without it, it prints the exact commands to run. It never deletes or overwrites anything, and the `.wav` stays as the master copy. Then run the scanner (step 2).
 
 **Sound names.** The full list is `S.SOUND_MANIFEST` in `game/src/assets.js`:
 - The 11 core sounds from `templates/examples/audio/AUDIO.md` (`sfx-jump`, `sfx-land`, `sfx-tail-whip`, `sfx-hit-zombie`, `sfx-zombie-groan`, `sfx-pickup`, `sfx-hurt`, `sfx-play-dead`, `sfx-zombie-defeat-comedic`, `sfx-cart-crash`, `sfx-ko`).
@@ -80,7 +94,7 @@ To try every planned file without scanning, add `?probe=1` to the address. Missi
 
 **Level-clear jingle:** if `sfx-level-clear` has a file, it replaces the placeholder jingle.
 
-**Not supported yet: loop points.** Music loops the whole file from start to end. An intro that plays once before the loop needs loop-point support, which isn't built. Until then, make the file loop cleanly end-to-start.
+**Not supported yet: loop points.** Music loops the whole file from start to end. An intro that plays once before the loop needs loop-point support, which isn't built. Until then, make the file loop cleanly end-to-start, with no separate intro.
 
 ## Build a shareable copy
 
@@ -106,7 +120,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | 29 game-rule checks (see the list below) |
+| `node --test tests/sim.test.mjs` | 34 game-rule checks (see the list below) |
 | `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 18 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 
@@ -117,8 +131,10 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - cart (tip, spill, heal, settle), trash lid, vendor, pond, and falling into a dry pit (no splash)
 - K.O. and checkpoints; the gauntlet and exit; finishing in mid-air
 - pause, restart (also from the pause screen) and play again
-- a full autopilot playthrough, repeatable results, and the art list vs. the example docs
+- a full autopilot playthrough, repeatable results, and the art list vs. the example docs (file names and sizes)
+- the background bands (rows match the tileset doc and don't overlap), the tail-whip frame width, and the placeholder font (M, W, H and N look different)
 - the sound list: every sound the game triggers has a planned name and a beep; file names, versions and variations are read correctly
+- the audio converter picks only `.wav` files that have no `.ogg` beside them, and never overwrites
 
 **Browser checks** cover:
 - the source game and the built game each play title → level → gauntlet → clear → restart with no errors
@@ -152,7 +168,7 @@ These two checks use a temporary copy of the library, never your `assets/` folde
 | `src/audio.js` | Plays real sound files when present, placeholder beeps otherwise |
 | `src/input.js`, `src/main.js` | Controls, main loop and `?test=` self-checks |
 | `src/bot.js` | Autopilot used only by the tests |
-| `tools/` | Art and sound scanner, and build script |
+| `tools/` | Art and sound scanner, WAV-to-OGG converter, and build script |
 | `tests/` | Game-rule tests and the browser check |
 | `dist/` | Latest shareable build (made by `tools/build.mjs`) |
 

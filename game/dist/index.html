@@ -138,16 +138,17 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 })(globalThis.SAMMY = globalThis.SAMMY || {});
 
 // ---- src/font.js ----
-// Tiny 3x5 pixel font drawn with fillRect, so text stays crisp when the screen is scaled up.
+// Tiny pixel font, 5 px tall, drawn with fillRect, so text stays crisp when the screen is scaled up.
+// Most letters are 3 px wide; M and W are 5 px and N is 4 px so they can't be mistaken for H.
 // PLACEHOLDER: replace with the 8x8 font sheet described in templates/STYLE_GUIDE.md.
 (function (S) {
   const RAW = {
     A: '.#.|#.#|###|#.#|#.#', B: '##.|#.#|##.|#.#|##.', C: '.##|#..|#..|#..|.##', D: '##.|#.#|#.#|#.#|##.',
     E: '###|#..|##.|#..|###', F: '###|#..|##.|#..|#..', G: '.##|#..|#.#|#.#|.##', H: '#.#|#.#|###|#.#|#.#',
     I: '###|.#.|.#.|.#.|###', J: '..#|..#|..#|#.#|.#.', K: '#.#|#.#|##.|#.#|#.#', L: '#..|#..|#..|#..|###',
-    M: '#.#|###|###|#.#|#.#', N: '##.|#.#|#.#|#.#|#.#', O: '.#.|#.#|#.#|#.#|.#.', P: '##.|#.#|##.|#..|#..',
+    M: '#...#|##.##|#.#.#|#...#|#...#', N: '#..#|##.#|#.##|#..#|#..#', O: '.#.|#.#|#.#|#.#|.#.', P: '##.|#.#|##.|#..|#..',
     Q: '.#.|#.#|#.#|##.|.##', R: '##.|#.#|##.|#.#|#.#', S: '.##|#..|.#.|..#|##.', T: '###|.#.|.#.|.#.|.#.',
-    U: '#.#|#.#|#.#|#.#|###', V: '#.#|#.#|#.#|#.#|.#.', W: '#.#|#.#|###|###|#.#', X: '#.#|#.#|.#.|#.#|#.#',
+    U: '#.#|#.#|#.#|#.#|###', V: '#.#|#.#|#.#|#.#|.#.', W: '#...#|#...#|#.#.#|##.##|#...#', X: '#.#|#.#|.#.|#.#|#.#',
     Y: '#.#|#.#|.#.|.#.|.#.', Z: '###|..#|.#.|#..|###',
     0: '###|#.#|#.#|#.#|###', 1: '.#.|##.|.#.|.#.|###', 2: '##.|..#|.#.|#..|###', 3: '##.|..#|.#.|..#|##.',
     4: '#.#|#.#|###|..#|..#', 5: '###|#..|##.|..#|##.', 6: '.##|#..|###|#.#|###', 7: '###|..#|.#.|.#.|.#.',
@@ -160,6 +161,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   };
   const GLYPHS = {};
   for (const k in RAW) GLYPHS[k] = RAW[k].split('|');
+  S.GLYPHS = GLYPHS; // read by the tests
 
   // Draw text at (x, y) top-left. scale = whole-number size multiplier.
   S.drawText = function (ctx, text, x, y, color, scale, shadow) {
@@ -170,11 +172,16 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     let cx = x;
     for (const ch of str) {
       const g = GLYPHS[ch] || GLYPHS['?'];
-      for (let r = 0; r < 5; r++) for (let c = 0; c < 3; c++) if (g[r][c] === '#') ctx.fillRect(cx + c * scale, y + r * scale, scale, scale);
-      cx += 4 * scale;
+      for (let r = 0; r < 5; r++) for (let c = 0; c < g[r].length; c++) if (g[r][c] === '#') ctx.fillRect(cx + c * scale, y + r * scale, scale, scale);
+      cx += (g[0].length + 1) * scale;
     }
   };
-  S.textWidth = function (text, scale) { return String(text).length * 4 * (scale || 1) - (scale || 1); };
+  // Width in pixels, without the gap after the last letter.
+  S.textWidth = function (text, scale) {
+    let w = 0;
+    for (const ch of String(text).toUpperCase()) w += (GLYPHS[ch] || GLYPHS['?'])[0].length + 1;
+    return Math.max(0, w - 1) * (scale || 1);
+  };
   S.drawTextCentered = function (ctx, text, cx, y, color, scale, shadow) {
     S.drawText(ctx, text, Math.round(cx - S.textWidth(text, scale) / 2), y, color, scale, shadow);
   };
@@ -279,7 +286,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     strip('sammy:jump-rise', SAM + 'sammy-jump-rise-strip-v01.png', 2, 10, 'hold'),
     strip('sammy:fall', SAM + 'sammy-fall-strip-v01.png', 2, 10, 'loop'),
     strip('sammy:land', SAM + 'sammy-land-strip-v01.png', 2, 15, 'once'),
-    strip('sammy:tail-whip', SAM + 'sammy-tail-whip-strip-v01.png', 4, 15, 'once'),
+    // Wider 64x48 cell, pivot (32, 47): the whip reaches 26 px in front of Sammy, more than a 48 px cell allows.
+    strip('sammy:tail-whip', SAM + 'sammy-tail-whip-strip-v01.png', 4, 15, 'once', { fw: 64, px: 32 }),
     strip('sammy:hurt', SAM + 'sammy-hurt-strip-v01.png', 2, 10, 'once'),
     strip('sammy:play-dead', SAM + 'sammy-play-dead-strip-v01.png', 4, 8, 'hold'),
     strip('sammy:ko', SAM + 'sammy-ko-strip-v01.png', 6, 10, 'once'),
@@ -309,10 +317,12 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     strip('overlay:lid', LID + 'trash-lid-held-overlay-strip-v01.png', 3, 1, 'frame', mid),
     strip('hud:lid', LID + 'hud-icon-trash-lid-v01.png', 1, 1, 'hold', { fw: 16, fh: 16, px: 0, py: 0, feet: false }),
 
-    strip('bg:sky', ENV + 'central-park-bg-sky-v01.png', 1, 1, 'hold', { fw: 320, fh: 224, px: 0, py: 0, feet: false }),
-    strip('bg:skyline', ENV + 'central-park-bg-skyline-v01.png', 1, 1, 'hold', { fw: 512, fh: 64, px: 0, py: 0, feet: false }),
-    strip('bg:treeline', ENV + 'central-park-bg-treeline-v01.png', 1, 1, 'hold', { fw: 512, fh: 32, px: 0, py: 0, feet: false }),
-    strip('bg:bushes', ENV + 'central-park-bg-bushes-v01.png', 1, 1, 'hold', { fw: 512, fh: 32, px: 0, py: 0, feet: false }),
+    // Parallax bands: y = top row on screen, scroll = speed vs. the camera, fw = loop width.
+    // Bands must not overlap (rows 80-143, 144-175, 176-207), as in the tileset ASSET.md.
+    strip('bg:sky', ENV + 'central-park-bg-sky-v01.png', 1, 1, 'hold', { fw: 320, fh: 224, px: 0, py: 0, feet: false, y: 0, scroll: 0 }),
+    strip('bg:skyline', ENV + 'central-park-bg-skyline-v01.png', 1, 1, 'hold', { fw: 512, fh: 64, px: 0, py: 0, feet: false, y: 80, scroll: 0.125 }),
+    strip('bg:treeline', ENV + 'central-park-bg-treeline-v01.png', 1, 1, 'hold', { fw: 512, fh: 32, px: 0, py: 0, feet: false, y: 144, scroll: 0.25 }),
+    strip('bg:bushes', ENV + 'central-park-bg-bushes-v01.png', 1, 1, 'hold', { fw: 512, fh: 32, px: 0, py: 0, feet: false, y: 176, scroll: 0.5 }),
   ];
   // Not wired yet: central-park-tiles-v01.png needs a tile map (which metatile goes where) before it can be drawn.
 
@@ -1161,41 +1171,46 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   S.spriteDraws = {};
 
   // ---------- background (parallax) ----------
+  // Band rows, scroll speeds and loop widths come from the bg:* entries in assets.js.
+  const BG = {};
+  for (const m of S.ASSET_MANIFEST) if (m.key.startsWith('bg:')) BG[m.key] = m;
   function drawBackground(ctx, camX) {
-    if (!sprite(ctx, 'bg:sky', 0, 0, 0, 1)) {
+    if (!sprite(ctx, 'bg:sky', 0, 0, BG['bg:sky'].y, 1)) {
       const bands = [K.sky0, K.sky1, K.sky2, K.sky3, K.sky4];
       bands.forEach((c, i) => R(ctx, c, 0, i * 28, W, 28));
       R(ctx, K.sky4, 0, 140, W, 84);
     }
-    tiled(ctx, 'bg:skyline', camX * 0.125, 96, 512, (ox) => {
-      for (let i = 0; i < 16; i++) {
-        const bw = 16 + Math.floor(rnd(i + 7) * 20), bh = 20 + Math.floor(rnd(i + 31) * 44);
+    // Placeholder shapes stay inside each band's rows, like real art would.
+    tiled(ctx, 'bg:skyline', camX, (ox, y, w, h) => {
+      for (let i = 0; i < w / 32; i++) {
+        const bw = 16 + Math.floor(rnd(i + 7) * 20), bh = 16 + Math.floor(rnd(i + 31) * 40);
         const bx = ox + i * 32;
-        R(ctx, K.skyline, bx, 160 - bh, bw, bh);
-        if (rnd(i + 3) > 0.6) R(ctx, K.skyline, bx + bw / 2 - 1, 160 - bh - 8, 2, 8);
+        R(ctx, K.skyline, bx, y + h - bh, bw, bh);
+        if (rnd(i + 3) > 0.6) R(ctx, K.skyline, bx + bw / 2 - 1, y + h - bh - 8, 2, 8);
       }
     });
-    tiled(ctx, 'bg:treeline', camX * 0.25, 144, 512, (ox) => {
-      for (let i = 0; i < 32; i++) {
-        const r = 8 + Math.floor(rnd(i + 99) * 10);
-        R(ctx, K.trees, ox + i * 16, 168 - r, 18, r + 8);
+    tiled(ctx, 'bg:treeline', camX, (ox, y, w, h) => {
+      for (let i = 0; i < w / 16; i++) {
+        const r = 4 + Math.floor(rnd(i + 99) * 10);
+        R(ctx, K.trees, ox + i * 16, y + 14 - r, 18, r);
       }
-      R(ctx, K.trees, ox, 166, 512, 26);
+      R(ctx, K.trees, ox, y + 12, w, h - 12);
     });
-    tiled(ctx, 'bg:bushes', camX * 0.5, 160, 512, (ox) => {
-      for (let i = 0; i < 24; i++) {
+    tiled(ctx, 'bg:bushes', camX, (ox, y, w, h) => {
+      R(ctx, K.trees, ox, y, w, 8); // band is solid, so its top rows continue the tree line
+      for (let i = 0; i < w / 22; i++) {
         const r = 4 + Math.floor(rnd(i + 55) * 8);
-        R(ctx, K.bushes, ox + i * 22, 184 - r, 20, r + 8);
+        R(ctx, K.bushes, ox + i * 22, y + 12 - r, 20, r);
       }
-      R(ctx, K.bushes, ox, 182, 512, 10);
+      R(ctx, K.bushes, ox, y + 8, w, h - 8);
     });
   }
-  function tiled(ctx, key, scroll, y, loopW, fallback) {
-    const off = -(scroll % loopW);
-    const m = S.images[key];
-    for (let ox = off; ox < W; ox += loopW) {
-      if (m) ctx.drawImage(m.img, Math.round(ox), y);
-      else fallback(Math.round(ox));
+  function tiled(ctx, key, camX, fallback) {
+    const b = BG[key], m = S.images[key];
+    const off = -((camX * b.scroll) % b.fw);
+    for (let ox = off; ox < W; ox += b.fw) {
+      if (m) ctx.drawImage(m.img, Math.round(ox), b.y);
+      else fallback(Math.round(ox), b.y, b.fw, b.fh);
     }
   }
 

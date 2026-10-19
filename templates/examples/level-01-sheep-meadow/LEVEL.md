@@ -22,7 +22,7 @@
 
 - Tileset: `environment-central-park-tileset`
 - Palette lines used: 0 = Sammy + HUD · 1 = zombies · 2 = foreground tiles, props, items · 3 = background/parallax (see `STYLE_GUIDE.md`)
-- Music: `music-level-01-central-park` (loop points in its `AUDIO.md`; the gauntlet may switch to a faster track — TBD)
+- Music: `music-level-01-central-park` (loops end-to-start; the gauntlet switches to `music-level-01-gauntlet` if that file exists)
 - Ambient sounds: TBD (e.g., distant zombie groans, birds that stop when zombies appear)
 
 | Parallax layer (far → near) | Asset ID / file | Scroll speed | Notes |

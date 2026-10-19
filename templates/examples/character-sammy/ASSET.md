@@ -27,14 +27,14 @@ How to read this example:
 | File (planned — not yet supplied) | Type | Purpose |
 |---|---|---|
 | `sammy-reference-v01.png` | Reference / model sheet | Turnaround (side, front, back, 3/4) and size notes. Used to keep the look consistent. Not used in the game directly. |
-| `palette-line-0-sammy-hud-v01.png` | Palette swatch | The 15 colors (plus transparent) Sammy and the HUD may use. One row of 16 squares. |
+| `palette-line-0-sammy-hud-v01.png` | Palette swatch | The 15 colors (plus transparent) Sammy and the HUD may use. One row of 16 squares. Saved in `assets/ui/palettes/` with the other palette sheets, not in Sammy's folder. |
 | `sammy-expressions-v01.png` | Reference (optional) | Portrait/face sheet — see "Expression/portrait sheet (optional)". |
 | `sammy-idle-strip-v01.png` | Production strip | 4 frames, 192×48 px |
 | `sammy-run-strip-v01.png` | Production strip | 8 frames, 384×48 px |
 | `sammy-jump-rise-strip-v01.png` | Production strip | 2 frames, 96×48 px |
 | `sammy-fall-strip-v01.png` | Production strip | 2 frames, 96×48 px |
 | `sammy-land-strip-v01.png` | Production strip | 2 frames, 96×48 px |
-| `sammy-tail-whip-strip-v01.png` | Production strip | 4 frames, 192×48 px |
+| `sammy-tail-whip-strip-v01.png` | Production strip | 4 frames, 256×48 px (wider 64×48 cells, see below) |
 | `sammy-hurt-strip-v01.png` | Production strip | 2 frames, 96×48 px |
 | `sammy-play-dead-strip-v01.png` | Production strip | 4 frames, 192×48 px |
 | `sammy-ko-strip-v01.png` | Production strip | 6 frames, 288×48 px |
@@ -42,7 +42,7 @@ How to read this example:
 | `sammy-wake-up-strip-v01.png` | Production strip (polish tier) | 6 frames, 288×48 px |
 | `sammy-source-v01.aseprite` (or .psd / .kra) | Layered source | Your working file. Kept as the original; never overwritten. |
 
-Strip width = frame count × 48 px (with no padding).
+Strip width = frame count × 48 px (with no padding). The one exception is tail-whip: its cells are 64×48, so the strip is 4 × 64 = 256 px wide.
 
 ## Reference vs production
 
@@ -52,11 +52,11 @@ Strip width = frame count × 48 px (with no padding).
 
 ## Animation (if applicable)
 - File: one strip per animation (see Planned files — planned, not yet supplied).
-- Frame width × height in pixels: Proposed: 48 × 48 for every frame of every animation.
+- Frame width × height in pixels: Proposed: 48 × 48 for every animation except tail-whip, which uses **64 × 48** cells. The whip reaches 26 px in front of Sammy's feet point, and a 48 px cell only has 23 px of room.
 - Grid columns / rows: one row per file; columns = frame count (e.g. run = 8 columns × 1 row).
 - Frame count and reading order: left to right, starting at frame 0. Counts in the table below.
 - Padding / spacing: Proposed: none (frames touch). If you prefer 1 px gaps between frames, say "1 px padding" here.
-- Pivot / feet baseline: Proposed: bottom-center of the frame, pixel (24, 47) counting from 0 at the top-left. In every grounded frame the feet touch row 47 (the bottom row). Jump/fall frames may lift off that row.
+- Pivot / feet baseline: Proposed: bottom-center of the frame, pixel (24, 47) counting from 0 at the top-left. In every grounded frame the feet touch row 47 (the bottom row). Jump/fall frames may lift off that row. Tail-whip (64 × 48 cells): pivot **(32, 47)**, so Sammy's body sits in the same place and the extra 16 px give the tail room on both sides.
 - Animation names and frame ranges (state whether zero- or one-based): zero-based — see table.
 - Frames per second per animation: see table.
 - Looping / one-shot: see table.
@@ -71,7 +71,7 @@ Strip width = frame count × 48 px (with no padding).
 | jump-rise | 0–1 | 2 | 10 | one-shot, hold last frame | Holds frame 1 while going up. |
 | fall | 0–1 | 2 | 10 | loop | Tail/fur flutter. |
 | land | 0–1 | 2 | 15 | one-shot | Squash on frame 0. Returns to idle/run. |
-| tail-whip (attack) | 0–3 | 4 | 15 | one-shot | **Hit frame = 2** (the frame where damage happens). 0–1 wind-up, 3 recovery. |
+| tail-whip (attack) | 0–3 | 4 | 15 | one-shot | **Hit frame = 2** (the frame where damage happens). 0–1 wind-up, 3 recovery. 64×48 cells, pivot (32, 47). |
 | hurt | 0–1 | 2 | 10 | one-shot | Knock-back flinch; a white/flash frame can be done in code. |
 | play-dead | 0–3 | 4 | 8 | one-shot, then hold frame 3 | Drops, rolls over, tongue out (Example). Used by the "Play Possum" ability. |
 | ko (defeat) | 0–5 | 6 | 10 | one-shot | Comic faint, stars/birds optional as separate effect. |
@@ -84,7 +84,7 @@ At 15 fps, one frame lasts about 67 ms; at 6 fps, about 167 ms. A 4-frame attack
 - What this asset does: Confirmed: the player character. Proposed: runs, jumps, tail-whips zombies, picks up power-ups, uses interactive objects, and has one signature ability.
 - What triggers it: player input. Proposed controls (not decided): arrows/D-pad to move, one button jump, one button attack, one button special.
 - What the player can do with it: Proposed signature ability **"Play Possum"** (proposal, not approved): Sammy drops and plays dead; nearby zombies lose track of him for a short time. Example values: lasts up to 3 s (cancel after 0.5 s); 6 s cooldown after he gets up; Sammy cannot move while playing dead; zombies within 96 px wander off — see the `ability-play-possum` example.
-- Collision / hitbox intent: Proposed: body hitbox narrower than the drawing so near-misses feel fair — Example: 20 px wide × 30 px tall, centered on the pivot, standing on row 47. Tail-whip hitbox only on hit frame 2, Example: 20 × 12 px in front of him. While playing dead, body hitbox lowers to Example: 28 × 14 px.
+- Collision / hitbox intent: Proposed: body hitbox narrower than the drawing so near-misses feel fair — Example: 20 px wide × 30 px tall, centered on the pivot, standing on row 47. Tail-whip hitbox only on hit frame 2: 20 × 12 px, from 6 to 26 px in front of his feet point and 10 to 22 px above the ground (as in `game/src/config.js`). While playing dead, body hitbox lowers to Example: 28 × 14 px.
 - Damage, reward, cooldown, or other values: TBD — Example: 3 hearts; tail-whip deals 1 damage; 1 s invincibility (blinking) after being hurt.
 - Required sounds / effects: Example list (all TBD): jump, land, tail-whip swoosh, tail-whip hit, hurt squeak, play-dead "flop", KO jingle, victory jingle, footsteps (optional). Effects: dust puff on landing, hit spark, "Zzz/?" bubble while playing dead.
 - Missing states or assets: Example of what to list: crouch, climb, wall/ledge grab, swim, pick up/carry, throw, power-up variants (e.g. holding the trash-lid shield from `item-powerup-trash-lid-shield`), damage-flash palette, idle "bored" animation, portrait for dialogue. Mark each as "blocks play" or "polish".

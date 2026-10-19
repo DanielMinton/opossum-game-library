@@ -31,7 +31,7 @@ How to use this example: a filled-in `ASSET.md` for a power-up pickup. Real copy
 - Grid columns / rows: one horizontal strip per animation, 1 row
 - Frame count and reading order: pickup 4; held overlay 3 (one per remaining-hits stage, not an animation); break 4; left to right
 - Padding / spacing: none
-- Pivot / feet baseline: pickup — center (8, 8); held overlay — center (8, 8), attached to a per-frame hand point on Sammy (this example uses the "small sprite + hand point" overlay option rather than a 48×48 overlay strip aligned to Sammy's cell; see `ABILITY.md`); break — center (16, 16)
+- Pivot / feet baseline: pickup — bottom-center (8, 15), so it sits on the ground like the hot dog pickup; held overlay — center (8, 8), attached to a per-frame hand point on Sammy (this example uses the "small sprite + hand point" overlay option rather than a 48×48 overlay strip aligned to Sammy's cell; see `ABILITY.md`; the prototype uses one fixed hand point for now, 12 px in front of Sammy's feet point and 14 px up); break — center (16, 16)
 - Animation names and frame ranges (zero-based): pickup-spin 0–3; held 0 = 3 hits left, 1 = 2 left, 2 = 1 left; break 0–3
 - Frames per second per animation: pickup-spin 8 fps; break 15 fps (Proposed)
 - Looping / one-shot: pickup-spin loops; break one-shot
@@ -41,7 +41,7 @@ How to use this example: a filled-in `ASSET.md` for a power-up pickup. Real copy
 - What this asset does: power-up; see `ABILITY.md`
 - What triggers it: Sammy touches the pickup
 - What the player can do with it: block zombie hits automatically
-- Collision / hitbox intent: pickup trigger box 12×12 centered on the sprite; no solid collision
+- Collision / hitbox intent: pickup trigger box 16×16, the whole sprite (as in the game); no solid collision
 - Damage, reward, cooldown, or other values: **Proposed:** blocks 3 hits; see `ABILITY.md`
 - Required sounds / effects: pickup, shield-block clang, shield-break (see the example `audio/AUDIO.md`)
 - Missing states or assets: everything — no art supplied

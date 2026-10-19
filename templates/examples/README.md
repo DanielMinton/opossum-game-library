@@ -19,7 +19,7 @@ For what to send first, see `design/ASSET_REQUEST_CHECKLIST.md`.
 | `item-powerup-trash-lid-shield/` | `ASSET.md` + `ABILITY.md` | A power-up: pickup sprite, "active" look, HUD icon, duration and how it ends |
 | `ability-play-possum/` | `ABILITY.md` | The proposed signature ability (play dead → nearby zombies lose track of Sammy) — rules, timing, cooldown, feedback |
 | `environment-central-park-tileset/` | `ASSET.md` | An 8×8 / 16×16 tileset with collision notes and a parallax background band list |
-| `audio/` | `AUDIO.md` | A looping music track (`music-level-01-central-park`) with loop points, and a core SFX set |
+| `audio/` | `AUDIO.md` | A looping music track (`music-level-01-central-park`) that loops end-to-start, a core SFX set, and the extra sounds the game supports |
 | `level-01-sheep-meadow/` | `LEVEL.md` | The Central Park wake-up level: start, enemy/prop/item placement, goal, failure/restart |
 
 New blank templates used by these examples: `templates/STYLE_GUIDE.md`, `templates/LEVEL.md`, `templates/ABILITY.md` (alongside the original `ASSET.md`, `INTERACTION.md`, `AUDIO.md`).

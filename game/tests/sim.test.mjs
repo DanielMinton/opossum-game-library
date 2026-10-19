@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const src = path.join(here, '..', 'src');
-for (const f of ['config', 'level', 'assets', 'sim', 'bot']) {
+for (const f of ['config', 'font', 'level', 'assets', 'sim', 'bot']) {
   vm.runInThisContext(fs.readFileSync(path.join(src, f + '.js'), 'utf8'), { filename: f + '.js' });
 }
 const S = globalThis.SAMMY;
@@ -435,6 +435,89 @@ test('asset manifest: every planned file name appears in the example docs, with 
     assert.ok(!names.has(m.path), 'no duplicate ' + m.path); names.add(m.path);
     assert.ok(!m.path.startsWith('references/'), 'never load reference-only art');
   }
+});
+
+test('asset sizes: each planned file size in the example docs matches the art list', () => {
+  const ex = path.join(here, '..', '..', 'templates', 'examples');
+  const lines = [];
+  for (const d of fs.readdirSync(ex)) {
+    const dir = path.join(ex, d);
+    if (fs.statSync(dir).isDirectory()) for (const f of fs.readdirSync(dir)) lines.push(...fs.readFileSync(path.join(dir, f), 'utf8').split('\n'));
+  }
+  for (const m of S.ASSET_MANIFEST) {
+    const file = path.basename(m.path);
+    const row = lines.find((l) => l.startsWith('|') && l.includes(file));
+    assert.ok(row, file + ' has a row in a planned-file table');
+    const whole = m.fw * m.frames + '×' + m.fh, cells = m.frames + ' × ' + m.fw + '×' + m.fh;
+    assert.ok(row.includes(whole) || row.includes(cells), file + ': doc row should say ' + whole + ' — ' + row);
+  }
+});
+
+test('parallax: background bands match the tileset doc, do not overlap, and loop at 256 or 512 px', () => {
+  const doc = fs.readFileSync(path.join(here, '..', '..', 'templates', 'examples', 'environment-central-park-tileset', 'ASSET.md'), 'utf8');
+  const bands = ['bg:skyline', 'bg:treeline', 'bg:bushes'].map((k) => S.ASSET_MANIFEST.find((m) => m.key === k));
+  const names = { 'bg:skyline': 'Manhattan skyline', 'bg:treeline': 'Tree line', 'bg:bushes': 'Near bushes' };
+  let prevEnd = -1;
+  for (const b of bands) {
+    assert.ok([256, 512].includes(b.fw), b.key + ' loop width');
+    assert.ok(b.y > prevEnd, b.key + ' starts below the band above it'); prevEnd = b.y + b.fh - 1;
+    assert.ok(prevEnd < C.screenH, b.key + ' fits on screen');
+    assert.ok(b.scroll > 0 && b.scroll < 1, b.key + ' scrolls slower than the camera');
+    const row = doc.split('\n').find((l) => l.startsWith('| ' + names[b.key]));
+    assert.ok(row && row.includes(b.fw + '×' + b.fh) && row.includes(b.y + '–' + prevEnd) && row.includes(b.scroll * 100 + '%'), b.key + ' doc row: ' + row);
+  }
+  const sky = S.ASSET_MANIFEST.find((m) => m.key === 'bg:sky');
+  assert.equal(sky.y, 0); assert.equal(sky.scroll, 0);
+});
+
+test('tail-whip art cell is wide enough for the whip hitbox', () => {
+  const m = S.ASSET_MANIFEST.find((a) => a.key === 'sammy:tail-whip');
+  const reach = 6 + C.sammy.whipW; // whipHits in sim.js: starts 6 px in front of the feet point
+  assert.ok(m.px + reach <= m.fw, 'reach ' + reach + ' px fits right of the pivot');
+  assert.ok(m.px - reach >= 0, 'and left of it when mirrored');
+  assert.equal(m.fh, 48); assert.equal(m.py, 47);
+  for (const a of S.ASSET_MANIFEST) if (a.key.startsWith('sammy:') && a !== m) assert.equal(a.fw, 48, a.key + ' stays 48 wide');
+});
+
+test('placeholder font: M, W, H and N look different, and text width matches drawing', () => {
+  const g = S.GLYPHS;
+  const pick = ['M', 'W', 'H', 'N'];
+  for (const a of pick) for (const b of pick) if (a < b) assert.notEqual(g[a].join('|'), g[b].join('|'), a + ' vs ' + b);
+  for (const k in g) { assert.equal(g[k].length, 5, k + ' is 5 rows'); for (const r of g[k]) assert.equal(r.length, g[k][0].length, k + ' rows same width'); }
+  let maxX = 0;
+  const ctx = { fillRect: (x, y, w) => { maxX = Math.max(maxX, x + w); } };
+  S.drawText(ctx, 'MWHN', 0, 0, '#fff', 2);
+  assert.equal(maxX, S.textWidth('MWHN', 2));
+});
+
+test('audio converter: picks only .wav files that have no .ogg beside them', async () => {
+  const os = await import('node:os');
+  const { findWavsToConvert, ffmpegArgs } = await import('../tools/convert-audio.mjs');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sammy-convert-'));
+  try {
+    const put = (rel) => { const f = path.join(tmp, 'assets', rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, ''); };
+    put('audio/sfx/sfx-jump/sfx-jump-v01.wav');          // needs an .ogg
+    put('audio/sfx/sfx-land/sfx-land-v01.wav');
+    put('audio/sfx/sfx-land/sfx-land-v01.ogg');          // already done
+    put('audio/sfx/sfx-hurt/sfx-hurt-v01.WAV');          // upper-case extension
+    put('audio/sfx/sfx-hurt/sfx-hurt-v01.mp3');          // has mp3 but no ogg: still needs ogg
+    put('audio/music/music-level-01-central-park/music-level-01-central-park-v01.wav');
+    put('characters/character-sammy/not-audio.wav');     // outside assets/audio: ignored
+    const rel = (p) => p && path.relative(path.join(tmp, 'assets'), p).split(path.sep).join('/');
+    const got = findWavsToConvert(tmp).map((t) => [rel(t.wav), rel(t.ogg), t.mp3]);
+    assert.deepEqual(got, [
+      ['audio/music/music-level-01-central-park/music-level-01-central-park-v01.wav', 'audio/music/music-level-01-central-park/music-level-01-central-park-v01.ogg', null],
+      ['audio/sfx/sfx-hurt/sfx-hurt-v01.WAV', 'audio/sfx/sfx-hurt/sfx-hurt-v01.ogg', null],
+      ['audio/sfx/sfx-jump/sfx-jump-v01.wav', 'audio/sfx/sfx-jump/sfx-jump-v01.ogg', null],
+    ]);
+    const withMp3 = findWavsToConvert(tmp, { mp3: true }).map((t) => rel(t.mp3));
+    assert.deepEqual(withMp3, ['audio/music/music-level-01-central-park/music-level-01-central-park-v01.mp3', null, 'audio/sfx/sfx-jump/sfx-jump-v01.mp3']);
+    assert.deepEqual(findWavsToConvert(path.join(tmp, 'missing')), []);
+    const args = ffmpegArgs('a.wav', 'a.ogg');
+    assert.ok(args.includes('-n') && !args.includes('-y'), 'never overwrites');
+    assert.equal(args[args.length - 1], 'a.ogg');
+    assert.ok(fs.existsSync(path.join(tmp, 'assets', 'audio/sfx/sfx-jump/sfx-jump-v01.wav')), 'WAV untouched');
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 });
 
 // ---------- sound list ----------

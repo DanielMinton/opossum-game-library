@@ -58,7 +58,7 @@ How to read this example: **Confirmed** = humans have turned into zombies, with 
 - What this asset does: Proposed: patrols back and forth; chases Sammy when he gets close.
 - What triggers it: Proposed: Sammy enters its **notice range of 96 px** (horizontal, same ground level). Loses interest if Sammy is more than 160 px away for 2 s.
 - What the player can do with it: tail-whip it, avoid it, or use **Play Possum** (proposed): while Sammy plays dead within its notice range, the jogger stops chasing, jogs in place confused ("?" bubble) for the rest of the ability, then returns to patrol.
-- Collision / hitbox intent: Proposed body hitbox: Example 18 px wide × 38 px tall, centered on the pivot. Attack hitbox only on hit frame 2: Example 16 × 12 px in front at chest height. No damage from touching its back while it's in hit-react.
+- Collision / hitbox intent: Proposed body hitbox: Example 18 px wide × 38 px tall, centered on the pivot. Attack hitbox only on hit frame 2: 16 × 20 px, from 4 to 20 px in front of its feet point and 6 to 26 px above the ground (as in `game/src/config.js`). No damage from touching its back while it's in hit-react.
 - Damage, reward, cooldown, or other values (all Example, Proposed):
 
 | Value | Example |

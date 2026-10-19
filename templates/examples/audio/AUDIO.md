@@ -5,23 +5,27 @@ How to use this example: real copies go in `assets/audio/music/<asset-id>/` and 
 
 **Sound target (Proposed):** 16-bit era console feel — FM synth (6 voices, punchy bass, bright brass/bell leads) plus a simple chip layer (3 square-wave voices + 1 noise channel for drums/hits). You can compose with any tools; it only needs to *sound* like this. Do not sample, remix or imitate specific melodies or sound effects from commercial games.
 
-**Formats:** browser build uses **OGG**. Also keep a **WAV** master (44.1 kHz, 16-bit) and the project/source file.
+**Formats:** the game plays **OGG**. Send OGG, with an **MP3** of the same sound beside it if you want older Safari covered (it can't play OGG). Or send just **WAV** masters (44.1 kHz, 16-bit) and Claude makes the OGG and MP3 with `node tools/convert-audio.mjs` (run from `game/`). Keep the WAV master and the project/source file either way.
+
+**Music loops (what the game can do today):** each music file loops whole, from its last sample straight back to its first. Loop points and a separate intro that plays once are **not supported yet**. Make the end flow seamlessly into the start, with no click or gap.
 
 ## Planned files (none supplied yet)
-- `music-level-01-central-park-v01.ogg`
+- `music-level-01-central-park-v01.ogg` (plus `music-level-01-central-park-v01.mp3` for older Safari, optional)
 - `music-level-01-central-park-v01.wav` (master)
+- `music-level-01-gauntlet-v01.ogg` (optional: faster track for the end-of-level gauntlet; without it the level music keeps playing)
 - `music-level-01-central-park-v01` project file (DAW / tracker / FM editor — format TBD)
-- One `.ogg` + `.wav` per SFX, named `sfx-<name>-v01` (e.g., `sfx-jump-v01.ogg`); variations as `-a`, `-b`, `-c`
+- One `.ogg` + `.wav` per SFX, named `sfx-<name>-v01` (e.g., `sfx-jump-v01.ogg`); variations as `-a`, `-b`, `-c` after the version (e.g., `sfx-land-v01-a.ogg`)
+- Each sound in its own folder: `assets/audio/sfx/<id>/` and `assets/audio/music/<id>/`
 
 ## Music: music-level-01-central-park
 
 - Asset ID: music-level-01-central-park
 - File: `music-level-01-central-park-v01.ogg` (planned — not yet supplied)
 - Music / sound effect / voice: music
-- Trigger or scene: starts after Sammy's wake-up intro in `level-01-sheep-meadow`; plays until the end-of-level gauntlet (gauntlet may switch to a faster track — TBD)
+- Trigger or scene: starts after Sammy's wake-up intro in `level-01-sheep-meadow`; plays until the end-of-level gauntlet, which switches to `music-level-01-gauntlet` if that file exists
 - Style (Example): upbeat, a little spooky-silly; FM slap bass, bright lead, noise-channel hi-hats. BPM: TBD (suggest 130–150 for a run-and-fight level)
-- Length (Proposed): short intro (2–4 s, plays once) + loop section of 60–90 s
-- Loop and loop points: loop start TBD (seconds **and** sample number), loop end TBD (seconds and sample number). The loop must be seamless — no click or gap at the seam.
+- Length (Proposed): one loop of 60–90 s, no separate intro
+- Loop: the whole file loops end-to-start. It must be seamless — no click or gap at the seam. (Loop points are not supported yet. If you want an intro later, write the loop start and end in seconds **and** sample number here, and ask for loop-point support.)
 - Volume intent: background — about −14 LUFS integrated (Proposed); SFX must stay audible over it
 - Variations: optional "low health" or "Play Possum" muffled version — TBD (polish)
 - Creator / license / attribution: TBD (also record in design/ASSET_SOURCES.csv)
@@ -42,7 +46,22 @@ How to use this example: real copies go in `assets/audio/music/<asset-id>/` and 
 | sfx-cart-crash | Prop breaks (hot dog cart tips over) | 0.3–0.5 s | 1 | Metal clang + rattle |
 | sfx-ko | Sammy is defeated (KO) | 0.8–1.5 s | 1 | Short comic "wah-wah" fall |
 
-**Nice to have (not required for first playable):** sfx-shield-block, sfx-shield-break, sfx-cart-rock, sfx-hot-dog-spill, sfx-checkpoint, sfx-level-clear jingle, UI select/confirm.
+**Extra sounds the game already has slots for** (not required for first playable; each keeps a placeholder beep until its file arrives):
+
+| SFX ID | Trigger |
+|---|---|
+| sfx-cart-rock | Cart wobbles after the first whip |
+| sfx-shield-block | Trash lid blocks a hit |
+| sfx-shield-break | Trash lid's last hit |
+| sfx-throw | Vendor throws a hot dog |
+| sfx-splat | Thrown hot dog lands or hits |
+| sfx-splash | Sammy falls in the pond |
+| sfx-checkpoint | Checkpoint reached |
+| sfx-gate-open | Gauntlet cleared, exit gate opens |
+| sfx-level-clear | Level-clear jingle |
+| sfx-start | Start pressed on the title screen |
+
+Not in the game yet: a UI select/confirm sound (no menus to use it).
 
 - Volume intent: SFX normalized to similar loudness; peaks no higher than −1 dBFS
 - Creator / license / attribution: TBD (also record in design/ASSET_SOURCES.csv)
