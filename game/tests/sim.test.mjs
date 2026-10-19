@@ -3,6 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
@@ -667,6 +668,84 @@ test('license gate: only commercial-use licenses ship; reasons and credits are r
   assert.deepEqual(parseCsv('asset_id,path\n'), []);
 });
 
+test('missing lists: every planned file without a real file is listed once, with its size, in a fixed order', async () => {
+  const os = await import('node:os');
+  const { scan, missingArtLines, missingSoundLines } = await import('../tools/scan-assets.mjs');
+  const { png } = await import('./png-writer.mjs');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sammy-missing-'));
+  try {
+    const put = (rel, buf) => { const f = path.join(tmp, 'assets', rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, buf); };
+    const SAM = 'characters/character-sammy/';
+    put(SAM + 'sammy-run-strip-v02.png', png(384, 48, () => [0, 0, 0, 0]));
+    put('audio/sfx/sfx-jump/sfx-jump-v01.wav', Buffer.alloc(0));
+    const r = scan(tmp, path.join(tmp, 'asset-files.js'));
+    assert.equal(r.missingArt.length, S.ASSET_MANIFEST.length - 1);
+    assert.equal(r.missingSounds.length, S.SOUND_MANIFEST.length - 1);
+    assert.ok(!r.missingArt.some((a) => a.path === 'assets/' + SAM + 'sammy-run-strip-v01.png'), 'found art is not missing');
+    assert.ok(!r.missingSounds.some((m) => m.id === 'sfx-jump'), 'found sound is not missing');
+    // Sizes are the whole strip: frame width x frames, by frame height.
+    for (const a of r.missingArt) {
+      const m = S.ASSET_MANIFEST.find((x) => 'assets/' + x.path === a.path);
+      assert.equal(a.w, m.fw * m.frames); assert.equal(a.h, m.fh);
+      assert.equal(a.folder + '/' + a.file, m.path);
+    }
+    const whip = r.missingArt.find((a) => a.file === 'sammy-tail-whip-strip-v01.png');
+    assert.deepEqual([whip.w, whip.h], [256, 48]);
+    assert.deepEqual(r.missingSounds.find((m) => m.id === 'sfx-land'),
+      { id: 'sfx-land', kind: 'sfx', path: 'assets/audio/sfx/sfx-land/sfx-land-v01.ogg' });
+    // Each folder appears as one block (files sharing a folder, like the hot dog pickup in the cart folder, stay together).
+    const folders = r.missingArt.map((a) => a.folder).filter((f, i, all) => f !== all[i - 1]);
+    assert.equal(new Set(folders).size, folders.length, 'no folder is split');
+    assert.equal(folders[0], 'characters/character-sammy');
+    // Printed lines: contract headings, one folder line per folder, then the files.
+    const art = missingArtLines(r), snd = missingSoundLines(r);
+    assert.equal(art[0], `Still missing — art (${r.missingArt.length}):`);
+    assert.equal(art[1], '  assets/characters/character-sammy/');
+    assert.ok(art.includes('    sammy-tail-whip-strip-v01.png  256×48'));
+    assert.equal(art.length, 1 + folders.length + r.missingArt.length);
+    assert.equal(snd[0], `Still missing — sounds (${r.missingSounds.length}):`);
+    assert.ok(snd.includes('  assets/audio/sfx/sfx-land/sfx-land-v01.ogg'));
+    // Same input, same output.
+    const again = scan(tmp, path.join(tmp, 'asset-files.js'));
+    assert.deepEqual(again.missingArt, r.missingArt);
+    assert.deepEqual(again.missingSounds, r.missingSounds);
+    // An empty library lists everything.
+    const empty = scan(path.join(tmp, 'nothing-here'), path.join(tmp, 'asset-files.js'));
+    assert.equal(empty.missingArt.length, S.ASSET_MANIFEST.length);
+    assert.equal(empty.missingSounds.length, S.SOUND_MANIFEST.length);
+    assert.deepEqual(missingArtLines({ missingArt: [] }), ['Still missing — art (0):']);
+    assert.deepEqual(missingSoundLines({ missingSounds: [] }), ['Still missing — sounds (0):']);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+test('license row suggestions: new files get a blank row that will not ship; new versions copy the older row', async () => {
+  const { suggestRow, parseCsv, cleared, CSV_COLUMNS } = await import('../tools/licenses.mjs');
+  const header = CSV_COLUMNS.join(',') + '\n';
+  const rows = parseCsv(header +
+    'sammy-run-strip,assets/characters/character-sammy/sammy-run-strip-v01.png,Owner,,Original work,yes,no,"First art, drawn by hand"\n' +
+    'sfx-land,assets/audio/sfx/sfx-land/sfx-land-v01-a.ogg,"Kit Co, Ltd",https://example.com/kit,CC-BY 4.0,yes,yes,ok\n');
+  // A brand-new file: TBD license and blank commercial_use, so it is left out of the build.
+  const fresh = suggestRow('assets/characters/character-sammy/sammy-idle-strip-v01.png', rows);
+  assert.equal(fresh, 'sammy-idle-strip,assets/characters/character-sammy/sammy-idle-strip-v01.png,,,TBD,,,"New file; check every column"');
+  assert.equal(cleared(parseCsv(header + fresh)[0]), false);
+  // A newer version of a file that has a row: creator, source and license copied.
+  const v2 = suggestRow('assets/characters/character-sammy/sammy-run-strip-v02.png', rows);
+  assert.equal(v2, 'sammy-run-strip,assets/characters/character-sammy/sammy-run-strip-v02.png,Owner,,Original work,yes,no,' +
+    '"Copied from assets/characters/character-sammy/sammy-run-strip-v01.png; check it still applies"');
+  assert.equal(cleared(parseCsv(header + v2)[0]), true);
+  // Sound variations match too; commas and quotes are quoted so the line reads back the same.
+  const snd = parseCsv(header + suggestRow('assets/audio/sfx/sfx-land/sfx-land-v02-b.ogg', rows))[0];
+  assert.equal(snd.asset_id, 'sfx-land');
+  assert.equal(snd.creator, 'Kit Co, Ltd');
+  assert.equal(snd.attribution_required, 'yes');
+  const odd = parseCsv(header + suggestRow('assets/audio/sfx/sfx-hurt/sfx-hurt-v01.ogg',
+    parseCsv(header + 'x,assets/audio/sfx/sfx-hurt/sfx-hurt-v00.ogg,"Ann ""AJ"" Lee",,CC0,yes,no,\n')))[0];
+  assert.equal(odd.creator, 'Ann "AJ" Lee');
+  assert.equal(odd.license, 'CC0');
+  // Not tied to a different file whose name only starts the same way.
+  assert.match(suggestRow('assets/characters/character-sammy/sammy-run-strip-x-v01.png', rows), /New file/);
+});
+
 test('PNG checks: size, colour profile, semi-transparency, off-grid colours, and bad files never crash', async () => {
   const { checkPng } = await import('../tools/png.mjs');
   const { png } = await import('./png-writer.mjs');
@@ -879,4 +958,87 @@ test('touch wording: every touch prompt and screen line fits on the screen', () 
   assert.ok(S.LEVEL1.prompts.filter((p) => p.touch).length >= 3, 'move/jump, whip and possum prompts have touch wording');
   for (const mode of ['keys', 'touch']) for (const k in S.TEXT[mode]) assert.ok(S.textWidth(S.TEXT[mode][k]) <= 232, `${mode}.${k} fits in the title panel`);
   assert.equal(S.TEXT.touch.start, 'TAP JUMP TO START');
+});
+
+// ---- art templates (tools/make-art-templates.mjs) ----
+const libRoot = path.join(here, '..', '..');
+const artTemplates = path.join(libRoot, 'templates', 'art-templates');
+const listPngs = (dir) => {
+  const out = [];
+  const walk = (d) => { for (const n of fs.readdirSync(d).sort()) { const p = path.join(d, n); if (fs.statSync(p).isDirectory()) walk(p); else if (n.endsWith('.png')) out.push(path.relative(dir, p).split(path.sep).join('/')); } };
+  walk(dir);
+  return out;
+};
+
+test('art templates: every planned picture has a template of the exact size, outside assets/, and in a contact sheet', async () => {
+  const T = await import('../tools/make-art-templates.mjs');
+  const { readChunks } = await import('../tools/png.mjs');
+  assert.equal(S.ASSET_MANIFEST.length, 34);
+  for (const m of S.ASSET_MANIFEST) {
+    const rel = T.templatePath(m);
+    assert.match(rel, /-TEMPLATE\.png$/);
+    assert.equal(S.artFileVersion(m.path, path.posix.basename(rel)), null, 'a template name must never look like real art: ' + rel);
+    const file = path.join(artTemplates, rel);
+    assert.ok(fs.existsSync(file), 'missing template (run node tools/make-art-templates.mjs): ' + rel);
+    const info = readChunks(fs.readFileSync(file));
+    assert.deepEqual([info.width, info.height], [m.fw * m.frames, m.fh], rel);
+    assert.ok(T.groupOf(m), m.key);
+  }
+  for (const g of T.GROUPS.map((x) => x.id).concat('all')) {
+    const f = path.join(artTemplates, `contact-sheet-${g}.png`);
+    assert.ok(fs.existsSync(f), 'missing ' + f);
+    assert.ok(fs.statSync(f).size < 1024 * 1024, f + ' should stay under 1 MB');
+  }
+});
+
+test('art templates: guide marks are only half see-through, so the scanner flags a guide left in', async () => {
+  const T = await import('../tools/make-art-templates.mjs');
+  const { checkPng, readChunks, decodePixels } = await import('../tools/png.mjs');
+  for (const m of S.ASSET_MANIFEST) {
+    const buf = T.templatePng(m);
+    const px = decodePixels(readChunks(buf));
+    let semi = 0;
+    for (let i = 3; i < px.length; i += 4) { assert.notEqual(px[i], 255, m.key + ': a guide pixel is fully solid'); if (px[i]) semi += 1; }
+    assert.ok(semi > 0, m.key + ' has guide marks');
+    const warns = checkPng(buf, m.fw * m.frames, m.fh);
+    assert.ok(warns.some((w) => /semi-transparent/.test(w)), m.key);
+    assert.ok(!warns.some((w) => /wrong size/.test(w)), m.key);
+  }
+  // Hit / release frames and loop edges get their own colours; floating things get no ground line.
+  const kinds = (key) => new Set(T.guideMarks(S.ASSET_MANIFEST.find((m) => m.key === key)).map((k) => k[2]));
+  assert.ok(kinds('sammy:tail-whip').has('hit') && kinds('jogger:attack').has('hit') && kinds('vendor:throw').has('release'));
+  assert.ok(kinds('bg:skyline').has('seam') && !kinds('bg:sky').has('seam'));
+  assert.ok(!kinds('projectile:hotdog').has('ground') && kinds('sammy:idle').has('ground'));
+});
+
+test('art templates: making them again gives the same pictures; old ones are cleaned up; never writes into assets/', async () => {
+  const T = await import('../tools/make-art-templates.mjs');
+  const { readChunks, decodePixels } = await import('../tools/png.mjs');
+  const tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'sammy-templates-'));
+  try {
+    const a = path.join(tmp, 'a'), b = path.join(tmp, 'b');
+    fs.mkdirSync(path.join(a, 'old'), { recursive: true });
+    fs.writeFileSync(path.join(a, 'old', 'gone-TEMPLATE.png'), 'x');
+    fs.writeFileSync(path.join(a, 'contact-sheet-gone.png'), 'x');
+    fs.writeFileSync(path.join(a, 'keep-me.txt'), 'x');
+    const r = T.makeTemplates(a);
+    assert.equal(r.removed.length, 2);
+    assert.ok(fs.existsSync(path.join(a, 'keep-me.txt')) && !fs.existsSync(path.join(a, 'old')));
+    T.makeTemplates(b);
+    const files = listPngs(a);
+    assert.deepEqual(files, listPngs(b));
+    assert.deepEqual(files, listPngs(artTemplates), 'templates/art-templates/ is out of date: run node tools/make-art-templates.mjs');
+    for (const f of files) {
+      const fa = fs.readFileSync(path.join(a, f));
+      assert.ok(fa.equals(fs.readFileSync(path.join(b, f))), 'same bytes every run: ' + f);
+      // Same pixels as the saved copies (compared as pixels, so a different Node zlib can't fail it).
+      const ia = readChunks(fa), ir = readChunks(fs.readFileSync(path.join(artTemplates, f)));
+      assert.ok([ia.width, ia.height].join() === [ir.width, ir.height].join() && Buffer.from(decodePixels(ia)).equals(Buffer.from(decodePixels(ir))),
+        'templates/art-templates/ is out of date (run node tools/make-art-templates.mjs): ' + f);
+    }
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  for (const bad of [path.join(libRoot, 'assets'), path.join(libRoot, 'assets', 'templates'), path.join(libRoot, 'ASSETS', 'x')]) {
+    assert.throws(() => T.makeTemplates(bad), /inside assets/);
+  }
+  assert.ok(!fs.existsSync(path.join(libRoot, 'assets', 'templates')));
 });

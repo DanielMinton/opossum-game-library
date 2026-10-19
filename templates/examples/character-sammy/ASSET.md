@@ -1,6 +1,6 @@
 # Asset metadata — Sammy (example)
 
-> **EXAMPLE ONLY — not a real asset. No files listed here exist yet.** Copy into assets/<category>/<asset-id>/ and replace with your real details.
+> **EXAMPLE ONLY — planning spec, not a finished asset.** Run the scanner to see which files exist. Don't copy this into assets/ until every TBD is filled in.
 
 How to read this example:
 
@@ -13,7 +13,7 @@ How to read this example:
 - Asset ID: `character-sammy`
 - Display name: Sammy
 - Category: character
-- Files and purpose: see **Planned files** below (all planned — not yet supplied).
+- Files and purpose: see **Planned files** below. Only the run strip (`sammy-run-strip-v01.png`) has been supplied so far; run the scanner to see which files exist.
 - Readiness: TBD — Example: the model sheet would be `reference`; each animation strip would be `ready` once it matches the frame rules below, or `needs-preparation` if frames are uneven.
 - Visual description: Confirmed: an opossum, male ("he"). Example wording to replace with yours: "Grey-white fur, white face, pink nose, black rounded ears, black legs, long bare pink tail. Slightly scruffy, wide-eyed and confused but scrappy. Small torn bandana (proposed) to read clearly at small size."
 - Intended role in the game: Confirmed: the playable hero. He wakes in Central Park with no memory and fights through each level using interactive objects, power-ups, and special abilities.
@@ -22,9 +22,9 @@ How to read this example:
 - Transparent background: Proposed: yes — transparent PNG, hard edges, 1-bit transparency only (each pixel fully see-through or fully solid; no soft/semi-transparent edges, no anti-aliasing against the background).
 - Source/creator/license: TBD — Example: "Drawn by [your name], 2026, owned by me, OK to ship." Also record in `design/ASSET_SOURCES.csv`.
 
-## Planned files (planned — not yet supplied)
+## Planned files (only the run strip supplied so far)
 
-| File (planned — not yet supplied) | Type | Purpose |
+| File (planned) | Type | Purpose |
 |---|---|---|
 | `sammy-reference-v01.png` | Reference / model sheet | Turnaround (side, front, back, 3/4) and size notes. Used to keep the look consistent. Not used in the game directly. |
 | `palette-line-0-sammy-hud-v01.png` | Palette swatch | The 15 colors (plus transparent) Sammy and the HUD may use. One row of 16 squares. Saved in `assets/ui/palettes/` with the other palette sheets, not in Sammy's folder. |
@@ -51,7 +51,7 @@ Strip width = frame count × 48 px (with no padding). The one exception is tail-
 - If you only have a contact sheet at first, that is fine — mark it `reference` and list which strips are still missing. Claude Code can use clearly labeled placeholders until the strips arrive.
 
 ## Animation (if applicable)
-- File: one strip per animation (see Planned files — planned, not yet supplied).
+- File: one strip per animation (see Planned files).
 - Frame width × height in pixels: Proposed: 48 × 48 for every animation except tail-whip, which uses **64 × 48** cells. The whip reaches 26 px in front of Sammy's feet point, and a 48 px cell only has 23 px of room.
 - Grid columns / rows: one row per file; columns = frame count (e.g. run = 8 columns × 1 row).
 - Frame count and reading order: left to right, starting at frame 0. Counts in the table below.

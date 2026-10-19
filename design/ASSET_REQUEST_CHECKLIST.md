@@ -6,7 +6,7 @@ This is the prioritized list of source resources Claude Code needs to build a **
 
 **Everything else on this page is Proposed** — sizes, frame counts, ability names, enemy types, level names, and scope. Change anything that doesn't fit your vision and record the change in `design/GAME_BRIEF.md` or `design/DECISIONS.md`.
 
-Worked examples of every template live in `templates/examples/` (see `templates/examples/README.md`). They are examples only — nothing in them exists yet.
+Worked examples of every template live in `templates/examples/` (see `templates/examples/README.md`). They are planning specs (proposals only) for every planned file. The first real file, Sammy's run animation, is in. To see which files exist and which are still missing, with exact names and sizes, run the scanner (see "Adding real art" in `README.md`).
 
 ---
 

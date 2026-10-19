@@ -1,5 +1,5 @@
 # Ability — Trash Lid Shield (example)
-> **EXAMPLE ONLY — not a real asset. No files listed here exist yet.** Copy into assets/<category>/<asset-id>/ and replace with your real details.
+> **EXAMPLE ONLY — planning spec, not approved design.** Don't copy this into design/ until every TBD is filled in.
 
 > **Where the real copy goes:** `design/abilities/item-powerup-trash-lid-shield.md` (per `templates/ABILITY.md`) — **not** `assets/`. Only the art's `ASSET.md` (the example beside this file) goes in `assets/items/item-powerup-trash-lid-shield/`.
 

@@ -1,5 +1,6 @@
 // Finds which planned art and sound files exist in the library's assets/ folder and writes src/asset-files.js.
 // Run after adding or renaming art:   node tools/scan-assets.mjs
+// It also lists every planned art and sound file that has no real file yet ("Still missing").
 // Art: the newest version of each planned file wins (sammy-run-strip-v02.png over -v01.png).
 // Every PNG found is checked for size, colour-profile data, semi-transparent pixels and off-palette colours.
 // Options: --root <library folder> (default: the folder above game/)   --out <file>
@@ -108,8 +109,44 @@ export function scan(root, outFile) {
     '  S.PRESENT_SOUND_FILES = ' + JSON.stringify(sounds, null, 2).replace(/\n/g, '\n  ') + ';\n' +
     '})(globalThis.SAMMY = globalThis.SAMMY || {});\n';
   fs.writeFileSync(outFile, body);
+  const { missingArt, missingSounds } = findMissing(S, files, sounds);
   return { expected: manifest.length, files, found, older, unused: images, warnings,
-    soundsExpected: S.SOUND_MANIFEST.length, sounds, masters, unusedSounds };
+    soundsExpected: S.SOUND_MANIFEST.length, sounds, masters, unusedSounds, missingArt, missingSounds };
+}
+
+// Planned files with no real file yet. Art is grouped by folder, folders in the order they first appear in the manifest.
+function findMissing(S, files, sounds) {
+  const folders = [];
+  for (const m of S.ASSET_MANIFEST) {
+    const folder = path.posix.dirname(m.path);
+    if (!folders.includes(folder)) folders.push(folder);
+  }
+  const missingArt = [];
+  for (const folder of folders) {
+    for (const m of S.ASSET_MANIFEST) {
+      if (files[m.path] || path.posix.dirname(m.path) !== folder) continue;
+      missingArt.push({ folder, file: path.posix.basename(m.path), path: 'assets/' + m.path, w: m.fw * m.frames, h: m.fh });
+    }
+  }
+  const missingSounds = [...S.SOUND_MANIFEST].filter((m) => !sounds[m.id])
+    .map((m) => ({ id: m.id, kind: m.kind, path: 'assets/' + m.dir + m.id + '-v01.ogg' }));
+  return { missingArt, missingSounds };
+}
+
+// The "still missing" lists as printable lines, headings included (used here and by tools/build.mjs).
+export function missingArtLines(r) {
+  const lines = [`Still missing — art (${r.missingArt.length}):`];
+  let folder = null;
+  for (const a of r.missingArt) {
+    if (a.folder !== folder) { folder = a.folder; lines.push('  assets/' + folder + '/'); }
+    lines.push('    ' + a.file + '  ' + a.w + '×' + a.h);
+  }
+  return lines;
+}
+export function missingSoundLines(r) {
+  const lines = [`Still missing — sounds (${r.missingSounds.length}):`, ...r.missingSounds.map((m) => '  ' + m.path)];
+  if (r.missingSounds.length) lines.push('  (.mp3 or .wav also fine instead of .ogg)');
+  return lines;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -121,7 +158,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   for (const f of r.found) console.log('  + ' + f);
   if (r.older.length) console.log(`(${r.older.length} older version(s) skipped because a newer one exists.)`);
   if (r.warnings.length) {
-    console.log('Art warnings (see game/README.md, "Adding art"):');
+    console.log('Art warnings (what each one means: game/README.md, "Adding art"):');
     for (const w of r.warnings) console.log('  ! ' + w);
   }
   if (r.unused.length) {
@@ -136,5 +173,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     console.log('Sound files in assets/audio/ that the game does not use (expected <folder name>-v01.ogg, e.g. sfx-jump/sfx-jump-v01.ogg):');
     for (const f of r.unusedSounds) console.log('  ? ' + f);
   }
+  for (const line of missingArtLines(r).concat(missingSoundLines(r))) console.log(line);
   console.log('Wrote ' + path.relative(process.cwd(), out));
 }

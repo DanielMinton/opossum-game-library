@@ -1,5 +1,5 @@
 # Interactive asset states — Hot dog cart (example)
-> **EXAMPLE ONLY — not a real asset. No files listed here exist yet.** Copy into assets/<category>/<asset-id>/ and replace with your real details.
+> **EXAMPLE ONLY — planning spec, not a finished asset.** Run the scanner to see which files exist. Don't copy this into assets/ until every TBD is filled in.
 
 All behavior below is **Proposed** — an example of how to describe an interactive prop. Not approved design.
 

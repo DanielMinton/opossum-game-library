@@ -1,4 +1,4 @@
-Sammy placeholder prototype — code 6f89166b259e (changes only when index.html changes)
+Sammy placeholder prototype — code 55ae21e43eb5 (changes only when index.html changes)
 Open index.html in a browser. Everything is in this folder; nothing is fetched from the internet.
 
 Art included (1):
@@ -6,6 +6,73 @@ Art included (1):
 Art left out (0):
 Sound files included (0):
 Sound files left out (0):
+
+Still placeholders (no real file yet):
+Still missing — art (33):
+  assets/characters/character-sammy/
+    sammy-idle-strip-v01.png  192×48
+    sammy-jump-rise-strip-v01.png  96×48
+    sammy-fall-strip-v01.png  96×48
+    sammy-land-strip-v01.png  96×48
+    sammy-tail-whip-strip-v01.png  256×48
+    sammy-hurt-strip-v01.png  96×48
+    sammy-play-dead-strip-v01.png  192×48
+    sammy-ko-strip-v01.png  288×48
+    sammy-victory-strip-v01.png  192×48
+  assets/enemies/enemy-zombie-jogger/
+    zombie-jogger-walk-strip-v01.png  288×48
+    zombie-jogger-attack-strip-v01.png  192×48
+    zombie-jogger-hit-strip-v01.png  96×48
+    zombie-jogger-defeat-strip-v01.png  384×48
+    zombie-jogger-idle-strip-v01.png  192×48
+  assets/enemies/enemy-zombie-hot-dog-vendor/
+    zombie-vendor-idle-strip-v01.png  192×48
+    zombie-vendor-throw-strip-v01.png  192×48
+    zombie-vendor-hit-strip-v01.png  96×48
+    zombie-vendor-defeat-strip-v01.png  288×48
+    hot-dog-projectile-strip-v01.png  64×16
+    hot-dog-splat-strip-v01.png  64×16
+  assets/props/prop-hot-dog-cart/
+    hot-dog-cart-upright-v01.png  64×48
+    hot-dog-cart-rocking-strip-v01.png  192×48
+    hot-dog-cart-tipping-strip-v01.png  192×48
+    hot-dog-cart-tipped-over-v01.png  64×48
+    hot-dog-cart-empty-v01.png  64×48
+    hot-dog-pickup-strip-v01.png  64×16
+  assets/items/item-powerup-trash-lid-shield/
+    trash-lid-pickup-strip-v01.png  64×16
+    trash-lid-held-overlay-strip-v01.png  48×16
+    hud-icon-trash-lid-v01.png  16×16
+  assets/environments/environment-central-park-tileset/
+    central-park-bg-sky-v01.png  320×224
+    central-park-bg-skyline-v01.png  512×64
+    central-park-bg-treeline-v01.png  512×32
+    central-park-bg-bushes-v01.png  512×32
+Still missing — sounds (23):
+  assets/audio/sfx/sfx-jump/sfx-jump-v01.ogg
+  assets/audio/sfx/sfx-land/sfx-land-v01.ogg
+  assets/audio/sfx/sfx-tail-whip/sfx-tail-whip-v01.ogg
+  assets/audio/sfx/sfx-hit-zombie/sfx-hit-zombie-v01.ogg
+  assets/audio/sfx/sfx-zombie-groan/sfx-zombie-groan-v01.ogg
+  assets/audio/sfx/sfx-pickup/sfx-pickup-v01.ogg
+  assets/audio/sfx/sfx-hurt/sfx-hurt-v01.ogg
+  assets/audio/sfx/sfx-play-dead/sfx-play-dead-v01.ogg
+  assets/audio/sfx/sfx-zombie-defeat-comedic/sfx-zombie-defeat-comedic-v01.ogg
+  assets/audio/sfx/sfx-cart-crash/sfx-cart-crash-v01.ogg
+  assets/audio/sfx/sfx-ko/sfx-ko-v01.ogg
+  assets/audio/sfx/sfx-cart-rock/sfx-cart-rock-v01.ogg
+  assets/audio/sfx/sfx-shield-block/sfx-shield-block-v01.ogg
+  assets/audio/sfx/sfx-shield-break/sfx-shield-break-v01.ogg
+  assets/audio/sfx/sfx-throw/sfx-throw-v01.ogg
+  assets/audio/sfx/sfx-splat/sfx-splat-v01.ogg
+  assets/audio/sfx/sfx-splash/sfx-splash-v01.ogg
+  assets/audio/sfx/sfx-checkpoint/sfx-checkpoint-v01.ogg
+  assets/audio/sfx/sfx-gate-open/sfx-gate-open-v01.ogg
+  assets/audio/sfx/sfx-level-clear/sfx-level-clear-v01.ogg
+  assets/audio/sfx/sfx-start/sfx-start-v01.ogg
+  assets/audio/music/music-level-01-central-park/music-level-01-central-park-v01.ogg
+  assets/audio/music/music-level-01-gauntlet/music-level-01-gauntlet-v01.ogg
+  (.mp3 or .wav also fine instead of .ogg)
 
 Placeholder shapes and code-generated beeps are used for everything not included.
 A file is included only when design/ASSET_SOURCES.csv says commercial_use "yes" and names a commercial-use license.

@@ -2,7 +2,7 @@
 
 This is Sammy's filled-in copy of `templates/STYLE_GUIDE.md`. **Every answer here is Proposed (not approved).** The answers come from the example `ASSET.md` files in `templates/examples/` and from the 2026-10-19 review. The owner approves or changes them (see `design/OWNER_DECISIONS.md`).
 
-> These are **aesthetic targets for a browser build** that should look and sound like a classic 16-bit home console game. They are not hardware limits the game enforces. The game's art checker (`node game/tools/scan-assets.mjs`) warns about breaks from these targets but never blocks a file. The one exception is wrong-size art, which the game doesn't use.
+> These are **aesthetic targets for a browser build** that should look and sound like a classic 16-bit home console game. They are not hardware limits the game enforces. The game's art checker (the scanner: `node tools/scan-assets.mjs`, run from the `game/` folder) warns about breaks from these targets but never blocks a file. The one exception is wrong-size art, which the game doesn't use.
 
 ## Project choices
 
@@ -116,13 +116,13 @@ The exact size of every planned file is in `game/src/assets.js`. Sammy's cell si
 
 | Layer (far → near) | Width | Height | Screen rows | Scroll speed (**Proposed**) | File |
 |---|---|---|---|---|---|
-| Sky | 320 (static) or 512 | 224 | 0–223 (behind everything) | 0% | `central-park-bg-sky-v01.png` |
-| Far skyline | 256 or 512 | 64 | 80–143 | 12.5% | `central-park-bg-skyline-v01.png` |
-| Mid trees | 256 or 512 | 32 | 144–175 | 25% | `central-park-bg-treeline-v01.png` |
-| Near bushes | 256 or 512 | 32 | 176–207 (ground covers 192 and below) | 50% | `central-park-bg-bushes-v01.png` |
+| Sky | 320 (doesn't move) | 224 | 0–223 (behind everything) | 0% | `central-park-bg-sky-v01.png` |
+| Far skyline | 512 | 64 | 80–143 | 12.5% | `central-park-bg-skyline-v01.png` |
+| Mid trees | 512 | 32 | 144–175 | 25% | `central-park-bg-treeline-v01.png` |
+| Near bushes | 512 | 32 | 176–207 (ground covers 192 and below) | 50% | `central-park-bg-bushes-v01.png` |
 | Near ground / foreground tiles | tileset | 16×16 metatiles | — | 100% | `central-park-tiles-v01.png` |
 
-- **Proposed:** these rows, speeds and widths are what the game uses today (the `bg:` lines in `game/src/assets.js`). The skyline, trees and bushes are 512 px wide; the sky is 320 px and doesn't move.
+- **Proposed:** these rows, speeds and widths are what the game uses today (the `bg:` lines in `game/src/assets.js`). The skyline, trees and bushes are 512 px wide; the sky is 320 px and doesn't move. The game only uses these exact sizes; the scanner shows them.
 - The scrolling bands **must not overlap** (on the real hardware each screen line belongs to one band). The game reads each band's row, speed and width from `game/src/assets.js`, which matches this table and the Central Park tileset `ASSET.md`.
 
 - Tilesets: one PNG on an 8×8 grid (16×16 metatiles), with a note listing which tiles are solid, one-way platforms, hazards, or decoration.
@@ -140,14 +140,16 @@ The exact size of every planned file is in `game/src/assets.js`. Sammy's cell si
 
 ## Naming conventions
 
+- **Exact file names: run the scanner or see `game/src/assets.js`.** The game only uses files with the exact names it expects. The scanner (`node tools/scan-assets.mjs`, run from the `game/` folder) lists every missing file with its exact name, folder and size.
 - Lowercase kebab-case, version suffix `-v01`, `-v02`, …
 - Pattern: `<asset>-<animation or state>-<kind>-v01.png`
-- Kind words: `strip` = one horizontal strip for one animation (the normal case); `sheet` = a multi-row sheet or a tile sheet; `loop` = a repeating background band; `reference` = not for the game.
-- Examples (naming patterns only — these files do not exist):
+- Kind words: `strip` = one horizontal strip for one animation (the normal case); `sheet` = a multi-row sheet or a tile sheet; `reference` = not for the game. A single picture (one frame) has no kind word, e.g. `hot-dog-cart-upright-v01.png`.
+- Background bands use `<place>-bg-<band>-v01.png`, e.g. `central-park-bg-sky-v01.png` (see the table under **Backgrounds and parallax**).
+- Examples (naming patterns; only `sammy-run-strip-v01.png` exists so far):
   - `sammy-run-strip-v01.png`
   - `sammy-reference-v01.png`
   - `zombie-jogger-walk-strip-v01.png`
-  - `central-park-sky-loop-v01.png`
+  - `central-park-bg-sky-v01.png`
   - `palette-line-0-sammy-hud-v01.png`
   - `music-level-01-central-park-v01.ogg`
 - Never overwrite the only original. Save a new version instead.

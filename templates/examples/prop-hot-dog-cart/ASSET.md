@@ -1,5 +1,5 @@
 # Asset metadata — Hot dog cart (example)
-> **EXAMPLE ONLY — not a real asset. No files listed here exist yet.** Copy into assets/<category>/<asset-id>/ and replace with your real details.
+> **EXAMPLE ONLY — planning spec, not a finished asset.** Run the scanner to see which files exist. Don't copy this into assets/ until every TBD is filled in.
 
 How to use this example: this shows how a filled-in `ASSET.md` for an interactive prop might look. Real copy goes in `assets/props/prop-hot-dog-cart/`. Everything marked **Proposed** or **Example** is a suggestion, not a decision.
 

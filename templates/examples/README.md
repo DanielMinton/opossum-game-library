@@ -1,6 +1,10 @@
 # Template examples
 
-> **EXAMPLE ONLY — not a real asset. No files listed here exist yet.** Copy into assets/<category>/<asset-id>/ and replace with your real details.
+> **EXAMPLE ONLY — planning spec, not a finished asset.** Run the scanner to see which files exist. Don't copy this into assets/ until every TBD is filled in.
+
+**What this folder is:** the planning specs for every art and sound file the game plans to use. Each file name and size here must match the list in `game/src/assets.js`. A test checks this for art (not for sound names), so if you change a name or size, change it in both places.
+
+To see which planned files exist and which are still missing, run the scanner (see "Adding real art" in the main `README.md`).
 
 This README is the index of the examples folder; it is itself not an asset.
 
@@ -28,13 +32,19 @@ New blank templates used by these examples: `templates/STYLE_GUIDE.md`, `templat
 
 Every file in this folder starts with this line right after its title:
 
-> **EXAMPLE ONLY — not a real asset. No files listed here exist yet.** Copy into assets/<category>/<asset-id>/ and replace with your real details.
+> **EXAMPLE ONLY — planning spec, not a finished asset.** Run the scanner to see which files exist. Don't copy this into assets/ until every TBD is filled in.
 
-Any filename mentioned in an example is marked "(planned — not yet supplied)" or listed under a section clearly titled as planned files. This keeps Claude Code from mistaking an example for real inventory.
+Level and ability examples (`LEVEL.md`, `ABILITY.md`) describe rules, not art, so theirs says `design/` instead:
+
+> **EXAMPLE ONLY — planning spec, not approved design.** Don't copy this into design/ until every TBD is filled in.
+
+Any filename mentioned in an example is marked "(planned — not yet supplied)" or listed under a section clearly titled as planned files. Some of those files may exist by now (Sammy's run strip does); the scanner shows which. This keeps Claude Code from mistaking an example for real inventory.
 
 ## How to use an example for a real asset
 
-1. **Copy** the example folder into the matching `assets/` category, e.g. `templates/examples/prop-hot-dog-cart/` → `assets/props/prop-hot-dog-cart/`.
+Fill in every TBD first, while the copy is still outside `assets/` (for example, in a working folder of your own). Then:
+
+1. **Copy** the finished folder into the matching `assets/` category, e.g. `templates/examples/prop-hot-dog-cart/` → `assets/props/prop-hot-dog-cart/`.
    - **Exception:** `LEVEL.md` and `ABILITY.md` files never go in `assets/`. Copy them to `design/levels/<level-id>.md` and `design/abilities/<ability-id>.md` (so `level-01-sheep-meadow/` and `ability-play-possum/` go entirely to `design/`, and the trash lid's `ABILITY.md` goes to `design/abilities/item-powerup-trash-lid-shield.md` while its `ASSET.md` goes to `assets/items/`). Only art-bearing `ASSET.md`, `INTERACTION.md` and `AUDIO.md` files go in `assets/`.
 2. **Rename** the folder to your real asset ID if it differs (lowercase kebab-case, e.g. `prop-park-bench`).
 3. **Replace every planned file** with your real files (PNG, WAV, etc.), and update every number, name, and description to match what you actually made. Unknowns stay `TBD`.
