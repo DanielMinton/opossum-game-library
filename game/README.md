@@ -36,7 +36,7 @@ The level is 12 screens long, about 1 minute for a fast run and 3–5 minutes fo
    - The vendor zombie lobs hot dogs at Sammy and deflates when defeated.
 7. **Play Possum lesson (screen 7):** a group of 3 joggers.
    - Press **C** to play dead for up to 3 s. Zombies within 96 px get confused.
-   - The ability has a 6 s cooldown. The "PP" icon in the top bar fills up during the cooldown and flashes when it's ready again.
+   - The ability has a 6 s cooldown. The "PP" icon in the top bar turns grey during the cooldown, with a bar beside it that fills up, and flashes when it's ready again.
 8. **Pond (screen 8):** falling in costs 1 heart and puts Sammy back on safe ground. A bench helps him cross.
 9. **Checkpoint C2:** the start of screen 9, with a second trash lid nearby.
 10. **Gauntlet (screen 12):**
