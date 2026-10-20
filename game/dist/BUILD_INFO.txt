@@ -1,7 +1,7 @@
-Sammy placeholder prototype — code 31d0496a09f9 (changes only when index.html changes)
+Sammy placeholder prototype — code 0befc647b806 (changes only when index.html changes)
 Open index.html in a browser. Everything is in this folder; nothing is fetched from the internet.
 
-Art included (15):
+Art included (48):
   characters/character-sammy/sammy-idle-strip-v03.png
   characters/character-sammy/sammy-run-strip-v03.png
   characters/character-sammy/sammy-jump-rise-strip-v03.png
@@ -15,8 +15,41 @@ Art included (15):
   characters/character-sammy/sammy-chainsaw-idle-strip-v03.png
   characters/character-sammy/sammy-chainsaw-run-strip-v03.png
   characters/character-sammy/sammy-chainsaw-rev-strip-v03.png
+  enemies/enemy-zombie-hippie/zombie-hippie-walk-strip-v01.png
+  enemies/enemy-zombie-hippie/zombie-hippie-attack-strip-v01.png
+  enemies/enemy-zombie-hippie/zombie-hippie-hit-strip-v01.png
+  enemies/enemy-zombie-hippie/zombie-hippie-defeat-strip-v01.png
+  enemies/enemy-zombie-hippie/zombie-hippie-idle-strip-v01.png
+  enemies/enemy-zombie-sweater/zombie-sweater-walk-strip-v01.png
+  enemies/enemy-zombie-sweater/zombie-sweater-attack-strip-v01.png
+  enemies/enemy-zombie-sweater/zombie-sweater-hit-strip-v01.png
+  enemies/enemy-zombie-sweater/zombie-sweater-defeat-strip-v01.png
+  enemies/enemy-zombie-sweater/zombie-sweater-idle-strip-v01.png
+  enemies/enemy-zombie-cheerleader/zombie-cheerleader-walk-strip-v01.png
+  enemies/enemy-zombie-cheerleader/zombie-cheerleader-attack-strip-v01.png
+  enemies/enemy-zombie-cheerleader/zombie-cheerleader-hit-strip-v01.png
+  enemies/enemy-zombie-cheerleader/zombie-cheerleader-defeat-strip-v01.png
+  enemies/enemy-zombie-cheerleader/zombie-cheerleader-idle-strip-v01.png
+  enemies/enemy-zombie-baby/zombie-baby-walk-strip-v01.png
+  enemies/enemy-zombie-baby/zombie-baby-attack-strip-v01.png
+  enemies/enemy-zombie-baby/zombie-baby-hit-strip-v01.png
+  enemies/enemy-zombie-baby/zombie-baby-defeat-strip-v01.png
+  enemies/enemy-zombie-baby/zombie-baby-idle-strip-v01.png
   items/item-powerup-chainsaw/chainsaw-pickup-strip-v01.png
   items/item-powerup-chainsaw/hud-icon-chainsaw-v01.png
+  enemies/enemy-zombie-brute/brute-walk-strip-v01.png
+  enemies/enemy-zombie-brute/brute-swipe-strip-v01.png
+  enemies/enemy-zombie-brute/brute-slam-strip-v01.png
+  enemies/enemy-zombie-brute/brute-spin-strip-v01.png
+  enemies/enemy-zombie-brute/brute-vomit-strip-v01.png
+  enemies/enemy-zombie-brute/brute-vomit-stream-strip-v01.png
+  enemies/enemy-zombie-brute/brute-stagger-strip-v01.png
+  enemies/enemy-zombie-brute/brute-death-strip-v01.png
+  enemies/enemy-zombie-brute/brute-faces-strip-v01.png
+  enemies/enemy-zombie-brute/brute-acid-splat-strip-v01.png
+  enemies/enemy-zombie-brute/brute-acid-smoke-strip-v01.png
+  enemies/enemy-zombie-brute/brute-blood-slash-strip-v01.png
+  enemies/enemy-zombie-brute/brute-dust-strip-v01.png
 Art left out (0):
 Sound files included (0):
 Sound files left out (2):
@@ -24,25 +57,13 @@ Sound files left out (2):
   audio/music/music-level-01-central-park/music-level-01-central-park-v02.ogg  (commercial_use is "tbd"; it must be "yes")
 
 Still placeholders (no real file yet):
-Still missing — art (75):
+Still missing — art (42):
   assets/enemies/enemy-zombie-jogger/
     zombie-jogger-walk-strip-v01.png  288×48
     zombie-jogger-attack-strip-v01.png  192×48
     zombie-jogger-hit-strip-v01.png  96×48
     zombie-jogger-defeat-strip-v01.png  384×48
     zombie-jogger-idle-strip-v01.png  192×48
-  assets/enemies/enemy-zombie-hippie/
-    zombie-hippie-walk-strip-v01.png  288×48
-    zombie-hippie-attack-strip-v01.png  192×48
-    zombie-hippie-hit-strip-v01.png  96×48
-    zombie-hippie-defeat-strip-v01.png  384×48
-    zombie-hippie-idle-strip-v01.png  192×48
-  assets/enemies/enemy-zombie-sweater/
-    zombie-sweater-walk-strip-v01.png  384×56
-    zombie-sweater-attack-strip-v01.png  256×56
-    zombie-sweater-hit-strip-v01.png  128×56
-    zombie-sweater-defeat-strip-v01.png  512×56
-    zombie-sweater-idle-strip-v01.png  256×56
   assets/enemies/enemy-zombie-hot-dog-vendor/
     zombie-vendor-idle-strip-v01.png  192×48
     zombie-vendor-throw-strip-v01.png  192×48
@@ -50,18 +71,6 @@ Still missing — art (75):
     zombie-vendor-defeat-strip-v01.png  288×48
     hot-dog-projectile-strip-v01.png  64×16
     hot-dog-splat-strip-v01.png  64×16
-  assets/enemies/enemy-zombie-cheerleader/
-    zombie-cheerleader-walk-strip-v01.png  288×48
-    zombie-cheerleader-attack-strip-v01.png  192×48
-    zombie-cheerleader-hit-strip-v01.png  96×48
-    zombie-cheerleader-defeat-strip-v01.png  384×48
-    zombie-cheerleader-idle-strip-v01.png  192×48
-  assets/enemies/enemy-zombie-baby/
-    zombie-baby-walk-strip-v01.png  192×32
-    zombie-baby-attack-strip-v01.png  128×32
-    zombie-baby-hit-strip-v01.png  64×32
-    zombie-baby-defeat-strip-v01.png  256×32
-    zombie-baby-idle-strip-v01.png  128×32
   assets/props/prop-hot-dog-cart/
     hot-dog-cart-upright-v01.png  64×48
     hot-dog-cart-rocking-strip-v01.png  192×48
@@ -73,20 +82,6 @@ Still missing — art (75):
     trash-lid-pickup-strip-v01.png  64×16
     trash-lid-held-overlay-strip-v01.png  48×16
     hud-icon-trash-lid-v01.png  16×16
-  assets/enemies/enemy-zombie-brute/
-    brute-walk-strip-v01.png  576×96
-    brute-swipe-strip-v01.png  768×96
-    brute-slam-strip-v01.png  384×96
-    brute-spin-strip-v01.png  512×96
-    brute-vomit-strip-v01.png  96×96
-    brute-vomit-stream-strip-v01.png  64×96
-    brute-stagger-strip-v01.png  256×96
-    brute-death-strip-v01.png  1280×96
-    brute-faces-strip-v01.png  544×32
-    brute-acid-splat-strip-v01.png  192×48
-    brute-acid-smoke-strip-v01.png  160×56
-    brute-blood-slash-strip-v01.png  288×64
-    brute-dust-strip-v01.png  128×48
   assets/environments/environment-central-park-tileset/
     central-park-bg-sky-v01.png  320×224
     central-park-bg-skyline-v01.png  512×64

@@ -25,8 +25,8 @@
   const SWE = 'enemies/enemy-zombie-sweater/';
   const big = { fw: 64, fh: 56, px: 32, py: 55 }; // the sweater's cells: he stands about 52 px, wider than a 48 px cell
   const CHEER = 'enemies/enemy-zombie-cheerleader/'; // 48x48, feet (24, 47) like the jogger (zombie roster, 2026-10-20)
-  const BABY = 'enemies/enemy-zombie-baby/';         // a toddler: 32x32 cells, feet (16, 31), about 30 px standing
-  const baby = { fw: 32, fh: 32, px: 16, py: 31 };
+  const BABY = 'enemies/enemy-zombie-baby/';         // a toddler: 40x40 cells, feet (20, 39), about 36 px standing
+  const baby = { fw: 40, fh: 40, px: 20, py: 39 }; // 40x40 cells (about 36 px standing): at 32 px her eyeball/rattle/brain gags turned to mush
   const CART = 'props/prop-hot-dog-cart/';
   const LID = 'items/item-powerup-trash-lid-shield/';
   const SAW = 'items/item-powerup-chainsaw/';

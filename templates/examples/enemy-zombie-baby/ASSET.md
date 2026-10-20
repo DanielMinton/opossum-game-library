@@ -17,11 +17,11 @@
 
 | File (planned — not yet supplied) | Type | Purpose |
 |---|---|---|
-| `zombie-baby-walk-strip-v01.png` | Production strip | A fast toddle, 6 frames, 192×32 px |
-| `zombie-baby-attack-strip-v01.png` | Production strip | Rattle smack, 4 frames, 128×32 px, hit frame 2 |
-| `zombie-baby-hit-strip-v01.png` | Production strip | 2 frames, 64×32 px (frame 0 is also the chainsaw-cut pose) |
-| `zombie-baby-defeat-strip-v01.png` | Production strip | The pop, 8 frames, 256×32 px |
-| `zombie-baby-idle-strip-v01.png` | Production strip | 4 frames, 128×32 px (arena drop-in; it is never confused) |
+| `zombie-baby-walk-strip-v01.png` | Production strip | A fast toddle, 6 frames, 240×40 px |
+| `zombie-baby-attack-strip-v01.png` | Production strip | Rattle smack, 4 frames, 160×40 px, hit frame 2 |
+| `zombie-baby-hit-strip-v01.png` | Production strip | 2 frames, 80×40 px (frame 0 is also the chainsaw-cut pose) |
+| `zombie-baby-defeat-strip-v01.png` | Production strip | The pop, 8 frames, 320×40 px |
+| `zombie-baby-idle-strip-v01.png` | Production strip | 4 frames, 160×40 px (arena drop-in; it is never confused) |
 
 ## Animation
 - Frame width × height in pixels: 32 × 32. Pivot / feet baseline: bottom-centre (16, 31), feet on row 31 in every grounded frame.
