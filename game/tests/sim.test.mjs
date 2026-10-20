@@ -437,7 +437,7 @@ function withStubType(fields, fn) {
 
 test('enemy types: every type is one complete row: config block, brain, start state, drawer, and a strip for every animation', () => {
   const names = Object.keys(S.ENEMY_TYPES);
-  assert.deepEqual(names, ['jogger', 'vendor', 'hippie', 'sweater', 'cheerleader', 'baby'], 'the types today, in config order');
+  assert.deepEqual(names, ['jogger', 'vendor', 'hippie', 'sweater', 'cheerleader', 'baby', 'brute'], 'the types today, in config order');
   const keys = new Set(S.ASSET_MANIFEST.map((m) => m.key));
   for (const [name, T] of Object.entries(S.ENEMY_TYPES)) {
     assert.equal(T.name, name);
@@ -449,10 +449,10 @@ test('enemy types: every type is one complete row: config block, brain, start st
     for (const st of T.states) assert.ok(T.anims[st], name + ': state ' + st + ' has an animation');
     for (const anim of new Set(Object.values(T.anims))) assert.ok(keys.has(T.cfg.art + ':' + anim), name + ': manifest strip ' + T.cfg.art + ':' + anim);
     assert.equal(typeof S.ENEMY_DRAW[name], 'function', name + ' has a drawer in render.js');
-    const STYLES = ['pop', 'deflate', 'sliced', 'melt', 'flop', 'burst'];
+    const STYLES = ['pop', 'deflate', 'sliced', 'melt', 'flop', 'burst', 'crawl'];
     assert.ok(STYLES.includes(T.cfg.defeatStyle) && STYLES.includes(T.cfg.sawStyle), name + ' defeat styles are drawn');
   }
-  assert.equal(S.ENEMY_TYPES.jogger.brain, 'walker'); assert.equal(S.ENEMY_TYPES.vendor.brain, 'turret');
+  assert.equal(S.ENEMY_TYPES.jogger.brain, 'walker'); assert.equal(S.ENEMY_TYPES.vendor.brain, 'turret'); assert.equal(S.ENEMY_TYPES.brute.brain, 'boss');
   for (const d of S.LEVEL1.enemies) assert.ok(S.ENEMY_TYPES[d.type], 'level 1 places a known type: ' + d.type);
   assert.ok(S.ENEMY_TYPES[C.gauntlet.waveType], 'the gauntlet spawns a known type');
   // The table is the only place that knows the types: no "is it a jogger?" checks are left in the game code.
@@ -1809,7 +1809,7 @@ const listPngs = (dir) => {
 test('art templates: every planned picture has a template of the exact size, outside assets/, and in a contact sheet', async () => {
   const T = await import('../tools/make-art-templates.mjs');
   const { readChunks } = await import('../tools/png.mjs');
-  assert.equal(S.ASSET_MANIFEST.length, 77); // 57 + five strips each for the hippie, sweater, cheerleader and baby (2026-10-20)
+  assert.equal(S.ASSET_MANIFEST.length, 90); // 57 + five strips each for the hippie, sweater, cheerleader and baby + the Brute's 13 (2026-10-20)
   for (const m of S.ASSET_MANIFEST) {
     const rel = T.templatePath(m);
     assert.match(rel, /-TEMPLATE\.png$/);
@@ -2361,4 +2361,421 @@ test('hippie and sweater: the autopilot still clears a level with them placed wh
   assert.ok(s.stats.defeated >= placed.length - 2, 'fought its way through: ' + s.stats.defeated);
   const a = run(), b = run();
   assert.equal(JSON.stringify([a.stats, Math.round(a.player.x * 100)]), JSON.stringify([b.stats, Math.round(b.player.x * 100)]));
+});
+
+// ---------- THE BRUTE (level 1 boss, 2026-10-20) ----------
+const B = C.brute;
+// The arena with the waves already cleared and the boss in: Sammy at x (left side by default), the boss at bossX (the arch by
+// default), skipping his entrance unless asked. The supplies the arena drops are removed unless asked for, so they can't be
+// picked up by accident. Returns [state, boss].
+function bossFight(opts = {}) {
+  const s = start();
+  s.enemies = s.enemies.filter((e) => e.def.x > 9999);
+  if (opts.god) s.god = true;
+  place(s, opts.x || 3600, { cp: 2576, face: opts.face || 1 });
+  s.arena = { state: 'boss', wave: C.gauntlet.waves.length, timer: 0, spawnCount: 9 };
+  const e = S.spawnBoss(s);
+  if (!opts.supplies) s.pickups = s.pickups.filter((pk) => !pk.supply);
+  if (opts.saw) s.player.saw = { fuel: C.chainsaw.fuel, revving: false, tick: 0, slash: 0 };
+  if (!opts.enter) { e.state = 'walk'; e.t = 0; e.decideT = 0; e.face = -1; }
+  if (opts.bossX != null) e.x = opts.bossX;
+  if (opts.hp != null) e.hp = opts.hp;
+  s.effects = []; s.shake = 0; events(s);
+  return [s, e];
+}
+const stateIn = (s, e, st, max, spec) => runUntil(s, () => e.state === st, max, spec);
+// Standing inside him for a frame: does it cost a heart?
+function touchHurts(s, e) {
+  const p = s.player; p.x = e.x; p.y = G; p.vx = 0; p.vy = 0; p.grounded = true; p.invuln = 0; p.shield = 0; p.hp = 3; p.state = 'normal';
+  step(s); return p.hp < 3;
+}
+
+test('brute: the arena brings him in after the last wave (with the banner and the supplies), keeps the walls up, and opens the exit only when he is dead', () => {
+  const s = start(); s.god = true;
+  s.enemies = s.enemies.filter((e) => e.def.x > 9999);
+  place(s, 3700, { cp: 2576 });
+  s.arena = { state: 'fight', wave: C.gauntlet.waves.length - 1, timer: 0, spawnCount: 9 }; // last wave, nobody left
+  step(s);
+  assert.equal(s.arena.state, 'boss'); assert.ok(s.arena.timer > 0.9, 'a moment of quiet first'); assert.ok(s.shake > 0, 'the ground shakes');
+  assert.ok(S.getSolids(s).some((b) => b.kind === 'arena-wall') && S.getSolids(s).some((b) => b.kind === 'gate'), 'still locked in');
+  step(s, {}, sec(C.gauntlet.bossDelay) + 1);
+  const e = s.enemies.find((q) => q.boss);
+  assert.ok(e && e.type === C.gauntlet.boss, 'the boss is in');
+  assert.ok(Math.abs(e.x - (s.level.arena.gateX - C.gauntlet.bossArch)) < 1, 'out of the arch nearest the gate: ' + e.x);
+  assert.equal(e.state, 'enter'); assert.equal(e.face, -1); assert.equal(e.hp, B.hp); assert.ok(e.arena && e.boss);
+  assert.equal(s.arena.spawnCount, 9, 'he is not counted as a wave zombie');
+  assert.ok(s.effects.some((f) => f.kind === 'text' && f.text === B.lines.enter), 'entrance banner');
+  assert.ok(events(s).includes('sfx-boss-chains'));
+  // The supplies (owner answer 4): a trash lid and a chainsaw drop in by the left wall and land on the terrace.
+  const sup = s.pickups.filter((pk) => pk.supply);
+  assert.deepEqual(sup.map((pk) => pk.type).sort(), ['chainsaw', 'lid']);
+  step(s, {}, sec(1.5));
+  for (const pk of sup) assert.ok(pk.landed && pk.y === G && pk.x > s.level.arena.x0 && pk.x < s.level.arena.gateX && !pk.collected, pk.type + ' landed inside the arena');
+  // The gate stays shut while he lives, even with nothing else alive.
+  step(s, {}, sec(2));
+  assert.equal(s.arena.state, 'boss');
+  // Dead: the gate opens as before, with the same line.
+  e.hp = 1; e.state = 'walk'; place(s, e.x - 30, { cp: 2576 }); step(s, { pressed: { attack: true } }, sec(0.3));
+  assert.equal(e.state, 'defeat');
+  step(s, {}, sec(B.defeatTime + B.deathHold) + 2);
+  assert.ok(!s.enemies.some((q) => q.boss), 'gone'); assert.equal(s.arena.state, 'open');
+  assert.ok(s.effects.some((f) => f.kind === 'text' && f.text === 'EXIT OPEN. GO.'));
+  assert.ok(events(s).includes('sfx-gate-open') && s.events.length === 0);
+  place(s, 3810, { cp: 2576 }); step(s, { held: { right: true } }, 20);
+  assert.equal(s.mode, 'clear');
+});
+
+test('brute: the entrance (walks out of the arch, roars, then comes), touching him hurts, and he never flinches from a hit', () => {
+  const [s, e] = bossFight({ enter: true, x: 3540 });
+  e.slamCd = 10; // far away, no slam: this test watches him walk
+  const x0 = e.x;
+  step(s, {}, sec(B.enterWalk));
+  assert.ok(x0 - e.x > B.walkSpeed * B.enterWalk - 3 && x0 - e.x <= B.walkSpeed * B.enterWalk + 1, 'walked out of the arch: ' + (x0 - e.x));
+  assert.equal(e.state, 'enter'); assert.equal(e.anim, 'walk');
+  step(s, {}, 2);
+  assert.ok(events(s).includes('sfx-boss-roar'), 'the roar'); assert.ok(s.shake > 0);
+  step(s, {}, sec(B.enterRoar));
+  assert.equal(e.state, 'walk');
+  const xw = e.x; step(s, {}, sec(1)); e.slamCd = 10; assert.ok(e.x < xw - 20 && e.face === -1, 'comes for Sammy at walk speed');
+  assert.ok(touchHurts(s, e), 'walking into him hurts');
+  // A whip takes a hit point, flashes him white, plays the meaty thud, and changes nothing else (flinch: false; no knockback).
+  e.state = 'walk'; e.t = 0; e.decideT = 9; place(s, e.x - 34, { cp: 2576 }); s.player.invuln = 5; events(s);
+  const ex = e.x;
+  step(s, { pressed: { attack: true } });
+  assert.ok(runUntil(s, () => e.hp < B.hp, sec(0.3)) >= 0, 'whipped');
+  step(s, {}, 2);
+  assert.equal(e.hp, B.hp - 1); assert.equal(e.state, 'walk'); assert.ok(e.flashT > 0, 'flashing'); assert.ok(e.hitT > 0, 'portrait wince timer');
+  step(s, {}, sec(0.15));
+  assert.ok(Math.abs(e.x - ex) < B.walkSpeed * 0.35 + 1, 'not pushed back');
+  const ids = events(s); assert.ok(ids.includes('sfx-boss-hit') && ids.includes('sfx-hit-zombie'));
+  assert.ok(s.effects.some((f) => f.kind === 'blood'), 'bleeds');
+  assert.equal(s.effects.filter((f) => f.kind === 'chunk').length, 0, 'a whip throws no chunks');
+});
+
+test('brute: SWIPE: tell, step, three swings that reach the floor (lying flat fails) and throw Sammy twice as far, then a safe opening', () => {
+  const [s, e] = bossFight({ x: 3650, bossX: 3700 });
+  s.player.invuln = 0;
+  assert.ok(stateIn(s, e, 'swipe-tell', 3) >= 0, 'in front within 64: a swipe'); assert.ok(events(s).includes('sfx-boss-grunt'));
+  assert.equal(e.anim, 'swipe'); assert.equal(e.face, -1);
+  const f = stateIn(s, e, 'swipe-step', sec(1)); assert.ok(Math.abs(f - sec(B.swipe.tell)) <= 1, 'tell lasts ' + B.swipe.tell + ' s: ' + f);
+  const xs = e.x; stateIn(s, e, 'swipe-hit', sec(0.3));
+  assert.ok(Math.abs(xs - e.x - B.swipe.step) < 2, 'steps ' + B.swipe.step + ' px: ' + (xs - e.x)); assert.ok(events(s).includes('sfx-boss-swipe'));
+  // Standing 40 px in front of him: hit, and flung at knockX / knockY. (His step may already have bumped Sammy: reset.)
+  const p = s.player; p.x = e.x - 40; p.invuln = 0; p.vx = 0; p.hp = 3; p.state = 'normal';
+  step(s, {}, 2);
+  assert.equal(p.hp, 2); assert.ok(Math.abs(p.vx) > B.swipe.knockX * 0.8 && p.vx < 0, 'flung away at ' + p.vx); assert.ok(p.vy < -B.swipe.knockY + 2 * C.gravity / 60, 'and up: ' + p.vy);
+  assert.ok(stateIn(s, e, 'swipe-open', sec(0.4)) >= 0);
+  // The opening: safe to touch, 0.9 s, then he walks again.
+  assert.ok(!touchHurts(s, e), 'the opening is safe');
+  assert.ok(Math.abs(stateIn(s, e, 'walk', sec(2)) - (sec(B.swipe.opening) - 3)) <= 3, 'opening lasts ' + B.swipe.opening + ' s');
+  // Lying flat does not work: the last swing scrapes the ground.
+  const [s2, e2] = bossFight({ x: 3660, bossX: 3700 });
+  step(s2, { pressed: { possum: true } });
+  assert.equal(s2.player.state, 'playdead');
+  e2.confused = false; e2.state = 'swipe-hit'; e2.t = 0; e2.attackHit = false; e2.face = -1; s2.player.invuln = 0;
+  step(s2, {}, 3);
+  assert.equal(s2.player.hp, 2, 'a lying Sammy is hit by the low swipe');
+});
+
+test('brute: SLAM: tell, fists down, two floor shockwaves (jump them), a stuck opening, and a cooldown (but never 3 s of walking without one)', () => {
+  const [s, e] = bossFight({ x: 3600, bossX: 3700 });
+  assert.ok(stateIn(s, e, 'slam-tell', 3) >= 0, '64-160 px away: a slam'); assert.ok(events(s).includes('sfx-boss-chains'));
+  const f = stateIn(s, e, 'slam-hit', sec(1)); assert.ok(Math.abs(f - sec(B.slam.tell)) <= 1, 'tell ' + f);
+  assert.ok(events(s).includes('sfx-boss-slam')); assert.ok(s.shake > 0);
+  const waves = s.hazards.filter((h) => h.kind === 'wave');
+  assert.equal(waves.length, 2); assert.deepEqual(waves.map((w) => w.dir).sort(), [-1, 1]);
+  for (const w of waves) { assert.ok(Math.abs(w.x - e.x) < 4, 'from his feet'); assert.deepEqual([w.speed, w.w, w.h], [B.slam.wave.speed, B.slam.wave.w, B.slam.wave.h]); }
+  assert.ok(Math.abs(e.slamCd - B.slam.cooldown) < 0.02, 'cooldown set');
+  stateIn(s, e, 'slam-stuck', sec(0.3));
+  assert.ok(!touchHurts(s, e), 'stuck: safe to touch');
+  // A standing Sammy 100 px away is hit by the wave when it arrives (about 0.6 s); a jumping Sammy is not.
+  const p = s.player; p.x = e.x - 100; p.hp = 3; p.invuln = 0; p.shield = 0;
+  const hit = runUntil(s, () => p.hp < 3, sec(1.2));
+  assert.ok(hit > sec(0.2) && hit < sec(0.9), 'the wave arrives after ' + hit + ' frames');
+  assert.ok(p.vx < 0, 'knocked away from the wave, which came from the right (a normal hit): ' + p.vx);
+  const [s3, e3] = bossFight({ x: 3600, bossX: 3700 });
+  e3.state = 'slam-tell'; e3.t = B.slam.tell; step(s3);
+  const p3 = s3.player; p3.x = e3.x - 100; p3.invuln = 0;
+  const near = runUntil(s3, () => s3.hazards.some((h) => h.kind === 'wave' && Math.abs(h.x - p3.x) < 30), sec(1));
+  assert.ok(near >= 0);
+  step(s3, { held: { jump: true }, pressed: { jump: true } }, sec(0.5));
+  assert.equal(p3.hp, 3, 'jumped the wave');
+  assert.ok(runUntil(s3, () => s3.hazards.length === 0, sec(3)) >= 0, 'waves die at the walls or time out');
+  // On cooldown he walks instead; after walkMax seconds of walking he slams anyway.
+  const [s4, e4] = bossFight({ x: 3560, bossX: 3700 });
+  e4.slamCd = 10; let tells = 0, t0 = -1;
+  for (let i = 0; i < sec(4); i++) { step(s4); s4.player.x = e4.x - 100; s4.player.invuln = 5; if (e4.state === 'slam-tell') { tells++; t0 = i; break; } }
+  assert.equal(tells, 1, 'slammed anyway'); assert.ok(t0 >= sec(B.walkMax) - 2 && t0 <= sec(B.walkMax) + sec(B.decideEvery) + 2, 'after about ' + B.walkMax + ' s: ' + t0);
+});
+
+test('brute: SPIN when Sammy is behind him: high (lie flat under it), hits both sides, then a long dizzy opening', () => {
+  const [s, e] = bossFight({ x: 3740, bossX: 3700 }); // he faces left (-1); Sammy stands 40 px behind him
+  assert.ok(stateIn(s, e, 'spin-tell', 3) >= 0, 'behind within 56: a spin'); assert.ok(events(s).includes('sfx-boss-roar'));
+  assert.equal(e.face, -1, 'does not turn round for it');
+  const f = stateIn(s, e, 'spin-hit', sec(1)); assert.ok(Math.abs(f - sec(B.spin.tell)) <= 1);
+  s.player.invuln = 0; step(s, {}, 2);
+  assert.equal(s.player.hp, 2, 'hit behind him');
+  stateIn(s, e, 'spin-dizzy', sec(0.3));
+  assert.ok(!touchHurts(s, e), 'dizzy: safe');
+  assert.ok(Math.abs(stateIn(s, e, 'walk', sec(2)) - (sec(B.spin.dizzy) - 3)) <= 3, 'dizzy lasts ' + B.spin.dizzy + ' s');
+  // Lying flat is under it (the box starts 20 px up; the play-dead box is 14 tall).
+  const [s2, e2] = bossFight({ x: 3740, bossX: 3700 });
+  step(s2, { pressed: { possum: true } });
+  e2.confused = false; e2.state = 'spin-hit'; e2.t = 0; e2.attackHit = false; s2.player.invuln = 0;
+  step(s2, {}, sec(B.spin.hits) + 1);
+  assert.equal(s2.player.hp, 3, 'a lying Sammy is under the spin');
+  // Standing in front of him during the spin is hit too (both sides).
+  const [s3, e3] = bossFight({ x: 3660, bossX: 3700 });
+  e3.state = 'spin-hit'; e3.t = 0; e3.attackHit = false; s3.player.invuln = 0;
+  step(s3, {}, 2); assert.equal(s3.player.hp, 2);
+});
+
+test('brute: ACID VOMIT every fourth attack: a high stream (lie flat), three puddles that burn standing or lying, ignore the lid and never knock back, and dry up', () => {
+  const [s, e] = bossFight({ x: 3600, bossX: 3700 });
+  e.attacks = 3; // the next attack is the fourth
+  assert.ok(stateIn(s, e, 'vomit-tell', 3) >= 0); assert.ok(events(s).includes('sfx-boss-gurgle')); assert.equal(e.anim, 'spin', 'the tell borrows the arms-wide pose');
+  const f = stateIn(s, e, 'vomit-stream', sec(1)); assert.ok(Math.abs(f - sec(B.vomit.tell)) <= 1);
+  assert.ok(events(s).includes('sfx-acid-spray')); assert.equal(e.anim, 'vomit');
+  assert.equal(s.hazards.length, 0, 'no puddles until the acid has landed');
+  // Standing 100 px in front: the stream gets him, no knockback, and the lid does not help.
+  const p = s.player; p.x = e.x - 100; p.invuln = 0; p.shield = 3; p.vx = 0; p.hp = 3; p.state = 'normal';
+  step(s, {}, 2);
+  assert.equal(p.hp, 2); assert.equal(p.shield, 3, 'acid ignores the lid'); assert.equal(p.vx, 0, 'no knockback'); assert.equal(p.state, 'hurt');
+  const ids = events(s); assert.ok(ids.includes('sfx-hurt'));
+  // Lying flat is under the stream.
+  const [s2, e2] = bossFight({ x: 3600, bossX: 3700 });
+  step(s2, { pressed: { possum: true } });
+  e2.confused = false; e2.state = 'vomit-stream'; e2.t = 0; e2.attackHit = false; s2.player.invuln = 0;
+  step(s2, {}, sec(B.vomit.time) - 2);
+  assert.equal(s2.player.hp, 3, 'a lying Sammy is under the stream');
+  // When the stream ends, three puddles land ahead of him; they burn once they have spread (puddleLand).
+  assert.ok(Math.abs(stateIn(s, e, 'vomit-open', sec(2)) - (sec(B.vomit.time) - 3)) <= 3, 'stream lasts ' + B.vomit.time + ' s');
+  const pud = s.hazards.filter((h) => h.kind === 'puddle');
+  assert.deepEqual(pud.map((h) => e.x - h.x), B.vomit.puddles, 'three puddles ahead of him');
+  for (const h of pud) { assert.equal(h.w, B.vomit.puddleW); assert.equal(h.life, B.vomit.puddleLife); assert.equal(h.land, B.vomit.puddleLand); }
+  assert.ok(!touchHurts(s, e), 'the opening is safe');
+  // A puddle burns a standing Sammy (once per second: the usual invincibility) and a lying one; a jumping one is clear.
+  const pd = pud[1]; p.x = pd.x; p.y = G; p.grounded = true; p.hp = 3; p.invuln = 0; p.shield = 3; p.state = 'normal'; p.vx = 0;
+  e.state = 'confused'; e.confused = true; // park him
+  step(s, {}, 2);
+  assert.equal(p.hp, 3, 'still landing: harmless');
+  step(s, {}, sec(B.vomit.puddleLand));
+  assert.equal(p.hp, 2); assert.equal(p.shield, 3); assert.equal(p.vx, 0); assert.ok(events(s).includes('sfx-acid-burn'));
+  step(s, {}, sec(0.9)); assert.equal(p.hp, 2, 'not again inside the invincibility second');
+  step(s, {}, sec(0.3)); assert.equal(p.hp, 1, 'burns again after it');
+  p.hp = 3; p.invuln = 0; p.possumCd = 0; p.state = 'normal'; step(s, { pressed: { possum: true } }); step(s, {}, 2);
+  assert.equal(p.hp, 2, 'lying in acid burns too');
+  p.state = 'normal'; p.hp = 3; p.invuln = 0; p.y = G - 30; p.vy = 0; p.grounded = false; step(s);
+  assert.equal(p.hp, 3, 'in the air over it: clear');
+  assert.ok(runUntil(s, () => !s.hazards.some((h) => h.kind === 'puddle'), sec(B.vomit.puddleLife + 1)) >= 0, 'puddles dry up');
+  // Low gore and full gore draw the acid the same: its colours are not the reserved gore colours.
+  for (const k of ['acid0', 'acid', 'acidHi']) assert.ok(!Object.values(S.GORE_COLORS).includes(S.PAL[k]), k + ' is not a gore colour');
+});
+
+test('brute: half health staggers him (a free opening); 9 hit points enrages him (shorter tells, faster walk, double shockwaves, vomit every third attack)', () => {
+  const [s, e] = bossFight({ x: 3600, bossX: 3700, hp: B.staggerAt + 1 });
+  place(s, e.x - 34, { cp: 2576 }); s.player.invuln = 5;
+  step(s, { pressed: { attack: true } }, sec(0.25));
+  assert.equal(e.hp, B.staggerAt); assert.equal(e.state, 'stagger'); assert.equal(e.anim, 'stagger'); assert.ok(events(s).includes('sfx-boss-grunt'));
+  assert.ok(!touchHurts(s, e), 'staggered: safe to touch');
+  const left = sec(B.staggerTime - e.t);
+  assert.ok(Math.abs(stateIn(s, e, 'walk', sec(2)) - left) <= 3, 'stagger lasts ' + B.staggerTime + ' s');
+  assert.ok(!e.enraged);
+  // Down to enrageAt: the roar, the banner, the shake; then everything is meaner.
+  e.hp = B.enrageAt + 1; e.state = 'walk'; e.t = 0; place(s, e.x - 34, { cp: 2576 }); s.player.invuln = 5; events(s);
+  step(s, { pressed: { attack: true } }, sec(0.25));
+  assert.equal(e.state, 'enrage'); assert.ok(e.enraged); assert.ok(events(s).includes('sfx-boss-roar')); assert.ok(s.shake > 0.2, 'shakes: ' + s.shake);
+  assert.ok(s.effects.some((f) => f.kind === 'text' && f.text === B.lines.enrage));
+  assert.ok(!touchHurts(s, e));
+  stateIn(s, e, 'walk', sec(2));
+  // Walks at the enraged speed.
+  place(s, e.x - 250, { cp: 2576 }); e.decideT = 9; e.walkT = 0; e.slamCd = 9; const ex = e.x; step(s, {}, sec(0.5));
+  assert.ok(Math.abs((ex - e.x) - B.enraged.walkSpeed * 0.5) < 3, 'enraged walk: ' + (ex - e.x) * 2 + ' px/s');
+  // The swipe tell is 30% shorter and the step shorter.
+  place(s, e.x - 40, { cp: 2576 }); s.player.invuln = 9; e.state = 'walk'; e.t = 0; e.decideT = 0; e.attacks = 0;
+  assert.ok(stateIn(s, e, 'swipe-tell', 3) >= 0);
+  const f = stateIn(s, e, 'swipe-step', sec(1)); assert.ok(Math.abs(f - sec(B.swipe.tell * B.enraged.tellScale)) <= 1, 'enraged tell: ' + f);
+  const xs = e.x; stateIn(s, e, 'swipe-hit', sec(0.3)); assert.ok(Math.abs(xs - e.x - B.enraged.swipeStep) < 2, 'shorter step: ' + (xs - e.x));
+  // The slam sends a second pair of shockwaves after a gap, and comes back sooner.
+  e.state = 'slam-tell'; e.t = B.slam.tell; s.hazards = []; step(s);
+  assert.equal(s.hazards.filter((h) => h.kind === 'wave').length, 2);
+  assert.ok(Math.abs(e.slamCd - B.enraged.slamCooldown) < 0.02);
+  step(s, {}, sec(B.enraged.waveGap) + 1);
+  assert.equal(s.hazards.filter((h) => h.kind === 'wave').length, 4, 'double shockwave');
+  // Vomit every third attack, for longer, with longer-lived puddles.
+  e.state = 'walk'; e.t = 0; e.attacks = 2; e.decideT = 0; place(s, e.x - 100, { cp: 2576 }); s.player.invuln = 9; s.hazards = [];
+  assert.ok(stateIn(s, e, 'vomit-tell', 3) >= 0, 'third attack is a vomit');
+  stateIn(s, e, 'vomit-stream', sec(1));
+  assert.ok(s.hazards.every((h) => h.life === B.enraged.puddleLife));
+  assert.ok(Math.abs(stateIn(s, e, 'vomit-open', sec(2)) - (sec(B.enraged.vomitTime) - 3)) <= 3, 'longer stream');
+});
+
+test('brute: the chainsaw cuts him any time (gore overload): every cut bleeds hard, throws chunks, freezes 4 frames and shakes; no sliced death', () => {
+  const [s, e] = bossFight({ x: 3660, bossX: 3700, saw: true });
+  e.decideT = 9; // keep him walking
+  step(s, { pressed: { attack: true }, held: { attack: true } });
+  assert.equal(e.hp, B.hp - 1, 'cut while walking'); assert.equal(e.state, 'walk');
+  const blood = s.effects.find((f) => f.kind === 'blood');
+  assert.ok(blood && blood.n >= 12 && blood.power > 2, 'the most blood');
+  assert.equal(s.effects.filter((f) => f.kind === 'chunk').length, B.sawChunks, 'chunks on a plain cut');
+  assert.ok(Math.abs(s.hitstop - B.sawHitstop) < 1e-9, 'hit-stop ' + s.hitstop); assert.ok(s.shake > 0);
+  const ids = events(s); assert.ok(ids.includes('sfx-chainsaw-cut') && ids.includes('sfx-boss-hit'));
+  assert.ok(Math.abs(e.x - 3700) < 1, 'not pushed by the saw (one frame of walking at most): ' + e.x);
+  // Keep the blade on him (following him around) until he goes down: the death is the crawl, never the cut-in-half.
+  let n = 0;
+  for (; n < sec(20) && e.state !== 'defeat'; n++) { place(s, e.x - 40, { cp: 2576 }); s.player.invuln = 9; step(s, { held: { attack: true } }); }
+  assert.ok(e.state === 'defeat' && n > 0, 'went down'); assert.equal(e.defeatStyle, 'crawl'); assert.equal(e.anim, 'death');
+  assert.ok(events(s).includes('sfx-boss-death'));
+  assert.ok(s.stats.defeated === 1);
+});
+
+test('brute: Play Possum confuses him until Sammy gets up (an attack already started finishes first), then he ignores Sammy for a moment: the way past him', () => {
+  const [s, e] = bossFight({ x: 3640, bossX: 3700 });
+  e.decideT = 9; step(s, {}, 2);
+  step(s, { pressed: { possum: true } });
+  assert.equal(e.state, 'confused'); assert.equal(e.anim, 'walk'); assert.ok(e.confused);
+  step(s, {}, sec(2.5));
+  assert.equal(e.state, 'confused', 'still confused while Sammy stays down'); assert.equal(s.player.state, 'playdead');
+  // Sammy gets up (at the 3 s limit): he resumes walking but ignores Sammy for possumIgnore; touching him then is safe.
+  runUntil(s, () => s.player.state === 'normal', sec(1.5));
+  assert.equal(e.state, 'walk'); assert.ok(e.ignoreT > B.possumIgnore - 0.05 && e.ignoreT <= B.possumIgnore);
+  assert.ok(!touchHurts(s, e), 'walking through him while he looks around');
+  const ex = e.x; step(s, {}, sec(1)); assert.equal(e.x, ex, 'stands still while ignoring');
+  step(s, {}, sec(0.6)); assert.ok(touchHurts(s, e), 'then he is back');
+  // Mid-attack (a spin: Sammy behind him, and it goes over a lying Sammy): the spin finishes, then he is confused.
+  const [s2, e2] = bossFight({ x: 3740, bossX: 3700 });
+  s2.player.possumCd = 0;
+  assert.ok(stateIn(s2, e2, 'spin-tell', 3) >= 0);
+  step(s2, { pressed: { possum: true } });
+  assert.equal(e2.state, 'spin-tell', 'the attack already started'); assert.ok(e2.confused);
+  assert.ok(stateIn(s2, e2, 'spin-dizzy', sec(2)) >= 0); assert.equal(s2.player.hp, 3, 'lying flat under the spin');
+  assert.ok(stateIn(s2, e2, 'confused', sec(2)) >= 0, 'confused once the opening ends');
+  // A hit (the low swipe reaches a lying Sammy) wakes him up again, as with a jogger.
+  const [s3, e3] = bossFight({ x: 3650, bossX: 3700 });
+  s3.player.possumCd = 0;
+  assert.ok(stateIn(s3, e3, 'swipe-tell', 3) >= 0);
+  step(s3, { pressed: { possum: true } });
+  assert.ok(e3.confused);
+  assert.ok(stateIn(s3, e3, 'swipe-open', sec(2)) >= 0);
+  assert.equal(s3.player.hp, 2); assert.ok(!e3.confused, 'the hit released him');
+});
+
+test('brute: death: the crawl toward Sammy, the flat hold, three hot dogs out of him with the banner, then the exit opens', () => {
+  const [s, e] = bossFight({ x: 3600, bossX: 3700, hp: 1 });
+  place(s, e.x - 34, { cp: 2576 }); s.player.invuln = 9;
+  step(s, { pressed: { attack: true } }, sec(0.25));
+  assert.equal(e.state, 'defeat'); assert.ok(events(s).includes('sfx-boss-death')); assert.ok(s.shake > 0.3, 'shakes: ' + s.shake);
+  s.player.hp = 1; s.stats.hotdogs = 0; // hungry for the victory lap
+  const x0 = e.x;
+  step(s, {}, sec(8 / 6) - sec(0.25) + 1);
+  assert.ok(x0 - e.x > 20 && x0 - e.x < 32, 'crawled toward Sammy: ' + (x0 - e.x));
+  assert.ok(!touchHurts(s, e), 'the crawl is harmless (deathCrawlHurts false)');
+  assert.ok(!s.pickups.some((pk) => pk.type === 'hotdog' && pk.spilled), 'no hot dogs yet');
+  assert.ok(runUntil(s, () => s.pickups.some((pk) => pk.type === 'hotdog' && pk.spilled), sec(2)) >= 0, 'the hot dogs come out');
+  assert.ok(Math.abs(e.t - (B.defeatTime + 0.5)) < 0.05, 'half a second after he goes flat: ' + e.t);
+  const dogs = s.pickups.filter((pk) => pk.type === 'hotdog' && pk.spilled);
+  assert.equal(dogs.length, B.hotdogs, 'three hot dogs');
+  assert.ok(s.effects.some((f) => f.kind === 'text' && f.text === B.lines.hotdogs));
+  assert.ok(events(s).includes('sfx-gore-splat'));
+  step(s, {}, sec(1.5));
+  for (const d of dogs) assert.ok((d.collected || d.landed) && d.x > s.level.arena.x0 + 8 && d.x < s.level.arena.gateX, 'hot dog on the terrace (or already eaten) at ' + d.x);
+  assert.ok(!s.enemies.includes(e) && s.arena.state === 'open', 'he is gone and the exit is open');
+  for (const d of dogs) if (!d.collected) { place(s, d.x, { cp: 2576 }); step(s); }
+  assert.equal(s.stats.hotdogs, 3, 'all three eaten'); assert.equal(s.player.hp, 3, 'a full heal for the victory lap');
+});
+
+test('brute: a K.O. in the fight resets it: hazards, supplies and the boss are gone; the gauntlet restarts from the first wave', () => {
+  const [s, e] = bossFight({ x: 3600, bossX: 3700, supplies: true });
+  e.state = 'vomit-stream'; e.t = B.vomit.time; step(s);
+  assert.ok(s.hazards.length > 0 && s.pickups.some((pk) => pk.supply));
+  s.checkpoint = s.cps[1]; s.player.hp = 1; s.player.invuln = 0;
+  S.hurtPlayer(s, { hazard: true });
+  step(s, {}, sec(C.sammy.koTime + C.sammy.koWait) + 2);
+  assert.equal(s.player.x, 2576);
+  assert.deepEqual([s.hazards.length, s.enemies.filter((q) => q.boss).length, s.pickups.filter((pk) => pk.supply).length, s.arena.state], [0, 0, 0, 'idle']);
+});
+
+test('brute: the chainsaw supply refuels a saw Sammy already carries; the lid gives its three blocks', () => {
+  const [s] = bossFight({ x: 3560, supplies: true, saw: true });
+  s.player.saw.fuel = 2;
+  step(s, {}, sec(1.5)); // the supplies land
+  const saw = s.pickups.find((pk) => pk.supply && pk.type === 'chainsaw'), lid = s.pickups.find((pk) => pk.supply && pk.type === 'lid');
+  place(s, saw.x, { cp: 2576 }); step(s);
+  assert.ok(saw.collected && s.player.saw.fuel === C.chainsaw.fuel, 'full tank again');
+  place(s, lid.x, { cp: 2576 }); step(s);
+  assert.ok(lid.collected && s.player.shield === C.lid.hits);
+});
+
+test('brute: beatable without god mode: the autopilot kills him with the chainsaw (cutting in his openings, dodging the rest) in 10 to 30 s, never K.O.d', () => {
+  const [s, e] = bossFight({ x: 3600, enter: true, saw: true, supplies: true });
+  const bot = S.makeBot();
+  let f = 0;
+  for (; f < sec(60) && e.state !== 'defeat'; f++) { S.update(s, S.botInput(s, bot)); s.events.length = 0; }
+  assert.equal(e.state, 'defeat', 'down (hp left ' + e.hp + ')');
+  assert.equal(s.stats.kos, 0, 'Sammy was never K.O.d (hits taken: ' + s.stats.hits + ')');
+  assert.ok(f >= sec(10) && f <= sec(30), 'the saw fight takes 10 to 30 s with hit points and staggers doing the balancing: ' + (f / 60).toFixed(1) + ' s');
+  assert.ok(s.stats.hits <= 3, 'a careful run takes few hits: ' + s.stats.hits);
+  // (A whip-only kill is the long way round by design and is not proven here: the autopilot survives it but does not finish it.)
+});
+
+test('brute: the fight is deterministic, and plays the same with low gore', () => {
+  const run = (gore) => {
+    S.setGore(gore);
+    const [s, e] = bossFight({ x: 3600, enter: true, saw: true });
+    const bot = S.makeBot(), trace = [];
+    for (let f = 0; f < sec(30) && e.state !== 'dead'; f++) { S.update(s, S.botInput(s, bot)); s.events.length = 0; if (f % 10 === 0) trace.push([e.state, e.hp, Math.round(e.x), Math.round(s.player.x), s.player.hp, s.hazards.length]); }
+    return JSON.stringify([trace, s.stats]);
+  };
+  const a = run('full'); assert.equal(a, run('full')); assert.equal(a, run('low'));
+  S.setGore('full');
+});
+
+test('brute: lines fit (3x5 font, 16 characters for the floating ones), his name fits the bar, the art cells match the design, and the timings match the strips', () => {
+  const L = B.lines, ok = (t) => { for (const ch of t) assert.ok(S.GLYPHS[ch.toUpperCase()], `"${ch}" in "${t}"`); };
+  for (const t of [L.enter, L.supplies, L.enrage, L.hotdogs, ...L.taunts, ...S.GAGS_BY_TYPE.brute.crawl, ...S.GAGS.crawl, B.name]) ok(t);
+  for (const t of [L.enter, L.hotdogs, L.enrage, L.supplies]) assert.ok(S.textWidth(t) + 8 <= C.screenW - 8, t);
+  for (const t of [...L.taunts, ...S.GAGS_BY_TYPE.brute.crawl, L.enrage]) assert.ok(t.length <= 16, t + ' is 16 characters or fewer');
+  assert.ok(S.textWidth(B.name) <= S.BOSS_BAR.bar[2], 'name fits over the bar');
+  const m = (k) => S.ASSET_MANIFEST.find((a) => a.key === k);
+  assert.deepEqual([m('brute:walk').fw, m('brute:walk').fh, m('brute:walk').px, m('brute:walk').py], [96, 96, 48, 95]);
+  for (const k of ['swipe', 'slam', 'spin', 'stagger', 'death']) assert.deepEqual([m('brute:' + k).fw, m('brute:' + k).fh, m('brute:' + k).px, m('brute:' + k).py], [128, 96, 64, 95], k);
+  assert.deepEqual([m('brute:vomit').fw, m('brute:vomit').px, m('brute:vomit').py], [96, 40, 95]);
+  assert.deepEqual([m('brute:faces').fw, m('brute:faces').fh, m('brute:faces').frames, m('brute:faces').feet], [32, 32, 17, false]);
+  for (const k of ['walk', 'swipe', 'slam', 'spin', 'vomit', 'vomit-stream', 'stagger', 'death', 'faces', 'acid-splat', 'acid-smoke', 'blood-slash', 'dust']) {
+    assert.match(m('brute:' + k).path, /^enemies\/enemy-zombie-brute\/brute-[a-z-]+-strip-v01\.png$/, k);
+  }
+  assert.ok(fs.existsSync(path.join(libRoot, 'assets', 'enemies', 'enemy-zombie-brute', '.gitkeep')));
+  assert.ok(Math.abs(B.defeatTime - m('brute:death').frames / m('brute:death').fps) < 1e-9, 'death crawl = strip length');
+  assert.ok(Math.abs(B.swipe.hits - 3 / m('brute:swipe').fps) < 1e-9 && Math.abs(B.spin.hits - 2 / m('brute:spin').fps) < 1e-9, 'the swings are the clocked frames');
+  assert.equal(B.hp % S.BOSS_BAR.tickEvery, 4, 'ticks fall on whole hit points'); assert.ok(B.staggerAt === B.hp / 2 && B.enrageAt < B.staggerAt);
+  for (const id of ['sfx-boss-grunt', 'sfx-boss-chains', 'sfx-boss-roar', 'sfx-boss-gurgle', 'sfx-boss-swipe', 'sfx-boss-slam', 'sfx-boss-hit', 'sfx-boss-death', 'sfx-acid-spray', 'sfx-acid-burn']) {
+    assert.ok(S.SOUND_MANIFEST.some((m2) => m2.id === id), id); assert.ok(fs.existsSync(path.join(libRoot, 'assets', 'audio', 'sfx', id, '.gitkeep')), id + ' folder');
+  }
+});
+
+test('brute: the boss bar (portrait by health band, hit, enraged, confused, dead) draws in every state, in both gore settings, with acid on screen but no gore colour in low gore', () => {
+  const [s, e] = bossFight({ x: 3600, bossX: 3660 });
+  const face = (patch) => S.bossFace(Object.assign({ state: 'walk', hp: B.hp, hitT: 0, enraged: false, t: 0 }, patch), B);
+  assert.deepEqual([face({}).mood, face({ hp: 16 }).mood, face({ hp: B.staggerAt }).mood, face({ hp: 5, enraged: true }).mood], ['steady', 'angry', 'teeth', 'enraged']);
+  assert.deepEqual([face({}).idx, face({ hp: 16 }).idx, face({ hp: B.staggerAt }).idx, face({ hp: 5, enraged: true, t: 0 }).idx, face({ hp: 5, enraged: true, t: 0.25 }).idx], [8, 6, 1, 0, 10]);
+  assert.deepEqual([face({ hitT: 0.1 }).mood, face({ state: 'confused' }).mood, face({ state: 'defeat', t: 0.5 }).idx, face({ state: 'defeat', t: 2 }).idx], ['hit', 'confused', 4, 15]);
+  const gore = new Set(Object.values(S.GORE_COLORS).map((c) => c.toLowerCase()));
+  const T = S.ENEMY_TYPES.brute;
+  for (const g of ['full', 'low']) {
+    S.setGore(g);
+    const used = new Set();
+    s.hazards = [{ kind: 'wave', x: s.player.x - 30, dir: -1, speed: 160, w: 16, h: 10, t: 0.3, life: 1.7 }, { kind: 'puddle', x: s.player.x + 90, w: 28, t: 0.1, life: 5 }];
+    for (const st of T.states) {
+      if (st === 'dead') continue;
+      e.state = st; e.t = 0.2; e.anim = T.anims[st]; e.animT = 0.2; e.hitT = st === 'walk' ? 0.2 : 0;
+      const ctx = colorCtx(); S.render(ctx, s); for (const c of ctx.used) used.add(c);
+    }
+    e.state = 'defeat'; e.t = B.defeatTime + 0.3; { const ctx = colorCtx(); S.render(ctx, s); for (const c of ctx.used) used.add(c); }
+    e.state = 'enter'; e.t = B.enterWalk + 0.1; e.enraged = true; { const ctx = colorCtx(); S.render(ctx, s); for (const c of ctx.used) used.add(c); }
+    assert.ok(used.has(S.PAL.heart.toLowerCase()) && used.has(S.PAL.acid.toLowerCase()) && used.has(S.PAL.brute.toLowerCase()), g + ': bar, acid and the Brute drawn');
+    const red = [...used].filter((c) => gore.has(c));
+    if (g === 'low') assert.deepEqual(red, [], 'low gore drew gore colours: ' + red.join(', '));
+    else assert.ok(red.length >= 3, 'full gore: guts and blood');
+  }
+  S.setGore('full');
 });

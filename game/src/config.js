@@ -190,6 +190,46 @@
       litterGap: 32,           // a level entry { type: 'baby', litter: 3 } stands three of them this far apart
     },
 
+    // ---------- THE BRUTE (level 1 boss, 2026-10-20, all Proposed except where DECISIONS.md says Confirmed) ----------
+    // brain 'boss': walks at Sammy, picks an attack by distance and a fixed count (no luck), each attack = tell, hit, opening.
+    // Spawned by the arena after the last gauntlet wave (gauntlet.boss); the exit opens when he is dead. Never flinches.
+    // Times are seconds; boxes are px from his feet point (x ahead of him, y up from the ground). The chainsaw cuts him ANY time
+    // (owner answer 7): balanced with hit points and the two free openings (stagger, enrage), with the most gore on saw hits.
+    brute: {
+      brain: 'boss', art: 'brute', name: 'THE BRUTE', start: 'enter', startAnim: 'walk',
+      hp: 24, staggerAt: 12, enrageAt: 9,      // full design: 30 / 15 / 9. 24 = three good saw openings, or ~90 s of careful whipping
+      walkSpeed: 32, bodyW: 44, bodyH: 80,     // can't be jumped (80 tall, the jump is 60): get past him in an opening or with Play Possum
+      decideEvery: 1.0,                        // while walking, picks an attack this often
+      walkMax: 3.0,                            // never walks longer than this without a slam (cooldown or not)
+      enterWalk: 0.6, enterRoar: 0.8,          // walks out of the fourth arch, then roars with his arms wide
+      swipe: { range: 64, tell: 0.45, step: 24, stepTime: 0.1, hits: 3 / 10, box: { x0: 8, x1: 64, y0: 0, y1: 64 }, opening: 0.9, knockX: 240, knockY: 150 }, // low: lying flat does not work; knocks twice as far as a jogger
+      slam: { range: 160, tell: 0.5, hit: 0.15, box: { x0: 8, x1: 56, y0: 0, y1: 40 }, wave: { speed: 160, w: 16, h: 10, life: 1.7 }, stuck: 1.0, cooldown: 4.0 }, // two floor shockwaves: jump them
+      spin: { range: 56, tell: 0.6, hits: 2 / 10, box: { x0: 0, x1: 56, y0: 20, y1: 72 }, dizzy: 1.2 }, // when Sammy is behind him; high: lie flat
+      // high: lie flat under the stream. The puddles land where the acid fell when the stream ends and burn anyone (standing or lying)
+      // once they have spread (puddleLand): get up and step out of them in time.
+      vomit: { every: 4, tell: 0.6, time: 1.0, box: { x0: 24, x1: 144, y0: 24, y1: 44 }, puddles: [48, 88, 128], puddleW: 28, puddleLand: 0.6, puddleLife: 5.0, opening: 0.5 },
+      enraged: { tellScale: 0.7, openScale: 2 / 3, walkSpeed: 48, swipeStep: 16, slamCooldown: 2.5, waveGap: 0.35, vomitEvery: 3, vomitTime: 1.3, puddleLife: 7.0 }, // at enrageAt hp
+      staggerTime: 0.8, enrageTime: 1.0,       // the two free openings (safe to touch)
+      confusedTime: 1.2,                       // (drawing note only: he stays confused until Sammy gets up, like a jogger)
+      hitReactTime: 0.1,                       // white flash per hit (flinch: false)
+      defeatTime: 10 / 6, deathHold: 1.5,      // death crawl strip (10 frames @ 6 fps), then held flat; hot dogs drop during the hold
+      deathCrawlSpeed: 24, deathCrawlHurts: false, // the crawl toward Sammy is harmless (Proposed; the full design's "last scare" is one flag away)
+      hotdogs: 3,                              // "HE HAD HOT DOGS IN HIM."
+      sawHitstop: 4 / 60, sawChunks: 2,        // gore overload: every saw cut freezes 4 frames, shakes, and throws chunks (not only the kill)
+      flinch: false, knockback: 0, sawKnockback: 0, cartKnock: 0, shieldPush: 0, hitY: 0,
+      possum: 'confused', possumIgnore: 1.5,
+      defeatStyle: 'crawl', sawStyle: 'crawl', // no sliced death: he crawls, then goes flat
+      // His lines (deadpan and profane on purpose, owner rule; 3x5 font letters only; the floating ones 16 characters or fewer).
+      // The "down" line is in render.js (GAGS_BY_TYPE.brute.crawl), shown when he goes flat.
+      lines: {
+        enter: 'THE BRUTE. HE ATE THE OTHER ZOMBIES.',  // banner when he walks in
+        supplies: 'SUPPLIES. DON\'T ASK.',             // over the lid and the chainsaw dropping in
+        taunts: ['MEAT.', 'SMALL MEAT.', 'NEED. MEAT.'], // over him at the start of every third tell, in turn
+        enrage: 'HE\'S PISSED NOW.',                    // at the enrage roar
+        hotdogs: 'HE HAD HOT DOGS IN HIM.',             // when the three hot dogs bounce out of him
+      },
+    },
+
     cart: {                    // prop-hot-dog-cart INTERACTION.md
       w: 64, h: 48,
       rockWindow: 1.5,
@@ -211,7 +251,13 @@
       slashTime: 0.2,          // a quick tap still revs (and cuts) this long
     },
 
-    gauntlet: { waves: [2, 3, 4], waveDelay: 1.0, waveType: 'jogger' }, // waveType: the enemy type every wave is made of
+    gauntlet: {
+      waves: [2, 3, 4], waveDelay: 1.0, waveType: 'jogger', // waveType: the enemy type every wave is made of
+      // The boss (2026-10-20, owner answer 4): after the last wave, `boss` walks in from the arch `bossArch` px before the gate,
+      // `bossDelay` s after the wave dies. The supplies drop in at the same moment (Proposed: a trash lid and a chainsaw, so Sammy
+      // always has a saw and a lid for the fight; the chainsaw pickup refuels a saw he already carries), `supplyX` px from the arena's left wall.
+      boss: 'brute', bossDelay: 1.0, bossArch: 56, supplies: [{ type: 'lid', dx: 72 }, { type: 'chainsaw', dx: 104 }],
+    },
   };
 
   // 9-bit colour: each channel snapped to 0,36,72,...,252 (templates/STYLE_GUIDE.md)
@@ -246,6 +292,9 @@
     // Zombie roster placeholders (2026-10-20, Proposed): contrasting schemes per type. None of these are gore colours.
     cheer: '#902448', cheerDark: '#480024', cream: '#fcfcd8', creamDark: '#d8d890', hair: '#d8b46c',          // cheerleader: maroon and cream, blonde
     babyPink: '#fc90d8', babyBlue: '#90b4fc', babyBlueDark: '#486cd8', babySkin: '#6cd8b4', brain: '#fc6cb4', rattle: '#fcfc48', // baby: pastel pink and blue, mint skin, pink brain
+    // The Brute (2026-10-20, Proposed): his acid is a hazard you must see, so it has its own greens (NOT the reserved ichor set)
+    // and shows in both gore settings; his placeholder skin is pale sickly olive, his gauntlets dark iron.
+    acid0: '#6c6c00', acid: '#90b400', acidHi: '#d8fc24', brute: '#d8d890', bruteDark: '#909048', bruteIron: '#484848', bruteCloth: '#242448',
     // Reserved for gore only (STYLE_GUIDE "Reserved colours")
     blood0: '#480000', blood: '#900000', bloodHi: '#b40024', ichor0: '#486c00', ichor: '#90d800', ichorHi: '#d8fc48',
     bone: '#fcd8b4', meat: '#d86c6c',

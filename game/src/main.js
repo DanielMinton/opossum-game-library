@@ -479,15 +479,19 @@
     p.saw = null; p.anim = 'idle';
     p.shield = 3; draw('shield'); p.shield = 1; draw('shield-cracked'); p.possumCd = 3; draw('possum-cooldown');
     // Every enemy type in every state its brain has (dead is never drawn), plus the no-flinch flash, in its placeholder or real art.
+    // A type the level doesn't place (the boss) gets a stand-in. The boss also shows his health bar and the floor hazards.
     for (const [type, T] of Object.entries(S.ENEMY_TYPES)) {
       // A type the level doesn't place yet still gets drawn: a stand-in is made for the sweep (resetLevel clears it after).
       const e = state.enemies.find((q) => q.type === type && q.state !== 'dead') || state.enemies.find((q) => q.type === type) || standIn(type, p.x + 40, 'sweep');
       e.x = p.x + 40;
+      if (T.brain === 'boss') { state.arena.state = 'boss'; state.hazards.push({ kind: 'wave', x: p.x - 30, dir: -1, speed: 160, w: 16, h: 10, t: 0.3, life: 1.7 }, { kind: 'puddle', x: p.x + 90, w: 28, t: 0.1, life: 5 }); }
       for (const st of T.states) {
         if (st === 'dead') continue;
         e.state = st; e.t = 0.2; e.anim = T.anims[st]; e.animT = 0.2; e.flashT = 0; draw(type + '-' + st);
       }
+      if (T.brain === 'boss') { e.state = 'defeat'; e.t = T.cfg.defeatTime + 0.2; draw(type + '-flat'); e.hp = 1; e.enraged = true; e.state = 'walk'; e.hitT = 0.2; draw(type + '-bar-hit'); e.hitT = 0; e.enraged = false; e.hp = T.cfg.hp; }
       e.state = T.cfg.start; e.anim = T.cfg.startAnim; e.flashT = 0.1; draw(type + '-flash'); e.flashT = 0;
+      state.arena.state = 'idle'; state.hazards = [];
     }
     for (const c of state.carts) for (const st of ['upright', 'rocking', 'tipping', 'tipped', 'empty']) { c.state = st; c.t = 0.1; c.anim = st === 'tipped' ? 'tipped-over' : st; draw('cart-' + st); }
     state.projectiles.push({ x: p.x + 20, y: p.y - 20, vx: 0, vy: 0, t: 0.1, life: 1 });
@@ -511,15 +515,17 @@
     return drawn;
   }
 
-  // A fresh enemy of a type at x, added to the state (for the sweep, the gore demo and ?lineup=1 when the level has none of that type).
+  // A fresh enemy of a type at x, added to the state (for the sweep, the gore demo and ?lineup=1 when the level has none of that type;
+  // the boss is only made by the arena, so his stand-in carries the boss flag).
   function standIn(type, x, tag) {
-    const e = S.makeEnemy({ type, x }, 0, { id: tag + '-' + type });
+    const e = S.makeEnemy({ type, x, y: C.groundY }, 0, { id: tag + '-' + type, boss: S.ENEMY_TYPES[type].brain === 'boss' });
     state.enemies.push(e);
     return e;
   }
+  const sweepEnemy = (type) => standIn(type, state.player.x + 40, 'sweep');
   // ?lineup=1 (with ?test=shot): one of every enemy type standing in a row to Sammy's right, facing him (placeholder or real art).
   function lineup(x) {
-    Object.keys(S.ENEMY_TYPES).forEach((type, i) => { const e = standIn(type, x + i * 48, 'lineup'); e.face = -1; e.state = 'confused'; e.anim = 'idle'; });
+    Object.keys(S.ENEMY_TYPES).forEach((type, i) => { const T = S.ENEMY_TYPES[type], e = standIn(type, x + i * 48, 'lineup'); e.face = -1; e.state = T.states.includes('confused') ? 'confused' : T.cfg.start; e.anim = T.anims[e.state] || T.cfg.startAnim; });
   }
 
   // Puts zombies going down in every defeat style, plus every gore effect, near x (render sweep and ?goredemo=T shots).

@@ -39,6 +39,7 @@ export const GROUPS = [
   { id: 'sweater', folder: 'enemies/enemy-zombie-sweater', title: 'ZOMBIE SWEATER (THE BRAWLER, 64 X 56 CELLS)' },
   { id: 'cheerleader', folder: 'enemies/enemy-zombie-cheerleader', title: 'ZOMBIE CHEERLEADER' },
   { id: 'baby', folder: 'enemies/enemy-zombie-baby', title: 'ZOMBIE BABY (32 X 32 CELLS)' },
+  { id: 'brute', folder: 'enemies/enemy-zombie-brute', title: 'THE BRUTE (BOSS): BODY, FACES, ACID, DUST' },
   { id: 'cart', folder: 'props/prop-hot-dog-cart', title: 'HOT DOG CART AND HOT DOG PICKUP' },
   { id: 'lid', folder: 'items/item-powerup-trash-lid-shield', title: 'TRASH LID SHIELD' },
   { id: 'chainsaw', folder: 'items/item-powerup-chainsaw', title: 'CHAINSAW' },

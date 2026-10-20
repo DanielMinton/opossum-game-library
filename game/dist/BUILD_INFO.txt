@@ -1,4 +1,4 @@
-Sammy placeholder prototype — code 58f7fcfc015e (changes only when index.html changes)
+Sammy placeholder prototype — code 01e6b170c276 (changes only when index.html changes)
 Open index.html in a browser. Everything is in this folder; nothing is fetched from the internet.
 
 Art included (15):
@@ -24,7 +24,7 @@ Sound files left out (2):
   audio/music/music-level-01-central-park/music-level-01-central-park-v02.ogg  (commercial_use is "tbd"; it must be "yes")
 
 Still placeholders (no real file yet):
-Still missing — art (62):
+Still missing — art (75):
   assets/enemies/enemy-zombie-jogger/
     zombie-jogger-walk-strip-v01.png  288×48
     zombie-jogger-attack-strip-v01.png  192×48
@@ -73,6 +73,20 @@ Still missing — art (62):
     trash-lid-pickup-strip-v01.png  64×16
     trash-lid-held-overlay-strip-v01.png  48×16
     hud-icon-trash-lid-v01.png  16×16
+  assets/enemies/enemy-zombie-brute/
+    brute-walk-strip-v01.png  576×96
+    brute-swipe-strip-v01.png  768×96
+    brute-slam-strip-v01.png  384×96
+    brute-spin-strip-v01.png  512×96
+    brute-vomit-strip-v01.png  96×96
+    brute-vomit-stream-strip-v01.png  64×96
+    brute-stagger-strip-v01.png  256×96
+    brute-death-strip-v01.png  1280×96
+    brute-faces-strip-v01.png  544×32
+    brute-acid-splat-strip-v01.png  192×48
+    brute-acid-smoke-strip-v01.png  160×56
+    brute-blood-slash-strip-v01.png  288×64
+    brute-dust-strip-v01.png  128×48
   assets/environments/environment-central-park-tileset/
     central-park-bg-sky-v01.png  320×224
     central-park-bg-skyline-v01.png  512×64
@@ -97,7 +111,7 @@ Still missing — art (62):
     bethesda-balustrade-v01.png  32×24
     bethesda-arch-v01.png  64×80
     bethesda-stairs-v01.png  64×32
-Still missing — sounds (33):
+Still missing — sounds (43):
   assets/audio/sfx/sfx-jump/sfx-jump-v01.ogg
   assets/audio/sfx/sfx-land/sfx-land-v01.ogg
   assets/audio/sfx/sfx-tail-whip/sfx-tail-whip-v01.ogg
@@ -130,6 +144,16 @@ Still missing — sounds (33):
   assets/audio/sfx/sfx-leap/sfx-leap-v01.ogg
   assets/audio/sfx/sfx-baby-rattle/sfx-baby-rattle-v01.ogg
   assets/audio/sfx/sfx-baby-cry/sfx-baby-cry-v01.ogg
+  assets/audio/sfx/sfx-boss-grunt/sfx-boss-grunt-v01.ogg
+  assets/audio/sfx/sfx-boss-chains/sfx-boss-chains-v01.ogg
+  assets/audio/sfx/sfx-boss-roar/sfx-boss-roar-v01.ogg
+  assets/audio/sfx/sfx-boss-gurgle/sfx-boss-gurgle-v01.ogg
+  assets/audio/sfx/sfx-boss-swipe/sfx-boss-swipe-v01.ogg
+  assets/audio/sfx/sfx-boss-slam/sfx-boss-slam-v01.ogg
+  assets/audio/sfx/sfx-boss-hit/sfx-boss-hit-v01.ogg
+  assets/audio/sfx/sfx-boss-death/sfx-boss-death-v01.ogg
+  assets/audio/sfx/sfx-acid-spray/sfx-acid-spray-v01.ogg
+  assets/audio/sfx/sfx-acid-burn/sfx-acid-burn-v01.ogg
   assets/audio/music/music-level-01-gauntlet/music-level-01-gauntlet-v01.ogg
   (.mp3 or .wav also fine instead of .ogg)
 

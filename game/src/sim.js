@@ -53,14 +53,28 @@
   // that has a `brain`. Nothing else in this file asks "is it a jogger?": every difference between types is a field of its
   // config block (see config.js, "enemy types") read through typeOf(e). An enemy whose type has no row is an error, never a jogger.
   const BRAINS = {
-    // brain: { update(s, e), states: every state the brain can put an enemy in (the render sweep draws each), anims: state -> animation }
+    // brain: { update(s, e), states: every state the brain can put an enemy in (the render sweep draws each), anims: state -> animation,
+    //   resume: the state it goes back to when Sammy gets up after Play Possum,
+    //   confusable (optional): the only states Play Possum can interrupt (default: anything but attack, hitreact, leap and land) }
     // sniff (possum 'sniff', the sweater): fooled by Play Possum, but walks over to Sammy first; once close it stands in 'confused'.
     // windup / leap / land: the leaping kinds (`leap: true`, the cheerleader) use them instead of attack.
-    walker: { update: (s, e) => updateWalker(s, e), states: ['spawn', 'patrol', 'chase', 'attack', 'windup', 'leap', 'land', 'hitreact', 'confused', 'sniff', 'defeat', 'dead'],
+    walker: { update: (s, e) => updateWalker(s, e), states: ['spawn', 'patrol', 'chase', 'attack', 'windup', 'leap', 'land', 'hitreact', 'confused', 'sniff', 'defeat', 'dead'], resume: 'patrol',
       anims: { spawn: 'idle', patrol: 'walk', chase: 'walk', attack: 'attack', windup: 'idle', leap: 'attack', land: 'attack', hitreact: 'hit', confused: 'idle', sniff: 'walk', defeat: 'defeat', dead: 'defeat' } },
-    turret: { update: (s, e) => updateTurret(s, e), states: ['idle', 'throw', 'hitreact', 'shrug', 'defeat', 'dead'],
+    turret: { update: (s, e) => updateTurret(s, e), states: ['idle', 'throw', 'hitreact', 'shrug', 'defeat', 'dead'], resume: 'idle',
       anims: { idle: 'idle', shrug: 'idle', throw: 'throw', hitreact: 'hit', defeat: 'defeat', dead: 'defeat' } },
+    // The boss (the Brute): one state per pose, so each attack is tell -> hit -> opening with its own picture. The animation names are
+    // the combined strips the art comes in (swipe = tell, step, 3 hits, opening in one strip); the drawer picks the frame from the state.
+    boss: { update: (s, e) => updateBoss(s, e), resume: 'walk', confusable: ['walk', 'enter'],
+      states: ['enter', 'walk', 'swipe-tell', 'swipe-step', 'swipe-hit', 'swipe-open', 'slam-tell', 'slam-hit', 'slam-stuck',
+        'spin-tell', 'spin-hit', 'spin-dizzy', 'vomit-tell', 'vomit-stream', 'vomit-open', 'stagger', 'enrage', 'confused', 'hitreact', 'defeat', 'dead'],
+      anims: { enter: 'walk', walk: 'walk', 'swipe-tell': 'swipe', 'swipe-step': 'swipe', 'swipe-hit': 'swipe', 'swipe-open': 'swipe',
+        'slam-tell': 'slam', 'slam-hit': 'slam', 'slam-stuck': 'slam', 'spin-tell': 'spin', 'spin-hit': 'spin', 'spin-dizzy': 'spin',
+        'vomit-tell': 'spin', 'vomit-stream': 'vomit', 'vomit-open': 'vomit', stagger: 'stagger', enrage: 'stagger', confused: 'walk',
+        hitreact: 'walk', defeat: 'death', dead: 'death' } },
   };
+  // Boss states in which touching him hurts (walking, winding up, swinging). Openings, stuck, dizzy, confused, staggering: safe.
+  const BOSS_TOUCH_HURTS = new Set(['enter', 'walk', 'swipe-tell', 'swipe-step', 'swipe-hit', 'slam-tell', 'slam-hit', 'spin-tell', 'spin-hit', 'vomit-tell', 'vomit-stream']);
+  S.BOSS_TOUCH_HURTS = BOSS_TOUCH_HURTS;
   const TYPE_FIELDS = ['brain', 'art', 'start', 'startAnim', 'hp', 'bodyW', 'bodyH', 'hitReactTime', 'defeatTime', 'flinch', 'knockback',
     'sawKnockback', 'cartKnock', 'shieldPush', 'hitY', 'possum', 'possumIgnore', 'defeatStyle', 'sawStyle'];
   const POSSUM_KINDS = ['confused', 'shrug', 'sniff', 'ignore']; // 'sniff' = walks up and stands over Sammy (the sweater); 'ignore' = Play Possum does nothing to it (the baby)
@@ -75,7 +89,7 @@
     if (!brain.states.includes(cfg.start)) throw new Error('enemy type "' + name + '" starts in "' + cfg.start + '", which its brain has no state for');
     if (!POSSUM_KINDS.includes(cfg.possum)) throw new Error('enemy type "' + name + '" has unknown possum reaction "' + cfg.possum + '"');
     if (cfg.possum !== 'ignore' && !brain.states.includes(cfg.possum)) throw new Error('enemy type "' + name + '" reacts to Play Possum with "' + cfg.possum + '", which its brain has no state for');
-    const T = { name, cfg, brain: cfg.brain, update: brain.update, states: brain.states, anims: brain.anims };
+    const T = { name, cfg, brain: cfg.brain, update: brain.update, states: brain.states, anims: brain.anims, resume: brain.resume, confusable: brain.confusable || null };
     S.ENEMY_TYPES[name] = T;
     return T;
   };
@@ -98,7 +112,7 @@
       defeatStyle: k.defeatStyle, // how it goes down; k.sawStyle ('sliced') when the chainsaw does it
     }, extra || {});
   }
-  S.makeEnemy = makeEnemy;
+  S.makeEnemy = makeEnemy; // for the render sweep and tests (a boss is only made by the arena)
   // One level entry can stand a litter: { type: 'baby', x: 3010, litter: 3 } makes three, litterGap px apart (ids e5, e5-1, e5-2),
   // each patrolling round its own spot. The default litter is 1, so every other entry is one zombie, as before.
   function makeEnemies(def, idx) {
@@ -133,6 +147,7 @@
     s.carts = L.carts.map((d, i) => makeCart(d, i));
     s.pickups = L.pickups.map((d, i) => makePickup(d, i));
     s.projectiles = [];
+    s.hazards = []; // floor hazards from the boss: shockwaves (kind 'wave') and acid puddles (kind 'puddle')
     s.effects = [];
     s.cps = L.checkpoints.map((c) => ({ id: c.id, x: c.x, active: false }));
     s.checkpoint = { id: 'START', x: L.start.x };
@@ -149,7 +164,7 @@
   S.resetLevel = resetLevel;
 
   // ---------- world collision ----------
-  function arenaLocked(s) { return s.arena.state === 'fight' || s.arena.state === 'open'; }
+  function arenaLocked(s) { return s.arena.state === 'fight' || s.arena.state === 'boss' || s.arena.state === 'open'; }
 
   function getSolids(s) {
     const L = s.level;
@@ -234,8 +249,9 @@
     // opts.attack: the source's own attack landed (not a bump). A type with shoveKnockX/Y throws Sammy that far instead of
     // the usual hurtKnockX/Y; one with stripsLid takes the whole lid and still throws him (the sweater's shove).
     const src = opts.attack && opts.source ? typeOf(opts.source).cfg : null;
-    const knockX = src && src.shoveKnockX != null ? src.shoveKnockX : P.hurtKnockX;
-    const knockY = src && src.shoveKnockY != null ? src.shoveKnockY : P.hurtKnockY;
+    // opts.knockX/knockY: a bigger hit still (the Brute's swipe) wins over both.
+    const knockX = opts.knockX || (src && src.shoveKnockX != null ? src.shoveKnockX : P.hurtKnockX);
+    const knockY = opts.knockY || (src && src.shoveKnockY != null ? src.shoveKnockY : P.hurtKnockY);
     const dir = opts.fromX != null ? (sign(p.x - opts.fromX) || -p.face) : -p.face;
     if (src && src.shoveKnockX != null) sfx(s, 'sfx-zombie-shove');
     if (!opts.hazard && p.shield > 0) {
@@ -277,10 +293,18 @@
     const saw = !!opts && opts.source === 'chainsaw';
     const dir = sign(e.x - fromX) || 1;
     e.hp -= saw ? C.chainsaw.damage : 1;
+    e.hitT = 0.25; // just hit (the boss bar's portrait winces this long)
     if (!saw) { sfx(s, 'sfx-hit-zombie'); effect(s, 'spark', e.x, e.y - 24, 0.15); }
     // Chainsaw gore starts past the blade tip and flies away from Sammy, so it never covers him.
     const gx = saw ? fromX + dir * Math.max(Math.abs(e.x - fromX), C.chainsaw.reach + 12) : e.x;
-    effect(s, 'blood', gx, e.y - 24, 0.6, { n: saw ? 8 : 4, dir, power: saw ? 2 : 1 });
+    const big = saw && k.sawHitstop; // gore overload (owner answer 7): a boss throws the most blood and chunks on every cut, with hit-stop and shake
+    effect(s, 'blood', gx, e.y - 24, 0.6, { n: big ? 14 : saw ? 8 : 4, dir, power: big ? 2.5 : saw ? 2 : 1 });
+    if (k.sawHitstop) sfx(s, 'sfx-boss-hit');
+    if (big) {
+      for (let i = 0; i < k.sawChunks; i++) effect(s, 'chunk', gx, e.y - 36 + i * 10, 0.9, { dir, i });
+      s.hitstop = Math.max(s.hitstop || 0, k.sawHitstop);
+      s.shake = Math.max(s.shake, 0.15);
+    }
     if (e.hp <= 0) {
       e.state = 'defeat'; e.t = 0; e.vx = 0; e.confused = false;
       e.defeatStyle = saw ? k.sawStyle : k.defeatStyle;
@@ -311,7 +335,7 @@
     for (const e of s.enemies) {
       if (!e.confused) continue;
       e.confused = false;
-      if (e.state === 'confused' || e.state === 'sniff') { e.state = 'patrol'; e.home = e.x; e.t = 0; }
+      if (e.state === 'confused' || e.state === 'sniff') { e.state = typeOf(e).resume; e.home = e.x; e.t = 0; }
       e.ignoreT = typeOf(e).cfg.possumIgnore; // lost interest: won't re-notice Sammy straight away
       if (e.state === 'shrug') { e.state = 'idle'; e.t = 0; }
     }
@@ -334,9 +358,11 @@
       if (Math.abs(e.x - p.x) <= C.possum.radius && Math.abs(e.y - p.y) < 48) {
         e.confused = true;
         // An attack or a leap already started still finishes (a leap frozen in mid-air would look wrong); it goes confused on landing.
-        const busy = ['attack', 'hitreact', 'leap', 'land'].includes(e.state);
-        if (how === 'confused' && !busy) { e.state = 'confused'; e.t = 0; e.vx = 0; }
-        if (how === 'sniff' && !busy) { e.state = 'sniff'; e.t = 0; }
+        // A brain with a `confusable` list (the boss) says itself which states Play Possum may interrupt.
+        const T = typeOf(e);
+        const free = T.confusable ? T.confusable.includes(e.state) : !['attack', 'hitreact', 'leap', 'land'].includes(e.state);
+        if (how === 'confused' && free) { e.state = 'confused'; e.t = 0; e.vx = 0; }
+        if (how === 'sniff' && free) { e.state = 'sniff'; e.t = 0; }
         if (how === 'shrug' && e.state !== 'hitreact') { e.state = 'shrug'; e.t = 0; }
       }
     }
@@ -507,6 +533,7 @@
     s.pickups = s.pickups.filter((pk) => !pk.spilled);
     for (const pk of s.pickups) if (pk.def.x > cp.x) pk.collected = false;
     s.projectiles = [];
+    s.hazards = [];
     s.arena = { state: 'idle', wave: -1, timer: 0, spawnCount: 0 };
     s.lastSafeX = cp.x;
     s.cam.x = clamp(cp.x - 64, 0, L.width - C.screenW);
@@ -647,6 +674,132 @@
     setAnim(e, BRAINS.turret.anims[e.state]);
   }
 
+  // The "boss" brain (the Brute): walks at Sammy and picks an attack by distance and a fixed count, never by chance. Every attack
+  // is a tell (a held pose with its own sound), the hit, then an opening (a held pose: safe to touch, the time to hit him).
+  // He never flinches; the chainsaw cuts him any time (owner answer 7). Half health = a stagger, enrageAt = the enrage roar: both free
+  // openings. Play Possum confuses him until Sammy gets up (an attack already started finishes first), then he ignores Sammy for a moment.
+  const TELL_SFX = { swipe: 'sfx-boss-grunt', slam: 'sfx-boss-chains', spin: 'sfx-boss-roar', vomit: 'sfx-boss-gurgle' };
+  function updateBoss(s, e) {
+    const B = typeOf(e).cfg, E = B.enraged, p = s.player, A = s.level.arena, L = B.lines || {};
+    e.t += DT; e.slamCd = Math.max(0, (e.slamCd || 0) - DT); e.ignoreT = Math.max(0, (e.ignoreT || 0) - DT);
+    const dx = p.x - e.x, enr = !!e.enraged;
+    const tellOf = (t) => (enr ? t * E.tellScale : t);
+    const openOf = (t) => (enr ? t * E.openScale : t);
+    const go = (st) => { e.state = st; e.t = 0; e.vx = 0; e.attackHit = false; };
+    // After an attack, an opening or a stagger: back to walking (deciding at once), or confused if Sammy played dead meanwhile.
+    const resume = () => { if (e.confused) go('confused'); else { go('walk'); e.decideT = 0; } };
+    // A hit box in front of him (x0..x1 ahead of his feet, y0..y1 up from the ground), or centred on him for both sides.
+    const box = (b, both) => (both ? { x: e.x - b.x1, y: e.y - b.y1, w: 2 * b.x1, h: b.y1 - b.y0 }
+      : { x: e.face > 0 ? e.x + b.x0 : e.x - b.x1, y: e.y - b.y1, w: b.x1 - b.x0, h: b.y1 - b.y0 });
+    const strike = (r, extra) => {
+      if (e.attackHit || !overlap(r, playerBox(p))) return;
+      if (hurtPlayer(s, Object.assign({ fromX: e.x, source: e }, extra || {}))) e.attackHit = true;
+    };
+    const shockwaves = () => {
+      const w = B.slam.wave;
+      for (const dir of [-1, 1]) s.hazards.push({ kind: 'wave', x: e.x, dir, speed: w.speed, w: w.w, h: w.h, t: 0, life: w.life });
+    };
+    const puddles = () => {
+      const life = enr ? E.puddleLife : B.vomit.puddleLife;
+      for (const d of B.vomit.puddles) {
+        const x = clamp(e.x + e.face * d, A.x0 + 8 + B.vomit.puddleW / 2, A.gateX - B.vomit.puddleW / 2);
+        s.hazards.push({ kind: 'puddle', x, w: B.vomit.puddleW, t: 0, land: B.vomit.puddleLand, life });
+      }
+    };
+    // Which attack now? Every Nth is a vomit; Sammy behind him = spin; close in front = swipe; mid range = slam (off cooldown, or
+    // whenever he has walked too long without one); else keep walking.
+    const pick = () => {
+      const n = (e.attacks || 0) + 1, front = dx === 0 || sign(dx) === e.face, ax = Math.abs(dx);
+      let a = null;
+      if (n % (enr ? E.vomitEvery : B.vomit.every) === 0) a = 'vomit';
+      else if (!front && ax <= B.spin.range) a = 'spin';
+      else if (front && ax <= B.swipe.range) a = 'swipe';
+      else if ((ax <= B.slam.range && e.slamCd <= 0) || e.walkT >= B.walkMax) a = 'slam';
+      if (!a) return null;
+      e.attacks = n; e.walkT = 0;
+      if (a !== 'spin' && dx !== 0) e.face = sign(dx);
+      e.tells = (e.tells || 0) + 1;
+      if (L.taunts && L.taunts.length && e.tells % 3 === 0) effect(s, 'text', e.x, e.y - B.bodyH - 12, 1.0, { text: L.taunts[(e.tells / 3 - 1) % L.taunts.length] });
+      go(a + '-tell'); sfx(s, TELL_SFX[a]);
+      return a;
+    };
+
+    // Phase changes interrupt anything but his death and each other: half health = the stagger, enrageAt = the enrage roar.
+    const busy = e.state === 'defeat' || e.state === 'dead' || e.state === 'stagger' || e.state === 'enrage';
+    if (!busy && !e.staggered && e.hp <= B.staggerAt) { e.staggered = true; go('stagger'); sfx(s, 'sfx-boss-grunt'); }
+    else if (!busy && !e.enraged && e.hp <= B.enrageAt) {
+      e.enraged = true; go('enrage'); sfx(s, 'sfx-boss-roar'); s.shake = Math.max(s.shake, 0.4);
+      if (L.enrage) effect(s, 'text', (A.x0 + A.x1) / 2, 60, 1.5, { text: L.enrage });
+    }
+    // The enraged slam's second pair of shockwaves follows the first after a gap.
+    if (e.waveT > 0) { e.waveT -= DT; if (e.waveT <= 0) shockwaves(); }
+
+    switch (e.state) {
+      case 'enter': // out of the arch toward the camera, then a roar with his arms wide
+        if (e.t < B.enterWalk) { e.face = -1; e.vx = -B.walkSpeed; }
+        else { e.vx = 0; if (!e.roared) { e.roared = true; sfx(s, 'sfx-boss-roar'); s.shake = Math.max(s.shake, 0.3); } if (dx !== 0) e.face = sign(dx); }
+        if (e.t >= B.enterWalk + B.enterRoar) resume();
+        break;
+      case 'walk': {
+        if (e.ignoreT > 0 || p.state === 'ko') { e.vx = 0; e.decideT = 0; break; } // just fooled by Play Possum: looks around a moment
+        e.walkT = (e.walkT || 0) + DT; e.decideT = (e.decideT || 0) - DT;
+        if (e.decideT <= 0) { e.decideT = B.decideEvery; if (pick()) break; }
+        if (Math.abs(dx) > 2) e.face = sign(dx);
+        e.vx = Math.abs(dx) > B.bodyW / 2 ? e.face * (enr ? E.walkSpeed : B.walkSpeed) : 0;
+        break;
+      }
+      case 'swipe-tell': if (e.t >= tellOf(B.swipe.tell)) { go('swipe-step'); e.vx = e.face * ((enr ? E.swipeStep : B.swipe.step) / B.swipe.stepTime); } break;
+      case 'swipe-step': if (e.t >= B.swipe.stepTime) { go('swipe-hit'); sfx(s, 'sfx-boss-swipe'); } break;
+      case 'swipe-hit': strike(box(B.swipe.box), { knockX: B.swipe.knockX, knockY: B.swipe.knockY }); if (e.t >= B.swipe.hits) go('swipe-open'); break;
+      case 'swipe-open': if (e.t >= openOf(B.swipe.opening)) resume(); break;
+      case 'slam-tell':
+        if (e.t >= tellOf(B.slam.tell)) {
+          go('slam-hit'); sfx(s, 'sfx-boss-slam'); s.shake = Math.max(s.shake, 0.3); effect(s, 'dust', e.x + e.face * 24, e.y, 0.3);
+          shockwaves(); e.slamCd = enr ? E.slamCooldown : B.slam.cooldown; e.waveT = enr ? E.waveGap : 0;
+        }
+        break;
+      case 'slam-hit': strike(box(B.slam.box)); if (e.t >= B.slam.hit) go('slam-stuck'); break;
+      case 'slam-stuck': if (e.t >= openOf(B.slam.stuck)) resume(); break;
+      case 'spin-tell': if (e.t >= tellOf(B.spin.tell)) { go('spin-hit'); sfx(s, 'sfx-boss-swipe'); } break;
+      case 'spin-hit': strike(box(B.spin.box, true)); if (e.t >= B.spin.hits) go('spin-dizzy'); break;
+      case 'spin-dizzy': if (e.t >= openOf(B.spin.dizzy)) resume(); break;
+      case 'vomit-tell': if (e.t >= tellOf(B.vomit.tell)) { go('vomit-stream'); sfx(s, 'sfx-acid-spray'); } break;
+      case 'vomit-stream': strike(box(B.vomit.box), { hazard: true }); if (e.t >= (enr ? E.vomitTime : B.vomit.time)) { go('vomit-open'); puddles(); } break;
+      case 'vomit-open': if (e.t >= B.vomit.opening) resume(); break;
+      case 'stagger': if (e.t >= B.staggerTime) resume(); break;
+      case 'enrage': if (e.t >= B.enrageTime) resume(); break;
+      case 'confused': e.vx = 0; break;
+      case 'hitreact': if (e.t >= B.hitReactTime) resume(); break; // only the cart's tip puts him here; he shrugs it off
+      case 'defeat': {
+        // He drops, drags himself toward Sammy through the crawl frames, goes flat; then the hot dogs bounce out of him.
+        if (!e.deathSfx) { e.deathSfx = true; sfx(s, 'sfx-boss-death'); s.shake = Math.max(s.shake, 0.5); }
+        const crawl = e.t >= 1 / 6 && e.t < 8 / 6;
+        if (crawl && dx !== 0) e.face = sign(dx);
+        e.vx = crawl ? e.face * B.deathCrawlSpeed : 0;
+        if (crawl && B.deathCrawlHurts && overlap(footBox(e, B.bodyW, B.bodyH / 2), playerBox(p))) hurtPlayer(s, { fromX: e.x, source: e });
+        if (e.t >= B.defeatTime + 0.5 && !e.dropped) {
+          e.dropped = true;
+          const speeds = [60, 110, 160], dir = sign(dx) || -e.face;
+          for (let i = 0; i < B.hotdogs; i++) {
+            s.pickups.push({ id: 'hd' + (s.nextId++), type: 'hotdog', def: { x: e.x }, x: e.x, y: e.y - 20, vx: dir * speeds[i % speeds.length], vy: -220,
+              collected: false, spilled: true, landed: false, life: 30, t: 0 });
+          }
+          effect(s, 'ichor', e.x, e.y - 20, 0.8, { n: 8 });
+          sfx(s, 'sfx-gore-splat');
+          if (L.hotdogs) effect(s, 'text', (A.x0 + A.x1) / 2, 60, 2.0, { text: L.hotdogs });
+        }
+        if (e.t >= B.defeatTime + B.deathHold) e.state = 'dead';
+        break;
+      }
+    }
+    // Touching him while he walks, winds up or swings hurts (not while he is open, stuck, dizzy, confused, staggering or dead).
+    if (BOSS_TOUCH_HURTS.has(e.state) && !(e.state === 'walk' && e.ignoreT > 0) && overlap(footBox(e, B.bodyW, B.bodyH), playerBox(p))) {
+      hurtPlayer(s, { fromX: e.x, source: e });
+    }
+    if (e.state !== 'dead') moveBody(s, e, B.bodyW, B.bodyH);
+    setAnim(e, BRAINS.boss.anims[e.state]);
+  }
+
   function throwHotDog(s, e) {
     const V = typeOf(e).cfg;
     const p = s.player;
@@ -735,6 +888,8 @@
             else if (pk.y > 230) { pk.collected = true; pk.expired = true; continue; }
           }
           if (pk.x < 4 || pk.x > s.level.width - 4) pk.vx = 0;
+          // Inside the locked arena nothing bounces out over the walls (the boss's hot dogs, the supplies).
+          if (arenaLocked(s)) { const A = s.level.arena; if (pk.x < A.x0 + 12) { pk.x = A.x0 + 12; pk.vx = 0; } if (pk.x > A.gateX - 8) { pk.x = A.gateX - 8; pk.vx = 0; } }
         }
       }
       if (p.state === 'ko') continue;
@@ -794,11 +949,15 @@
         if (!alive) {
           a.wave += 1;
           if (a.wave >= C.gauntlet.waves.length) {
-            a.state = 'open'; sfx(s, 'sfx-gate-open'); music(s, 'level');
-            effect(s, 'text', A.gateX, 120, 1.5, { text: 'EXIT OPEN. GO.' });
+            // Last wave down: the boss walks in (gauntlet.boss), or the gate just opens when there is none.
+            if (C.gauntlet.boss) { a.state = 'boss'; a.timer = C.gauntlet.bossDelay; s.shake = Math.max(s.shake, 0.3); }
+            else openGate(s);
           } else a.timer = C.gauntlet.waveDelay;
         }
       }
+    } else if (a.state === 'boss') {
+      if (a.timer > 0) { a.timer -= DT; if (a.timer <= 0) spawnBoss(s); }
+      else if (!s.enemies.some((e) => e.boss && e.state !== 'dead')) openGate(s);
     } else if (a.state === 'open' && p.x >= A.exitX && p.state !== 'ko') {
       s.mode = 'clear'; s.clearT = 0;
       sawLoop(s, false);
@@ -806,6 +965,49 @@
       music(s, 'clear');
       sfx(s, 'sfx-level-clear');
     }
+  }
+
+  function openGate(s) {
+    const A = s.level.arena;
+    s.arena.state = 'open'; sfx(s, 'sfx-gate-open'); music(s, 'level');
+    effect(s, 'text', A.gateX, 120, 1.5, { text: 'EXIT OPEN. GO.' });
+  }
+
+  // The boss walks out of the arch nearest the gate; the supplies (owner answer 4: a lid and a chainsaw, so Sammy always has a
+  // saw and a shield for him) drop in by the left wall at the same moment. Also used by the render sweep and the tests.
+  function spawnBoss(s) {
+    const A = s.level.arena, GA = C.gauntlet;
+    const e = makeEnemy({ type: GA.boss, x: A.gateX - GA.bossArch, y: G }, 0, { id: 'boss', arena: true, boss: true });
+    e.face = -1; e.decideT = 0; e.walkT = 0; e.attacks = 0; e.tells = 0; e.slamCd = 0; e.waveT = 0;
+    s.enemies.push(e);
+    s.arena.bossId = e.id;
+    for (const sp of GA.supplies || []) {
+      s.pickups.push({ id: 'sup' + (s.nextId++), type: sp.type, def: { x: A.x0 + sp.dx }, x: A.x0 + sp.dx, y: 60, vx: 0, vy: 0,
+        collected: false, spilled: true, landed: false, life: 1e9, t: 0, supply: true });
+    }
+    const lines = typeOf(e).cfg.lines || {};
+    if (lines.enter) effect(s, 'text', (A.x0 + A.x1) / 2, 60, 2.0, { text: lines.enter });
+    if (lines.supplies) effect(s, 'text', A.x0 + 88, 100, 1.5, { text: lines.supplies });
+    sfx(s, 'sfx-boss-chains');
+    return e;
+  }
+  S.spawnBoss = spawnBoss;
+
+  // Floor hazards: shockwaves run along the ground from the boss's slam (a normal hit: the lid blocks it, it knocks back);
+  // acid puddles burn anyone standing or lying in them (hazard: no lid, no knockback). Both time out.
+  function updateHazards(s) {
+    const p = s.player, A = s.level.arena;
+    for (const h of s.hazards) {
+      h.t += DT;
+      if (h.kind === 'wave') { h.x += h.dir * h.speed * DT; if (h.x < A.x0 + 8 || h.x > A.gateX) h.dead = true; }
+      if (h.t >= h.life) h.dead = true;
+      if (h.dead || p.state === 'ko' || h.t < (h.land || 0)) continue; // a puddle still landing (the splat) doesn't burn yet
+      const box = h.kind === 'wave' ? { x: h.x - h.w / 2, y: G - h.h, w: h.w, h: h.h } : { x: h.x - h.w / 2, y: G - 4, w: h.w, h: 4 };
+      if (!overlap(box, playerBox(p))) continue;
+      if (h.kind === 'wave') hurtPlayer(s, { fromX: h.x });
+      else if (hurtPlayer(s, { hazard: true })) sfx(s, 'sfx-acid-burn');
+    }
+    s.hazards = s.hazards.filter((h) => !h.dead);
   }
 
   function updateCamera(s) {
@@ -868,8 +1070,9 @@
     s.t += DT;
     s.stats.time += DT;
     updatePlayer(s, inp);
-    for (const e of s.enemies) { typeOf(e).update(s, e); e.animT += DT; e.flashT = Math.max(0, (e.flashT || 0) - DT); }
+    for (const e of s.enemies) { typeOf(e).update(s, e); e.animT += DT; e.flashT = Math.max(0, (e.flashT || 0) - DT); e.hitT = Math.max(0, (e.hitT || 0) - DT); }
     s.enemies = s.enemies.filter((e) => !(e.arena && e.state === 'dead'));
+    updateHazards(s);
     for (const c of s.carts) { updateCart(s, c); c.animT += DT; }
     updatePickups(s);
     updateProjectiles(s);

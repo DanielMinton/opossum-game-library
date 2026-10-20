@@ -37,6 +37,17 @@
     'sfx-leap': ['noise', 300, 1200, 0.15, 0.15],       // cheerleader: launch whoosh
     'sfx-baby-rattle': ['noise', 1800, 1400, 0.1, 0.2], // baby: rattle smack
     'sfx-baby-cry': ['triangle', 900, 300, 0.4, 0.25],  // baby: its last wail
+    // The Brute (placeholder beeps until his sounds exist)
+    'sfx-boss-grunt': ['sawtooth', 80, 50, 0.3, 0.3],       // swipe tell, stagger
+    'sfx-boss-chains': ['square', 1800, 600, 0.3, 0.2],     // slam tell: chains clank
+    'sfx-boss-roar': ['sawtooth', 60, 140, 0.8, 0.35],      // entrance, spin tell, enrage
+    'sfx-boss-gurgle': ['triangle', 90, 40, 0.6, 0.3],      // vomit tell: a long wet gurgle
+    'sfx-boss-swipe': ['noise', 700, 200, 0.2, 0.3],        // the gauntlet swing
+    'sfx-boss-slam': ['noise', 200, 40, 0.5, 0.4],          // fists into the stone
+    'sfx-boss-hit': ['square', 140, 60, 0.12, 0.3],         // a hit landing on him (meaty)
+    'sfx-boss-death': ['sawtooth', 120, 30, 1.5, 0.35],     // the long fall
+    'sfx-acid-spray': ['noise', 1200, 500, 0.7, 0.25],      // the stream
+    'sfx-acid-burn': ['noise', 2000, 1200, 0.2, 0.2],       // Sammy in a puddle
   };
   const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
   const TRACKS = {

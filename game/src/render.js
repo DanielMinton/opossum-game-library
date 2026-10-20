@@ -200,12 +200,14 @@
     deflate: ['PFFFT.', 'SAD HISS.', 'FFFFFT.'],
     sliced: ['RIIIP.', 'WELL, SHIT.', 'HALVSIES.', 'FUCK ME.'],
     low: ['SHHK.', 'WELL, SHIT.', 'DONE.'],
+    crawl: ['DOWN. STAYS DOWN.'], // a boss: shown when he goes flat, not when he drops
   };
   const GAGS_BY_TYPE = { // a type's own lines by style; anything not listed here falls back to GAGS by style
     hippie: { melt: ['PEACE. OUT.', 'FAR OUT, MAN.', 'BUMMER.'] },
     sweater: { flop: ['BUNNY DOWN.', 'FASHION VICTIM.', 'NICE SWEATER.'] },
     cheerleader: { burst: ['GO TEAM. DEAD.', 'RAH RAH. SHIT.', 'SPIRIT: ZERO.'] },
     baby: { pop: ['NAP TIME.', 'LITTLE SHIT.', 'GOO GOO. GONE.'] },
+    brute: { crawl: ['BIG FUCKER DOWN.'] },
   };
   S.GAGS = GAGS; S.GAGS_BY_TYPE = GAGS_BY_TYPE;
   // Gags drawn this frame (reset in S.render), so several kills at once stack instead of printing over each other.
@@ -547,9 +549,153 @@
     rattle(x + f * 7, y - 14 - bob, swing ? 1 : 0);
   }
 
+  // ---------- THE BRUTE (boss) ----------
+  // Which frame of his combined strips a state shows (null = the strip's own clock: the walk loop, the death crawl).
+  // swipe: 0 tell, 1 step, 2-4 hits, 5 opening | slam: 0 tell, 1 hit, 2 stuck | spin: 0 tell, 1-2 spin, 3 dizzy (also the vomit tell)
+  // stagger: 0 half-health stagger, 1 enrage roar | faces: HUD portraits by state (S.bossFace).
+  function bruteFrame(e) {
+    const t = e.t;
+    switch (e.state) {
+      case 'swipe-tell': return 0; case 'swipe-step': return 1; case 'swipe-hit': return 2 + Math.min(2, Math.floor(t * 10)); case 'swipe-open': return 5;
+      case 'slam-tell': return 0; case 'slam-hit': return 1; case 'slam-stuck': return 2;
+      case 'spin-tell': return 0; case 'spin-hit': return 1 + Math.min(1, Math.floor(t * 10)); case 'spin-dizzy': case 'vomit-tell': return 3;
+      case 'vomit-stream': case 'vomit-open': case 'confused': case 'stagger': return 0;
+      case 'enrage': return 1;
+      default: return null;
+    }
+  }
+  // The portrait in the boss bar: which of the 17 faces, and the placeholder's mood. By health band, with a wince after a hit,
+  // a snarl that alternates while enraged, the dumb look while confused, and two dead faces.
+  S.bossFace = function (e, k) {
+    if (e.state === 'defeat' || e.state === 'dead') return { idx: e.t < 1.2 ? 4 : 15, mood: 'dead' };
+    if (e.state === 'confused') return { idx: 16, mood: 'confused' };
+    if ((e.hitT || 0) > 0) return { idx: 2, mood: 'hit' };
+    if (e.enraged) return { idx: Math.floor(e.t * 4) % 2 ? 10 : 0, mood: 'enraged' };
+    if (e.hp <= k.staggerAt) return { idx: 1, mood: 'teeth' };
+    if (e.hp <= k.hp * 0.7) return { idx: 6, mood: 'angry' };
+    return { idx: 8, mood: 'steady' };
+  };
+  function drawBrute(ctx, e) {
+    const k = S.enemyType(e.type).cfg, flash = flashing(e), style = styleOf(e), x = Math.round(e.x), y = Math.round(e.y), f = e.face;
+    const roar = e.state === 'enter' && e.t >= k.enterWalk;
+    let real;
+    if (roar) real = sprite(ctx, 'brute:spin', 0, e.x, e.y, f, false, 3, flash);
+    else if (defeated(e)) real = sprite(ctx, 'brute:death', e.t, e.x, e.y, f, false, null, flash);
+    else real = sprite(ctx, 'brute:' + e.anim, e.animT, e.x, e.y, f, false, bruteFrame(e), flash);
+    if (!real) drawBrutePlaceholder(ctx, e, k, flash);
+    if (e.state === 'vomit-stream') drawAcidStream(ctx, e, k);
+    if (e.state === 'confused') S.drawTextCentered(ctx, '?', x, y - k.bodyH - 14, K.white, 2, K.black);
+    if (defeated(e) && e.t >= k.defeatTime) gag(ctx, Object.assign({}, e, { t: e.t - k.defeatTime }), style, y - 30);
+  }
+  // Coded placeholder: huge, pale sickly olive, open belly, dark iron gauntlets and boots, navy pants, 1 px outline.
+  // Each state changes the arms and the lean so the tell, the hit and the opening read at a glance.
+  function drawBrutePlaceholder(ctx, e, k, flash) {
+    const x = Math.round(e.x), y = Math.round(e.y), f = e.face, t = e.t, st = e.state;
+    const skin = flash ? K.white : K.brute, shade = flash ? K.white : K.bruteDark, iron = K.bruteIron, cloth = K.bruteCloth;
+    // A filled box with a 1 px black outline, measured from his feet point: a px ahead (facing), b px up, w wide, h tall.
+    const O = (col, a, b, w, h) => { const bx = f > 0 ? x + a : x - a - w; R(ctx, K.black, bx - 1, y - b - h - 1, w + 2, h + 2); R(ctx, col, bx, y - b - h, w, h); };
+    const P = (col, a, b, w, h) => { const bx = f > 0 ? x + a : x - a - w; R(ctx, col, bx, y - b - h, w, h); };
+    if (defeated(e)) {
+      // Drops to his knees, crawls on his belly, then lies flat. Full gore: a trail and a spreading pool.
+      const flat = t >= 8 / 6, crawl = t >= 1 / 6 && !flat;
+      if (S.gore !== 'low' && t > 0.3) { const len = Math.min(60, Math.round((t - 0.3) * 30)); R(ctx, GORE.bloodDark, f > 0 ? x - 20 - len : x + 20, y - 1, len, 2); }
+      if (flat && S.gore !== 'low') { const pool = Math.min(70, Math.round((t - 8 / 6) * 60)); R(ctx, GORE.bloodDark, x - pool / 2, y - 1, pool, 2); }
+      if (t < 1 / 6) { O(cloth, -18, 0, 36, 18); O(skin, -22, 18, 44, 34); O(skin, -8, 52, 16, 14); O(iron, 20, 30, 12, 12); O(iron, -32, 30, 12, 12); }
+      else {
+        const drag = crawl ? Math.floor(t * 6) % 2 * 2 : 0;
+        O(cloth, -34, 0, 24, 12); O(skin, -14, 0, 40, 18 - (flat ? 4 : 0)); O(skin, 22, 2, 16, 12); // legs behind, body, head ahead
+        O(iron, 30 + drag, 0, 12, 8); O(iron, 14 - drag, 0, 12, 8); // gauntlets clawing forward
+        if (S.gore !== 'low') P(GORE.meat, -8, 2, 20, 6);
+        P(K.black, 32, 8, 2, 2); if (flat) { S.drawText(ctx, 'X', f > 0 ? x + 30 : x - 34, y - 11, K.black); }
+      }
+      return;
+    }
+    const walking = st === 'walk' || (st === 'enter' && t < k.enterWalk);
+    const step = walking ? Math.floor(e.animT * 6) % 2 : 0;
+    const roar = st === 'enter' && !walking;
+    const kneel = st === 'enrage', crouch = st === 'stagger' || st === 'vomit-stream' || st === 'vomit-open' || st === 'vomit-tell';
+    const dip = kneel ? 22 : crouch ? 10 : 0; // how far the body comes down
+    const lean = st === 'swipe-step' || st === 'swipe-open' || st === 'slam-stuck' ? 6 : st === 'swipe-tell' || st === 'slam-tell' ? -4 : 0;
+    const sway = st === 'spin-dizzy' || st === 'vomit-tell' ? Math.round(Math.sin(t * 8) * 3) : 0;
+    // Boots and legs (navy pants), then the belly, the chest, the head.
+    if (!kneel) { O(iron, -20 + step * 3, 0, 12, 10); O(iron, 6 - step * 3, 0, 12, 10); O(cloth, -18, 10, 36, 14); }
+    else { O(cloth, -22, 0, 44, 12); O(iron, -30, 0, 10, 8); O(iron, 20, 0, 10, 8); }
+    const by = 24 - dip; // belly bottom
+    O(skin, -22 + lean + sway, by, 44, 30);
+    O(shade, -22 + lean + sway, by + 26, 44, 4); // crease under the chest
+    // Open belly: guts in full gore, a dark bruise otherwise.
+    if (S.gore !== 'low') { P(GORE.blood, -10 + lean + sway, by + 6, 20, 14); P(GORE.meat, -6 + lean + sway, by + 10, 12, 6); P(GORE.bloodHi, 2 + lean + sway, by + 8, 3, 3); }
+    else P(K.soilWarmDk, -10 + lean + sway, by + 6, 20, 14);
+    O(skin, -28 + lean + sway, by + 30, 56, 14); // shoulders
+    for (let i = 0; i < 4; i++) P(K.grey, -20 + i * 12 + lean + sway, by + 34, 4, 2); // chains across the chest
+    const hx = 8 + lean + sway, hy = by + 44; // head: small, forward
+    O(skin, hx - 8, hy, 18, 14);
+    P(K.black, hx + 5, hy + 7, 3, 3); // eye
+    if (st === 'enrage' || e.enraged) P(K.heart, hx + 5, hy + 7, 3, 3);
+    const mouthOpen = roar || st === 'spin-tell' || st === 'enrage' || st === 'vomit-tell' || st === 'vomit-stream' || st === 'swipe-hit';
+    if (mouthOpen) { P(K.black, hx + 1, hy + 1, 9, 5); P(K.white, hx + 2, hy + 4, 2, 2); P(K.white, hx + 7, hy + 4, 2, 2); }
+    else P(K.black, hx + 2, hy + 2, 8, 2);
+    // Arms and gauntlets by state.
+    const G1 = (a, b) => { O(skin, a, b, 8, 16); O(iron, a - 2, b - 10, 12, 12); P(K.grey, a - 1, b - 2, 2, 2); P(K.grey, a + 8, b - 2, 2, 2); }; // an arm hanging down, gauntlet below
+    const G2 = (a, b, w) => { O(skin, a, b, w, 8); O(iron, a + (f > 0 ? w : -4) - 6, b - 2, 12, 12); }; // an arm out sideways
+    switch (st) {
+      case 'swipe-tell': G2(-44 + lean, by + 34, 20); G2(26 + lean, by + 36, 22); break; // one arm drawn back, the other pointing
+      case 'swipe-step': G2(-40, by + 34, 16); G1(24, by + 10); break;
+      case 'swipe-hit': { // three swings: high arc, overhead, low; a red arc in full gore (grey otherwise)
+        const sw = Math.min(2, Math.floor(t * 10)), ay = [by + 40, by + 56, by + 8][sw];
+        G2(16 + lean, ay, 30);
+        const arc = S.gore === 'low' ? K.grey : GORE.bloodHi;
+        for (let i = 0; i < 7; i++) P(arc, 30 + i * 5, ay + (sw === 1 ? 10 - i * 3 : sw === 0 ? 4 + i : -2 - i), 4, 3);
+        break;
+      }
+      case 'swipe-open': G2(20, by + 20, 24); G2(14, by + 12, 18); break; // off balance, reaching forward low
+      case 'slam-tell': O(skin, -14, by + 44, 8, 22); O(skin, 18, by + 44, 8, 22); O(iron, -18, by + 64, 14, 12); O(iron, 16, by + 64, 14, 12); break; // both fists over his head
+      case 'slam-hit': O(skin, 10, 8, 10, 32); O(skin, 24, 8, 10, 32); O(iron, 8, 0, 14, 12); O(iron, 24, 0, 14, 12); break; // fists into the stone
+      case 'slam-stuck': O(skin, 14, 4, 10, 36); O(iron, 12, -4, 16, 10); G2(-38, by + 30, 18); break; // one fist buried, pulling
+      case 'spin-tell': O(skin, 20, by + 44, 8, 20); O(iron, 18, by + 62, 12, 12); G1(-30, by + 12); break; // one arm up, roaring
+      case 'spin-hit': G2(26, by + 34, 30); G2(-56, by + 34, 30); break; // both gauntlets out
+      case 'spin-dizzy': case 'vomit-tell': G2(26 + sway, by + 30, 26); G2(-52 + sway, by + 30, 26); if (st === 'spin-dizzy') for (let i = 0; i < 3; i++) P(K.umbrella, -10 + i * 10, by + 62 + Math.round(Math.sin(t * 8 + i) * 3), 3, 3); break;
+      case 'vomit-stream': case 'vomit-open': G1(-30, by + 6); G1(20, by + 6); break; // hands on his knees, head down
+      case 'stagger': O(skin, -16, by + 2, 12, 10); O(skin, 4, by + 2, 12, 10); O(iron, -22, by - 2, 12, 12); O(iron, 10, by - 2, 12, 12); break; // clutching his belly
+      case 'enrage': O(skin, -30, by + 36, 8, 22); O(skin, 22, by + 36, 8, 22); O(iron, -34, by + 56, 14, 12); O(iron, 20, by + 56, 14, 12); break; // on his knees, arms up
+      default: if (roar) { G2(26, by + 32, 26); G2(-52, by + 32, 26); } else { G1(-30 + step * 2, by + 10); G1(20 - step * 2, by + 10); } // walking, confused: arms hanging
+    }
+  }
+  // The acid stream: a green arc from his mouth to the floor ahead (24..144 px, 24..44 up: lying flat is under it).
+  function drawAcidStream(ctx, e, k) {
+    const f = e.face;
+    if (sprite(ctx, 'brute:vomit-stream', 0, e.x + f * 71, e.y - 37, f)) return;
+    const b = k.vomit.box, n = 12;
+    for (let i = 0; i <= n; i++) {
+      const u = i / n, px = e.x + f * (14 + u * (b.x1 - 14)), py = e.y - 70 + u * u * (70 - b.y0 - 4) + Math.round(Math.sin(e.t * 20 + i) * 1.5);
+      R(ctx, i % 2 ? K.acid : K.acidHi, px - 2, py - 2, 5, 4);
+      if (i % 3 === 0) R(ctx, K.acid0, px + f * 2, py + 2, 2, 2);
+    }
+  }
+  // Floor hazards from the boss: acid puddles (own greens, both gore settings) and the slam's shockwaves (a running ridge of stone and dust).
+  function drawHazards(ctx, s, layer) {
+    for (const h of s.hazards) {
+      if (h.kind === 'puddle' && layer === 'floor') {
+        const left = h.life - h.t;
+        if (left < 1 && Math.floor(h.t * 8) % 2) continue; // blinks before it dries
+        const x = Math.round(h.x), w = h.land && h.t < h.land ? Math.max(6, Math.round(h.w * h.t / h.land)) : h.w; // spreads while it lands
+        if (h.t < 0.25) sprite(ctx, 'brute:acid-splat', h.t, x, G - 20, 1);
+        R(ctx, K.acid0, x - w / 2, G - 2, w, 3); R(ctx, K.acid, x - w / 2 + 2, G - 3, w - 4, 2);
+        for (let i = 0; i < 3; i++) R(ctx, K.acidHi, x - w / 2 + 3 + ((Math.floor(h.t * 20) * 7 + i * 9) % (w - 6)), G - 4 + (i & 1), 2, 1); // bubbles
+        if (!sprite(ctx, 'brute:acid-smoke', h.t, x, G - 2, 1)) for (let i = 0; i < 3; i++) { const u = (h.t * 0.7 + i * 0.33) % 1; R(ctx, i & 1 ? K.acid0 : K.acid, x - 6 + i * 6 + Math.round(Math.sin(h.t * 6 + i) * 2), G - 6 - u * 18, 3, 3); }
+      } else if (h.kind === 'wave' && layer === 'front') {
+        const x = Math.round(h.x), w = h.w, hh = h.h;
+        R(ctx, K.black, x - w / 2 - 1, G - hh - 1, w + 2, hh + 1);
+        R(ctx, K.stoneLight, x - w / 2, G - hh, w, hh); R(ctx, K.stoneMid, x - w / 2 + 2, G - hh + 3, w - 4, hh - 3);
+        R(ctx, K.black, x - 1, G - hh + 1, 2, hh - 2); // the crack
+        for (let i = 0; i < 3; i++) R(ctx, K.grey, x - h.dir * (10 + i * 6) - 2, G - 4 - i * 3 - Math.floor(h.t * 10) % 2, 4, 3); // dust behind it
+      }
+    }
+  }
+
   // One drawer per enemy type (S.ENEMY_TYPES). A type with no drawer is an error, never drawn as a jogger.
   // New types go here with their own drawer (real strip `<art>:<anim>` first, coded placeholder in contrasting colours when missing).
-  const DRAW = { jogger: drawJogger, vendor: drawVendor, hippie: drawHippie, sweater: drawSweater, cheerleader: drawCheerleader, baby: drawBaby };
+  const DRAW = { jogger: drawJogger, vendor: drawVendor, hippie: drawHippie, sweater: drawSweater, cheerleader: drawCheerleader, baby: drawBaby, brute: drawBrute };
   S.ENEMY_DRAW = DRAW;
   function drawEnemy(ctx, e) {
     const draw = DRAW[e.type];
@@ -761,6 +907,7 @@
     const secs = Math.floor(s.stats.time);
     S.drawText(ctx, Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0'), 200, 6, K.white);
     if (s.arena.state === 'fight') S.drawText(ctx, 'WAVE ' + (s.arena.wave + 1) + '/' + C.gauntlet.waves.length, 240, 6, K.umbrella);
+    if (s.arena.state === 'boss') drawBossBar(ctx, s);
     // Tutorial prompt for the current part of the level.
     for (const pr of s.level.prompts) {
       if (p.x >= pr.x0 && p.x < pr.x1) {
@@ -773,6 +920,45 @@
     if (p.state === 'ko') {
       S.drawTextCentered(ctx, 'K.O.!', W / 2, 80, K.heart, 4, K.black);
       if (p.t > C.sammy.koTime) S.drawTextCentered(ctx, 'BACK TO THE LAST CHECKPOINT...', W / 2, 110, K.white, 1, K.black);
+    }
+  }
+
+  // The boss bar: a strip just under the top bar (inside the picture, so it is inside every phone's safe area): a 32x32 portrait
+  // at (4, 18), his name at (40, 20), a 120 px health bar at (40, 28) with a tick every 5 hit points. The portrait is the real
+  // faces strip when it exists, else a drawn face that changes by health band, winces after a hit, snarls when enraged, dies.
+  S.BOSS_BAR = { portrait: [4, 18, 32, 32], name: [40, 20], bar: [40, 28, 120, 6], tickEvery: 5 };
+  function drawBossBar(ctx, s) {
+    const e = s.enemies.find((q) => q.boss);
+    if (!e) return;
+    const k = S.enemyType(e.type).cfg, B = S.BOSS_BAR, face = S.bossFace(e, k);
+    const [px, py, pw, ph] = B.portrait;
+    R(ctx, K.black, px - 1, py - 1, pw + 2, ph + 2);
+    if (!sprite(ctx, 'brute:faces', 0, px, py, 1, false, face.idx)) drawBossFacePlaceholder(ctx, px, py, face.mood, e);
+    S.drawText(ctx, k.name, B.name[0], B.name[1], K.white, 1, K.black);
+    const [bx, by, bw, bh] = B.bar;
+    const frac = Math.max(0, Math.min(1, e.hp / k.hp)), fill = Math.round(bw * frac);
+    R(ctx, K.black, bx - 1, by - 1, bw + 2, bh + 2); R(ctx, K.dark, bx, by, bw, bh);
+    const hot = (e.hitT || 0) > 0.15 ? K.white : e.enraged && Math.floor(s.t * 8) % 2 ? K.umbrella : K.heart;
+    if (fill > 0) R(ctx, hot, bx, by, fill, bh);
+    for (let hp = B.tickEvery; hp < k.hp; hp += B.tickEvery) R(ctx, K.black, bx + Math.round(bw * hp / k.hp), by, 1, bh);
+  }
+  function drawBossFacePlaceholder(ctx, px, py, mood, e) {
+    R(ctx, K.brute, px, py, 32, 32); R(ctx, K.bruteDark, px, py + 26, 32, 6); R(ctx, K.bruteDark, px, py, 32, 4); // pale face, dark brow and jaw
+    R(ctx, K.bruteIron, px + 2, py + 1, 28, 3);
+    const eye = (ex, shut) => { if (shut) R(ctx, K.black, ex, py + 12, 6, 1); else { R(ctx, K.white, ex, py + 9, 6, 5); R(ctx, mood === 'enraged' ? K.heart : K.black, ex + 2, py + 10, 3, 3); } };
+    if (mood === 'dead') { S.drawText(ctx, 'X', px + 6, py + 9, K.black); S.drawText(ctx, 'X', px + 20, py + 9, K.black); R(ctx, K.nose, px + 14, py + 22, 4, 6); }
+    else { eye(px + 6, mood === 'hit'); eye(px + 20, mood === 'hit'); }
+    if (mood === 'angry' || mood === 'teeth' || mood === 'enraged') { R(ctx, K.black, px + 5, py + 7, 7, 1); R(ctx, K.black, px + 20, py + 7, 7, 1); } // brows down
+    if (mood === 'confused') { R(ctx, K.black, px + 20, py + 5, 7, 1); S.drawText(ctx, '?', px + 25, py + 1, K.white); }
+    if (mood === 'steady') R(ctx, K.black, px + 10, py + 21, 12, 2);
+    else if (mood === 'hit') R(ctx, K.black, px + 13, py + 19, 6, 5);
+    else if (mood === 'dead') R(ctx, K.black, px + 10, py + 21, 12, 1);
+    else if (mood === 'confused') R(ctx, K.black, px + 12, py + 21, 8, 2);
+    else { // open mouth, teeth; wider and redder as he gets angrier
+      const w = mood === 'enraged' ? 20 : mood === 'teeth' ? 16 : 12;
+      R(ctx, K.black, px + 16 - w / 2, py + 18, w, 8);
+      if (mood === 'enraged' && S.gore !== 'low') R(ctx, GORE.blood, px + 16 - w / 2 + 2, py + 23, w - 4, 2);
+      for (let i = 0; i < w / 4; i++) R(ctx, K.white, px + 16 - w / 2 + 1 + i * 4, py + 18, 2, 2);
     }
   }
 
@@ -863,6 +1049,7 @@
     drawStatic(ctx, s);
     for (const c of s.carts) if (c.x + 80 > camX && c.x - 16 < camX + W) drawCart(ctx, c, s.t);
     for (const pk of s.pickups) if (pk.x > camX - 16 && pk.x < camX + W + 16) drawPickup(ctx, pk, s.t);
+    drawHazards(ctx, s, 'floor');                      // acid puddles lie under everyone
     for (const e of s.enemies) {
       if (e.x < camX - 64 || e.x > camX + W + 64) continue;
       if (e.state === 'dead') continue;
@@ -871,6 +1058,7 @@
     for (const pr of s.projectiles) drawProjectile(ctx, pr);
     drawEffects(ctx, s, 'back');
     drawSammy(ctx, s);
+    drawHazards(ctx, s, 'front');                      // shockwaves run along the floor in front of everyone
     drawEffects(ctx, s, 'front');
     S.drawScenery(ctx, s, 'front', camX);              // drifting leaves, in front of everyone
     ctx.restore();
