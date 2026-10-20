@@ -4,7 +4,7 @@ These are open questions about Sammy's game that only you, the owner, can answer
 
 To answer, edit this file, or just tell Claude (for example, "go with the suggestions for 1, 3 and 7"). Claude then records your answer in `design/DECISIONS.md` and changes the game and docs to match.
 
-*Last updated 2026-10-19 (new "Zombie Hunter" direction: questions 1, 3 and 21).*
+*Last updated 2026-10-20 (the zombie roster and the Brute: questions 23 to 30, all answered; question 22 partly answered by them).*
 
 ---
 
@@ -31,7 +31,7 @@ To answer, edit this file, or just tell Claude (for example, "go with the sugges
 - **Why it matters:** everything on screen is a placeholder until real art arrives. Every file also needs a row saying who made it and what you're allowed to do with it, or it can't go into the shareable copy.
 
 ### 5. What's in the first release?
-- **Suggested:** one Central Park level (the one that's playable now), Sammy's tail-whip and Play Possum, two zombie types, the hot dog cart and the trash-lid shield.
+- **Suggested:** one Central Park level (the one that's playable now), Sammy's tail-whip and Play Possum, two zombie types, the hot dog cart and the trash-lid shield. *(Update 2026-10-20: you've since asked for four more zombie types and the Brute boss in level 1 (questions 23 to 30), so the first release is "level 1 with the full roster and the Brute" unless you say otherwise.)*
 - **Why it matters:** a small first release can come out much sooner. Every extra level or zombie type adds art, sound and testing.
 
 ### 6. How big is Sammy, and how far does his tail reach?
@@ -119,3 +119,29 @@ To answer, edit this file, or just tell Claude (for example, "go with the sugges
 - **Suggested:** nothing changes until a person has played it. Then pick A or B, or tell Claude what felt wrong.
 - **What the game does now:** 20 seconds of fuel, carrying drains a quarter as fast as revving, waves of 2, 3 and 4. All numbers are in `game/src/config.js`.
 - **Why it matters:** the chainsaw is the payoff of the whole level. Too strong and the final fight is a walkover; too weak and it isn't the "badass" moment you asked for.
+- **Update (2026-10-20):** your answers on the Brute (questions 26 and 29 below) settle most of this: the saw cuts the boss any time, and Sammy always has a saw for the boss (a refuel or a second pickup inside the arena). Still open: whether the fuel for the walk and the waves before him should change (A or B above). Best answered after a person plays the finished finale.
+
+### 23. Zombie roster: skins or types?
+- **Your answer (Confirmed 2026-10-20): distinct types** on one shared "walker" brain, built in the order **hippie, sweater, cheerleader, baby**. Each is its own set of numbers and a few small hooks on the jogger's brain, so each plays differently (a tank, a brawler, a leaper, a litter).
+- **What the game does now:** the one-table-of-types rewrite is done (`design/DECISIONS.md`, "2026-10-20: Zombie roster and the Brute"); the four types follow.
+
+### 24. Which types go in level 1?
+- **Your answer (Confirmed 2026-10-20): all four**, each in a contrasting colour scheme. The real art is being produced separately; until it lands, the coded placeholders also use contrasting colours (hippie purple and olive, sweater zigzag purple, teal and gold, cheerleader maroon and cream, baby pastel pink and blue with a pink brain, the Brute huge and pale with dark gauntlets).
+
+### 25. Keep the jogger?
+- **Your answer (Confirmed 2026-10-20): yes.** He drops from 14 placements to about 7; the other spots become the new types.
+
+### 26. Where does the Brute go, and what does Sammy get before him?
+- **Your answer (Confirmed 2026-10-20):** the Brute comes **after the final gauntlet wave, before the exit**. Right before him Sammy gets a **power-up** (a trash lid or a hot dog cache: Claude picks one and marks it Proposed) **and the chainsaw**: today's pickup on screen 11 (x 3300) stays, and a second pickup or a refuel appears inside the arena when the boss starts, so he always has a saw for the boss.
+
+### 27. The Ringmaster
+- **Your answer (Confirmed 2026-10-20): level 2.** He is not built now; his notes stay in `design/BOSSES.md` and `design/ZOMBIE-ROSTER-AND-BOSSES.md` for the level 2 boss.
+
+### 28. Low-gore versions of the new zombies and the boss
+- **Your answer (Confirmed 2026-10-20): no low-gore work.** The game is full gore. The existing G toggle stays exactly as it is (not extended to the new zombies or the boss). *(This also settles the "how gory" part of question 1: full gore. The age you aim for is still open.)*
+
+### 29. The chainsaw on the Brute
+- **Your answer (Confirmed 2026-10-20): the chainsaw cuts the Brute any time** ("gore overload"). He is balanced with hit points and staggers instead of blocking the blade, and saw hits on him throw the most blood, chunks and freeze-frame. *(Supersedes the design's "the saw only cuts him while he's open" suggestion.)*
+
+### 30. The baby zombie and the age rating
+- **Your answer (Confirmed 2026-10-20): no guard rails.** The baby bleeds red and is sliced by the chainsaw like anyone else. *(Supersedes the design's "pops into its own goo, never red, never sliced" suggestion.)*

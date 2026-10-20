@@ -478,10 +478,17 @@
     }
     p.saw = null; p.anim = 'idle';
     p.shield = 3; draw('shield'); p.shield = 1; draw('shield-cracked'); p.possumCd = 3; draw('possum-cooldown');
-    const jog = state.enemies.find((e) => e.type === 'jogger'), ven = state.enemies.find((e) => e.type === 'vendor');
-    for (const e of [jog, ven]) if (e) { e.x = p.x + 40; }
-    for (const st of ['confused', 'spawn', 'attack', 'hitreact', 'defeat']) if (jog) { jog.state = st; jog.t = 0.2; draw('jogger-' + st); }
-    for (const st of ['shrug', 'throw', 'hitreact', 'defeat']) if (ven) { ven.state = st; ven.t = 0.2; draw('vendor-' + st); }
+    // Every enemy type in every state its brain has (dead is never drawn), plus the no-flinch flash, in its placeholder or real art.
+    for (const [type, T] of Object.entries(S.ENEMY_TYPES)) {
+      const e = state.enemies.find((q) => q.type === type && q.state !== 'dead') || state.enemies.find((q) => q.type === type);
+      if (!e) continue;
+      e.x = p.x + 40;
+      for (const st of T.states) {
+        if (st === 'dead') continue;
+        e.state = st; e.t = 0.2; e.anim = T.anims[st]; e.animT = 0.2; e.flashT = 0; draw(type + '-' + st);
+      }
+      e.state = T.cfg.start; e.anim = T.cfg.startAnim; e.flashT = 0.1; draw(type + '-flash'); e.flashT = 0;
+    }
     for (const c of state.carts) for (const st of ['upright', 'rocking', 'tipping', 'tipped', 'empty']) { c.state = st; c.t = 0.1; c.anim = st === 'tipped' ? 'tipped-over' : st; draw('cart-' + st); }
     state.projectiles.push({ x: p.x + 20, y: p.y - 20, vx: 0, vy: 0, t: 0.1, life: 1 });
     for (const k of ['spark', 'dust', 'splat', 'splash', 'sparkle', 'bang', 'text']) state.effects.push({ kind: k, x: p.x, y: p.y - 10, t: 0.05, life: 1, text: 'TEST' });
@@ -507,7 +514,9 @@
   // Puts zombies going down in every defeat style, plus every gore effect, near x (render sweep and ?goredemo=T shots).
   function goreDemo(x, t) {
     t = t || 0.2;
-    const styles = [['jogger', 'pop'], ['jogger', 'sliced'], ['vendor', 'deflate'], ['vendor', 'sliced']];
+    // Every type's whip death and saw death (jogger pop + sliced, vendor deflate + sliced, …), side by side.
+    const styles = [];
+    for (const [type, T] of Object.entries(S.ENEMY_TYPES)) styles.push([type, T.cfg.defeatStyle], [type, T.cfg.sawStyle]);
     styles.forEach(([type, style], i) => {
       const e = state.enemies.find((q) => q.type === type && !q.goreDemo && q.state !== 'dead') ||
         Object.assign({}, state.enemies.find((q) => q.type === type), { id: 'demo' + i });

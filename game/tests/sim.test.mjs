@@ -421,6 +421,117 @@ test('the game is deterministic: two identical runs give identical results', () 
   assert.equal(run(), run());
 });
 
+// ---------- enemy type table (2026-10-20) ----------
+// A stub type for the tests: a jogger with some table fields changed. Registered with a drawer, removed again after.
+function withStubType(fields, fn) {
+  const cfg = Object.assign({}, C.jogger, fields);
+  S.defineEnemyType('stub', cfg);
+  S.ENEMY_DRAW.stub = S.ENEMY_DRAW.jogger;
+  try {
+    const level = Object.assign({}, S.LEVEL1, { enemies: [{ type: 'stub', x: 600 }] });
+    const s = S.newGame(level); step(s, { pressed: { start: true } }); s.carts = []; s.pickups = []; events(s);
+    return fn(s, s.enemies[0], cfg);
+  } finally { delete S.ENEMY_TYPES.stub; delete S.ENEMY_DRAW.stub; }
+}
+
+test('enemy types: every type is one complete row: config block, brain, start state, drawer, and a strip for every animation', () => {
+  const names = Object.keys(S.ENEMY_TYPES);
+  assert.deepEqual(names, ['jogger', 'vendor'], 'the two types today, in config order');
+  const keys = new Set(S.ASSET_MANIFEST.map((m) => m.key));
+  for (const [name, T] of Object.entries(S.ENEMY_TYPES)) {
+    assert.equal(T.name, name);
+    assert.equal(T.cfg, C[name], name + ': its config block is the row');
+    for (const f of S.ENEMY_TYPE_FIELDS) assert.notEqual(T.cfg[f], undefined, name + ' has ' + f);
+    assert.equal(typeof T.update, 'function', name + ' has a brain');
+    assert.ok(T.states.includes(T.cfg.start) && T.states.includes('defeat') && T.states.includes('dead') && T.states.includes('hitreact'), name + ' states');
+    assert.equal(T.anims[T.cfg.start], T.cfg.startAnim, name + ' starts in the animation of its start state');
+    for (const st of T.states) assert.ok(T.anims[st], name + ': state ' + st + ' has an animation');
+    for (const anim of new Set(Object.values(T.anims))) assert.ok(keys.has(T.cfg.art + ':' + anim), name + ': manifest strip ' + T.cfg.art + ':' + anim);
+    assert.equal(typeof S.ENEMY_DRAW[name], 'function', name + ' has a drawer in render.js');
+    assert.ok(['pop', 'deflate', 'sliced'].includes(T.cfg.defeatStyle) && ['pop', 'deflate', 'sliced'].includes(T.cfg.sawStyle), name + ' defeat styles are drawn');
+  }
+  assert.equal(S.ENEMY_TYPES.jogger.brain, 'walker'); assert.equal(S.ENEMY_TYPES.vendor.brain, 'turret');
+  for (const d of S.LEVEL1.enemies) assert.ok(S.ENEMY_TYPES[d.type], 'level 1 places a known type: ' + d.type);
+  assert.ok(S.ENEMY_TYPES[C.gauntlet.waveType], 'the gauntlet spawns a known type');
+  // The table is the only place that knows the types: no "is it a jogger?" checks are left in the game code.
+  for (const f of ['sim.js', 'render.js', 'main.js', 'bot.js']) {
+    const code = fs.readFileSync(path.join(src, f), 'utf8');
+    assert.ok(!/=== '(jogger|vendor)'|isVendor|updateJogger|updateVendor/.test(code), f + ' has no per-type if checks');
+  }
+});
+
+test('enemy types: an unknown type throws at once (it is never quietly treated as a jogger)', () => {
+  assert.throws(() => S.enemyType('ghoul'), /unknown enemy type "ghoul"/);
+  assert.throws(() => S.newGame(Object.assign({}, S.LEVEL1, { enemies: [{ type: 'ghoul', x: 500 }] })), /unknown enemy type "ghoul"/);
+  const s = start();
+  s.enemies.push({ id: 'x', type: 'ghoul', x: 300, y: G, state: 'patrol', t: 0, anim: 'walk', animT: 0 });
+  assert.throws(() => step(s), /unknown enemy type "ghoul"/);
+  s.enemies.pop();
+  assert.throws(() => S.render(colorCtx(), Object.assign({}, s, { enemies: [{ id: 'x', type: 'ghoul', x: s.player.x + 20, y: G, state: 'patrol', t: 0, anim: 'walk', animT: 0 }] })), /no drawer for enemy type "ghoul"/);
+  // A half-written config block fails at registration, naming what is missing.
+  const half = Object.assign({}, C.jogger); delete half.knockback;
+  assert.throws(() => S.defineEnemyType('half', half), /"half" is missing "knockback"/);
+  assert.throws(() => S.defineEnemyType('odd', Object.assign({}, C.jogger, { brain: 'wizard' })), /unknown brain "wizard"/);
+  assert.throws(() => S.defineEnemyType('odd', Object.assign({}, C.jogger, { start: 'throw' })), /starts in "throw"/);
+  assert.throws(() => S.defineEnemyType('odd', Object.assign({}, C.jogger, { possum: 'shrug' })), /Play Possum with "shrug"/);
+  assert.ok(!S.ENEMY_TYPES.half && !S.ENEMY_TYPES.odd, 'nothing half-registered');
+});
+
+test('enemy types: knockback, shield push, cart knock, Play Possum grace and defeat style all come from the table', () => {
+  // Whip knockback and the whip death style.
+  withStubType({ knockback: 50, defeatStyle: 'deflate', shieldPush: 40, cartKnock: 0, possumIgnore: 3.0 }, (s, e) => {
+    e.state = 'confused'; place(s, e.x - 22);
+    step(s, { pressed: { attack: true } });
+    assert.ok(runUntil(s, () => e.state === 'hitreact', sec(0.3)) >= 0, 'whipped');
+    assert.equal(e.hp, C.jogger.hp - 1);
+    assert.equal(Math.abs(e.vx), 50 * 0.85, 'pushed at the table speed (one frame of slowing): ' + e.vx);
+    // The lid pushes it back by shieldPush.
+    e.state = 'chase'; s.player.shield = 3; s.player.invuln = 0; const x0 = e.x;
+    assert.equal(S.hurtPlayer(s, { fromX: e.x, source: e }), 'blocked');
+    assert.equal(e.x - x0, 40);
+    // Play Possum: confused, then ignores Sammy for possumIgnore after he gets up.
+    e.state = 'confused'; step(s, {}, sec(0.3)); // let the whip finish
+    e.state = 'chase'; e.x = s.player.x + 40; s.player.possumCd = 0; s.player.shield = 0;
+    step(s, { pressed: { possum: true } });
+    assert.equal(e.state, 'confused');
+    step(s, {}, sec(C.possum.maxTime + C.possum.getUpTime + 0.1));
+    assert.equal(s.player.state, 'normal'); assert.ok(e.ignoreT > 2.8 && e.ignoreT <= 3.0, 'grace ' + e.ignoreT);
+    // Whip death uses the table's style.
+    e.state = 'confused'; e.hp = 1; e.x = s.player.x + 20; s.player.face = 1;
+    step(s, { pressed: { attack: true } }, sec(0.2));
+    assert.equal(e.state, 'defeat'); assert.equal(e.defeatStyle, 'deflate');
+  });
+  // The cart knocks a type with cartKnock 0 into hitreact without moving it.
+  withStubType({ cartKnock: 0 }, (s, e) => {
+    s.carts = [{ id: 'cart0', def: { x: 560 }, x: 560, state: 'tipping', t: 0, tipDir: 1, anim: 'tipping', animT: 0, spill: [] }];
+    e.state = 'confused'; e.x = 620; place(s, 400);
+    step(s, {}, sec(C.cart.tipTime) + 1);
+    assert.equal(e.state, 'hitreact'); assert.equal(e.vx, 0);
+  });
+  // The jogger row still says what it did before the table existed.
+  assert.deepEqual([C.jogger.knockback, C.jogger.sawKnockback, C.jogger.cartKnock, C.jogger.shieldPush, C.jogger.hitY, C.jogger.possumIgnore], [120, 40, 160, 16, 26, 1.5]);
+  assert.deepEqual([C.vendor.knockback, C.vendor.sawKnockback, C.vendor.cartKnock, C.vendor.shieldPush], [0, 0, 0, 0]);
+});
+
+test('enemy types: flinch false = a hit flashes it white, it keeps coming, and it still loses hit points', () => {
+  withStubType({ flinch: false, hp: 3 }, (s, e) => {
+    e.state = 'chase'; e.vx = 30; place(s, e.x - 22);
+    step(s, { pressed: { attack: true } }, sec(0.2));
+    assert.equal(e.hp, 2, 'took the hit');
+    assert.ok(e.state === 'chase' || e.state === 'attack', 'never reeled: ' + e.state);
+    assert.ok(e.flashT > 0 && e.flashT <= C.jogger.hitReactTime, 'flashing for hitReactTime: ' + e.flashT);
+    assert.ok(events(s).includes('sfx-hit-zombie'));
+    // The flash is drawn white, then fades on its own.
+    e.state = 'chase'; e.x = s.player.x + 40;
+    const ctx = colorCtx(); S.render(ctx, s);
+    assert.ok(ctx.used.has(S.PAL.white.toLowerCase()), 'drawn white while flashing');
+    step(s, {}, sec(0.3)); assert.equal(e.flashT, 0);
+    // Two more whips kill it; the whip death keeps its style.
+    for (let i = 0; i < 2; i++) { e.state = 'confused'; e.x = s.player.x + 20; s.player.face = 1; step(s, { pressed: { attack: true } }, sec(0.3)); }
+    assert.equal(e.state, 'defeat'); assert.equal(e.defeatStyle, 'pop');
+  });
+});
+
 // ---------- chainsaw (Stage B) ----------
 function withSaw(x = 600) {
   const s = start();

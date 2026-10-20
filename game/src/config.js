@@ -46,11 +46,20 @@
       dropTime: 0.5,           // play-dead strip: 4 frames @ 8 fps
       getUpTime: 0.25,
       cooldown: 6.0,
-      ignoreAfter: 1.5,        // prototype addition: zombies ignore Sammy briefly after he gets up
+      // ignoreAfter (how long a zombie ignores Sammy after he gets up) moved to each enemy type's `possumIgnore` (2026-10-20).
       readyFlash: 1.0,         // prototype addition: HUD icon flashes this long when the cooldown ends
     },
 
+    // ---------- enemy types ----------
+    // Every block with a `brain` is an enemy type; sim.js registers it in S.ENEMY_TYPES at load (and throws if a field is missing).
+    // brain: 'walker' (patrol, chase, lunge, as the jogger) or 'turret' (stands and throws, as the vendor).
+    // art: the manifest prefix (`<art>:walk` …). start / startAnim: the state and animation it is made in.
+    // flinch: false = a hit flashes it white and changes nothing else. knockback / sawKnockback: px/s pushed by a whip / a saw cut.
+    // cartKnock: px/s pushed by the cart tipping over (0 = none). shieldPush: px it is pushed back when the lid blocks its hit.
+    // hitY: its attack box starts this many px above its feet. possum: 'confused' | 'shrug' (how Play Possum fools it).
+    // possumIgnore: seconds it ignores Sammy after he gets up. defeatStyle / sawStyle: how it goes down from a whip / the saw.
     jogger: {                  // enemy-zombie-jogger ASSET.md
+      brain: 'walker', art: 'jogger', start: 'patrol', startAnim: 'walk',
       hp: 2,
       patrolSpeed: 30,
       chaseSpeed: 60,
@@ -67,9 +76,13 @@
       bodyW: 18, bodyH: 38,
       hitReactTime: 2 / 12,
       defeatTime: 8 / 12,
+      flinch: true, knockback: 120, sawKnockback: 40, cartKnock: 160, shieldPush: 16, hitY: 26,
+      possum: 'confused', possumIgnore: 1.5,
+      defeatStyle: 'pop', sawStyle: 'sliced',
     },
 
     vendor: {                  // enemy-zombie-hot-dog-vendor ASSET.md
+      brain: 'turret', art: 'vendor', start: 'idle', startAnim: 'idle',
       hp: 2,
       notice: 160,
       throwEvery: 2.0,
@@ -82,7 +95,11 @@
       projFlight: 0.9,
       projGravity: 500,
       projLife: 3.0,
+      flinch: true, knockback: 0, sawKnockback: 0, cartKnock: 0, shieldPush: 0, hitY: 0,
+      possum: 'shrug', possumIgnore: 1.5,
+      defeatStyle: 'deflate', sawStyle: 'sliced',
     },
+    // New enemy types go here (hippie, sweater, cheerleader, baby, brute): one block each, same fields, a `brain`.
 
     cart: {                    // prop-hot-dog-cart INTERACTION.md
       w: 64, h: 48,
@@ -105,7 +122,7 @@
       slashTime: 0.2,          // a quick tap still revs (and cuts) this long
     },
 
-    gauntlet: { waves: [2, 3, 4], waveDelay: 1.0 },
+    gauntlet: { waves: [2, 3, 4], waveDelay: 1.0, waveType: 'jogger' }, // waveType: the enemy type every wave is made of
   };
 
   // 9-bit colour: each channel snapped to 0,36,72,...,252 (templates/STYLE_GUIDE.md)

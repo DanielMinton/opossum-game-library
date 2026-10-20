@@ -5,7 +5,7 @@ A 16-bit Genesis-style 2D platformer prototype, "Sammy the Opossum: Zombie Hunte
 ## Tone
 - **Owner rule (Confirmed 2026-10-19): uncensored deadpan humour with cursing and swearing is encouraged** for Sammy and the zombies, in game text (title, prompts, banners, gags). Dry, matter-of-fact, profane. Don't bleep it, don't use symbols like `F***`. Short lines: the 3×5 font only has A–Z, 0–9 and `.,!?:-+/'()*=><%"#_` (no `;` or `&`).
 - Badass action-horror with dark humour (Confirmed 2026-10-19). Sammy is a badass "who doesn't fuck around with zombies".
-- **Gore (direction Confirmed 2026-10-19: "gorier"; exact level Proposed):** stylized 16-bit only, reserved gore colours (`S.PAL` `blood*`, `ichor*`, `bone`, `meat`; nothing else may use them); Sammy never bleeds. Every gory picture or effect needs a low-gore version (`-lowgore` art files). The setting `S.gore` ('full'|'low', G key, `?gore=low`, GORE pause button, localStorage `sammy.gore`) is **drawing only**: `sim.js` never reads it, and the game must play identically either way (tests check both).
+- **Gore (direction Confirmed 2026-10-19: "gorier"; exact level Proposed):** stylized 16-bit only, reserved gore colours (`S.PAL` `blood*`, `ichor*`, `bone`, `meat`; nothing else may use them); Sammy never bleeds. ~~Every gory picture or effect needs a low-gore version (`-lowgore` art files).~~ **Owner rule (Confirmed 2026-10-20): the game is full gore and there is no more low-gore work**: don't make `-lowgore` art or low-gore drawing for new zombies or bosses. The existing setting `S.gore` ('full'|'low', G key, `?gore=low`, GORE pause button, localStorage `sammy.gore`) stays exactly as it is (not extended) and is **drawing only**: `sim.js` never reads it, and the game must play identically either way (tests check both).
 - Docs written **to the owner** stay plain, short and polite; the swearing is for the game's own voice.
 
 ## Repo map
@@ -16,7 +16,7 @@ A 16-bit Genesis-style 2D platformer prototype, "Sammy the Opossum: Zombie Hunte
   - `tests/`: `sim.test.mjs` (Node rule tests), `import-art.test.mjs` (art importer), `browser-smoke.mjs` (headless Chromium).
   - `dist/`: single-file build, **tracked in git** (until the owner decides otherwise).
 - `assets/`: real art and sound go here (mostly empty `.gitkeep` folders; real so far: all 13 Sammy strips as `-v02` (rebuilt from the owner's master sheets 2026-10-20; the old run and chainsaw `-v01` files stay on disk unused), the chainsaw pickup and HUD icon, the theme song). `assets/references/` is reference-only.
-- `design/`: `GAME_BRIEF.md`, `DECISIONS.md` (dated log; "Current state" at top), `OWNER_DECISIONS.md` (open owner questions), `STYLE_GUIDE.md` (draft, all Proposed), `ASSET_REQUEST_CHECKLIST.md`, `ART_PROMPTS.md` (copy-paste prompts for image tools + importer commands), `ASSET_SOURCES.csv` (license rows).
+- `design/`: `GAME_BRIEF.md`, `DECISIONS.md` (dated log; "Current state" at top), `OWNER_DECISIONS.md` (open owner questions), `STYLE_GUIDE.md` (draft, all Proposed), `ASSET_REQUEST_CHECKLIST.md`, `ART_PROMPTS.md` (copy-paste prompts for image tools + importer commands), `ASSET_SOURCES.csv` (license rows), `ZOMBIE-ROSTER-AND-BOSSES.md` (the zombie roster and the Brute: the consolidated design and its 5-step plan, with the owner's 2026-10-20 answers on top; `ROSTER.md` and `BOSSES.md` are the detailed drafts behind it).
 - `templates/`: blank templates; `templates/examples/*/` are **proposed** example specs, not real assets. Never copy an unfinished example into `assets/`.
 
 ## Hard conventions
@@ -38,14 +38,12 @@ A 16-bit Genesis-style 2D platformer prototype, "Sammy the Opossum: Zombie Hunte
 
 **Add a sound:** `assets/audio/<sfx|music>/<id>/<id>-v01.ogg` (or `.mp3`/`.wav`; variations `-v01-a`). The id must be in `S.SOUND_MANIFEST`. A new id also needs a placeholder beep in `audio.js` and a `sfx(s, id)` call in `sim.js` (tests check every triggered id has both). Music loops whole; there are no loop points.
 
-**Add an enemy type:** today two types (`jogger`, `vendor`) are handled by `if` checks, and **anything not `vendor` is treated as a jogger**. Places that branch on type:
-- `sim.js`: `makeEnemy` (vendor vs jogger stats), `hurtPlayer` (shield pushes a jogger back), `damageEnemy` (knockback), `startPossum` (confused vs shrug), `whipHits` (which config block), `updateCart` (spill knocks joggers), `spawnWave` (gauntlet spawns joggers only), and the `S.update` dispatch (`updateVendor` vs `updateJogger`).
-- `render.js`: the enemy draw dispatch (`drawVendor` vs `drawJogger`) and each placeholder.
-- `main.js`: `renderSweep` state lists per type.
-- `bot.js` doesn't branch on type; it whips whatever is in front and walks to the nearest enemy in the arena. A ranged or non-whippable type would need bot changes.
-- Also: a `config.js` block, `assets.js` manifest keys (`<type>:<anim>`), `level.js` `enemies` entries, and tests.
-
-When a **third type** starts, do the planned refactor first: an `ENEMY_TYPES` table (config, update, draw, possum reaction, knockback) that replaces these `if`s.
+**Add an enemy type (since 2026-10-20, the type table):** every enemy type is **one row**: a block in `config.js` with a `brain`, read through `S.ENEMY_TYPES` in `sim.js`. There is **one** place that knows the types (the registry built from `config.js`); nothing in `sim.js`, `render.js`, `main.js` or `bot.js` asks "is it a jogger?" (a test greps for it). An unknown type, a missing field or an unknown brain **throws** at load, never plays as a jogger.
+- **`config.js`:** add a block `<type>: { brain, art, start, startAnim, hp, bodyW, bodyH, hitReactTime, defeatTime, flinch, knockback, sawKnockback, cartKnock, shieldPush, hitY, possum, possumIgnore, defeatStyle, sawStyle, …its own numbers }` (the required list is `S.ENEMY_TYPE_FIELDS`; the field meanings are in the comment above `jogger`). `brain` is `'walker'` (patrol, chase, lunge: the jogger's brain, `updateWalker`) or `'turret'` (stands and throws: the vendor's, `updateTurret`); a new brain is a new entry in `BRAINS` in `sim.js` with its `update`, its `states` list and its state → animation map. Type-specific hooks are flags in the block (`flinch: false` = white flash, no reel, like the bosses; `possum` = how Play Possum fools it), read inside the brain.
+- **`sim.js`:** usually nothing. `typeOf(e).cfg` gives the block; `S.enemyType(name)` / `S.defineEnemyType(name, cfg)` are exposed for tests and stubs.
+- **`render.js`:** a drawer in the `DRAW` table (`S.ENEMY_DRAW`): real strip `<art>:<anim>` first, coded placeholder in that type's contrasting colours when the file is missing; its gag lines in `GAGS_BY_TYPE[type][style]` (16 characters max, font letters only), falling back to the shared `GAGS` by style.
+- **`main.js`:** nothing; `renderSweep` and `goreDemo` loop over `S.ENEMY_TYPES` and draw every state of every brain. `bot.js` doesn't branch on type; a ranged or non-whippable type would need bot changes.
+- **Also:** `assets.js` manifest keys `<art>:<anim>` for every animation of the brain (a test checks each type has them, and another checks every manifest file is named with its size in a `templates/examples/<folder>/` planned-file table, so a new type needs its example doc too), `.gitkeep` folders under `assets/enemies/enemy-zombie-<name>/`, `level.js` `enemies` entries, and tests (the table test says exactly which types exist: update its list).
 
 **Add a level:** the code assumes level 1's shape. Hard-coded today:
 - One ground height for everything: `CONFIG.groundY` (192), used by `sim.js`, `render.js` and `level.js`.

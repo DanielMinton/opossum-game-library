@@ -186,22 +186,29 @@
   }
 
   // Enemies and Sammy: real sprite or placeholder first, then the state marks (?, !, gag text…) on top of either.
-  // How a zombie goes down: e.defeatStyle from the rules ('pop' jogger, 'deflate' vendor, 'sliced' by the chainsaw).
+  // How a zombie goes down: e.defeatStyle from the rules (the type's defeatStyle, or its sawStyle when the chainsaw did it).
   const defeated = (e) => e.state === 'defeat' || e.state === 'dead';
-  const styleOf = (e) => e.defeatStyle || (e.type === 'vendor' ? 'deflate' : 'pop');
+  const styleOf = (e) => e.defeatStyle || S.enemyType(e.type).cfg.defeatStyle;
+  // Hit flash: while it reels back (hitreact), or for a type that doesn't flinch, while its flashT runs.
+  const flashing = (e) => e.state === 'hitreact' || (e.flashT || 0) > 0;
   const hashId = (id) => { let h = 0; for (const ch of String(id || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
   // Deadpan one-liners over a zombie as it goes down. Picked from its id, so the same zombie always says the same thing.
+  // Keyed by defeat style; GAGS_BY_TYPE[type][style] wins over the shared list when a type has its own lines (16 characters max).
   const GAGS = {
     pop: ['POP.', 'BOINK.', 'NOPE.'],
     deflate: ['PFFFT.', 'SAD HISS.', 'FFFFFT.'],
     sliced: ['RIIIP.', 'WELL, SHIT.', 'HALVSIES.', 'FUCK ME.'],
     low: ['SHHK.', 'WELL, SHIT.', 'DONE.'],
   };
+  const GAGS_BY_TYPE = {}; // e.g. hippie: { melt: ['PEACE. OUT.', …] }
+  S.GAGS = GAGS; S.GAGS_BY_TYPE = GAGS_BY_TYPE;
   // Gags drawn this frame (reset in S.render), so several kills at once stack instead of printing over each other.
   let gagsShown = [], camNow = 0;
   function gag(ctx, e, style, y) {
     if (e.t > 0.6) return;
-    const list = GAGS[style === 'sliced' && S.gore === 'low' ? 'low' : style] || GAGS.pop;
+    const key = style === 'sliced' && S.gore === 'low' ? 'low' : style;
+    const own = GAGS_BY_TYPE[e.type];
+    const list = (own && own[key]) || GAGS[key] || GAGS.pop;
     const txt = list[hashId(e.id) % list.length], w = S.textWidth(txt);
     // Keep the whole word on screen, even for a kill right at the arena wall.
     const cx = Math.round(Math.max(camNow + w / 2 + 2, Math.min(camNow + W - w / 2 - 2, e.x)));
@@ -248,7 +255,7 @@
   }
 
   function drawJogger(ctx, e) {
-    const flash = e.state === 'hitreact', style = styleOf(e), x = Math.round(e.x), y = Math.round(e.y);
+    const flash = flashing(e), style = styleOf(e), x = Math.round(e.x), y = Math.round(e.y);
     if (defeated(e) && style === 'sliced') {
       drawSliced(ctx, e, () => { if (!sprite(ctx, 'jogger:hit', 0, e.x, e.y, e.face, false, 0)) drawJoggerPlaceholder(ctx, e, false, true); }, 38);
     } else if (!sprite(ctx, 'jogger:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawJoggerPlaceholder(ctx, e, flash);
@@ -286,7 +293,7 @@
   }
 
   function drawVendor(ctx, e) {
-    const flash = e.state === 'hitreact', style = styleOf(e), x = Math.round(e.x), y = Math.round(e.y);
+    const flash = flashing(e), style = styleOf(e), x = Math.round(e.x), y = Math.round(e.y);
     if (defeated(e) && style === 'sliced') {
       drawSliced(ctx, e, () => { if (!sprite(ctx, 'vendor:hit', 0, e.x, e.y, e.face, false, 0)) drawVendorPlaceholder(ctx, e, false, true); }, 36);
     } else if (!sprite(ctx, 'vendor:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawVendorPlaceholder(ctx, e, flash);
@@ -304,6 +311,17 @@
     if (hgt > 20) { R(ctx, K.black, x + f * 4 - 1, y - hgt + 6, 2, 2); R(ctx, K.vendorDark, x + f * 2 - 3, y - hgt + 10, 7, 2); }
     if (e.state === 'throw') R(ctx, K.vendor, x + f * 8, y - hgt - 2, 4 * f, 10);
   }
+
+  // One drawer per enemy type (S.ENEMY_TYPES). A type with no drawer is an error, never drawn as a jogger.
+  // New types go here with their own drawer (real strip `<art>:<anim>` first, coded placeholder in contrasting colours when missing).
+  const DRAW = { jogger: drawJogger, vendor: drawVendor };
+  S.ENEMY_DRAW = DRAW;
+  function drawEnemy(ctx, e) {
+    const draw = DRAW[e.type];
+    if (!draw) throw new Error('no drawer for enemy type "' + e.type + '" (render.js DRAW)');
+    draw(ctx, e);
+  }
+  S.drawEnemy = drawEnemy;
 
   function drawProjectile(ctx, pr) {
     if (sprite(ctx, 'projectile:hotdog', pr.t, pr.x, pr.y, 1)) return;
@@ -593,7 +611,7 @@
     for (const e of s.enemies) {
       if (e.x < camX - 64 || e.x > camX + W + 64) continue;
       if (e.state === 'dead') continue;
-      if (e.type === 'vendor') drawVendor(ctx, e); else drawJogger(ctx, e);
+      drawEnemy(ctx, e);
     }
     for (const pr of s.projectiles) drawProjectile(ctx, pr);
     drawEffects(ctx, s, 'back');
