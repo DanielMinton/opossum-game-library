@@ -75,6 +75,7 @@ node tools/import-art.mjs ~/Downloads/jogger-walk.png --slot jogger:walk
 - **Nothing touches `assets/` until you add `--install`.** `--install` never overwrites (use `--force`, or `--version 2` for a `-v02` file) and prints a ready-to-paste `ASSET_SOURCES.csv` row. `--dry-run` prints the report and writes nothing.
 - **Other options:** `--list` (every slot), `--frames N`, `--src-pixel N`, `--height H`, `--scale K` (match a strip you already made), `--anchor-x X`, `--shrink` (if a pose is too wide for the cell), `--relayout`, `--tolerance N`. Art with no slot yet: `--size 32x32 --frames 4 --pivot 16,31` (add `--no-feet` for things that float). `--help` lists everything.
 - **A picture that is already the right size and see-through** keeps its layout; only the colours are tidied. Sammy's run strip comes out unchanged.
+- **A whole zombie from one sheet (character mode):** `node tools/import-art.mjs sheet.png --detect` finds every frame (even with a row of big poses on top), writes `detect-overlay.png` (numbered boxes, one colour per animation) and a draft `map.json`; `node tools/import-art.mjs --character map.json` builds **all** the strips at once with one shared scale, one shared palette (15 colours at most), a clean 1 px outline, loose particles removed, gore colours (acid green, blood red) moved away from the zombie, and writes `CHARACTER-REPORT.md`, a contact sheet, a palette swatch and before/after pictures. `--prefix NAME` for a new enemy type, `--size 96x96` (up to 192x192) or `"cell"` in the map for big ones, `--grid-split 10x2` for portrait grids, `--palette` / `--save-palette`, `--recolor`, `--hue-shift`, `--allow-blood`, `--flip`. Steps and the best prompt: [design/ART_PROMPTS.md](../design/ART_PROMPTS.md).
 - Prompts to paste into the image tool, and a checklist of what to regenerate: [design/ART_PROMPTS.md](../design/ART_PROMPTS.md). The reasons for the choices are in `design/DECISIONS.md` ("Art import tool").
 
 **What the scanner warns about** (a warning never stops a file from being listed):
@@ -168,7 +169,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 | Command | What it checks |
 |---|---|
 | `node --test tests/sim.test.mjs` | 76 game-rule checks (see the list below) |
-| `node --test tests/import-art.test.mjs` | 12 art-importer checks (`npm test` runs both test files: 88 in all) |
+| `node --test tests/import-art.test.mjs` | 21 art-importer checks (`npm test` runs both test files: 97 in all) |
 | `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 55 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 | `index.html?test=touch&touch=1` | The touch-button check by hand (it taps the real buttons for you) |

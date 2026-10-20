@@ -9,6 +9,10 @@ import { fileURLToPath } from 'node:url';
 import { png } from '../tools/png-writer.mjs';
 import { decodeAnyPng, checkPng } from '../tools/png.mjs';
 import { importArt, loadSlots, adhocSlot, detectPixelGrid, medianCut, quantise, main } from '../tools/import-art.mjs';
+import os from 'node:os';
+import { detectSheet, gridSplit, fitCount, draftMap } from '../tools/art-detect.mjs';
+import { buildCharacter, parseRecolor, parseHueShift } from '../tools/art-character.mjs';
+import { loadGoreColours, makeTransform, rgbToHsv, paletteFromJson } from '../tools/art-colour.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const slots = loadSlots();
@@ -282,4 +286,292 @@ test('the decoder reads greyscale, palette, 16-bit and interlaced PNGs', () => {
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) assert.deepEqual(Array.from(il.px.slice((y * W + x) * 4, (y * W + x) * 4 + 4)), [x * 40, y * 40, 7, 255]);
   assert.match(il.format, /interlaced/);
   assert.throws(() => decodeAnyPng(Buffer.from('RIFF....WEBPVP8 ')), /sips -s format png/);
+});
+
+// =====================================================================================================================
+// Importer v2: character mode (--detect, --character). The pictures are painterly on purpose: soft shading, noise,
+// hundreds of colours, no pixel grid, a flat dark backdrop, a row of big poses, small frames in rows and animation groups.
+// =====================================================================================================================
+const gameDir = path.join(here, '..');
+const gore = loadGoreColours(gameDir);
+let rs = 99;
+const rr = () => { rs = (rs * 1664525 + 1013904223) >>> 0; return rs / 4294967296; };
+
+// A 30 x 40 figure with no outline of its own, leaning towards +x by `lean` pixels. Returns rows of [r,g,b] or null.
+function figure(f, { skin = [110, 150, 120], cloth = [200, 90, 60], lean = 4 } = {}) {
+  const W = 30, H = 40, g = Array.from({ length: H }, () => Array(W).fill(null));
+  const fill = (x0, y0, x1, y1, c) => { for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) g[y][x] = c; };
+  fill(9 + lean, 2, 17 + lean, 11, skin); fill(9 + lean, 2, 17 + lean, 4, [70, 50, 40]); fill(9 + lean, 5, 17 + lean, 6, [240, 220, 70]);
+  fill(8 + (lean >> 1), 11, 19 + (lean >> 1), 25, cloth);
+  const sw = [0, 2, 0, -2][f % 4];
+  fill(10 + sw, 25, 14 + sw, 38, [60, 70, 140]); fill(15 - sw, 25, 19 - sw, 38, [60, 70, 140]);
+  fill(9 + sw, 38, 15 + sw, 40, [150, 110, 80]); fill(14 - sw, 38, 20 - sw, 40, [150, 110, 80]);
+  fill(19 + (f % 3) + (lean >> 1), 12, 24 + (f % 3) + (lean >> 1), 15 + (f % 2), skin);
+  return g;
+}
+// A sheet like the image tools make: big poses on top, two rows of small frames (walk 4, attack 3, hit 2) with wider gaps between
+// the animations, a noisy flat dark backdrop. truth = where every figure really is.
+function painterlySheet(o = {}) {
+  rs = o.seed || 99;
+  const BG = [34, 39, 46], W = 1000, H = 760, d = new Uint8Array(W * H * 4);
+  for (let i = 0; i < W * H; i++) d.set([BG[0] + Math.round(rr() * 3 - 1.5), BG[1] + Math.round(rr() * 3 - 1.5), BG[2] + Math.round(rr() * 3 - 1.5), 255], i * 4);
+  const truth = [], groups = [4, 3, 2], k = 3, FW = 30 * k;
+  const paint = (fig, ox, oy, kk) => {
+    for (let y = 0; y < 40 * kk; y++) for (let x = 0; x < 30 * kk; x++) {
+      const sx = o.mirror ? 29 - Math.floor(x / kk) : Math.floor(x / kk), c = fig[Math.floor(y / kk)][sx];
+      if (!c) continue;
+      const shade = -14 + (y / (40 * kk)) * 22 + Math.sin(x / 7) * 5;
+      d.set([...c.map((v) => Math.max(0, Math.min(255, Math.round(v + shade + (rr() - 0.5) * 24)))), 255], ((oy + y) * W + ox + x) * 4);
+    }
+  };
+  let gx = 20; const centres = [];
+  groups.forEach((n, gi) => {
+    const x0 = gx;
+    for (let r = 0; r < 2; r++) for (let i = 0; i < n; i++) {
+      const ox = x0 + i * (FW + 6), oy = 440 + r * 160, fig = figure(gi * 3 + i + r, o);
+      paint(fig, ox, oy, k);
+      if (o.sparks && gi === 2 && r === 0 && i === 1) for (let y = 0; y < 9; y++) for (let x = 0; x < 9; x++) d.set([120, 255, 40, 255], ((oy - 30 + y) * W + ox + 30 + x) * 4);
+      let bx0 = 99, bx1 = -1, by0 = 99, by1 = -1;
+      fig.forEach((row, y) => row.forEach((c, x) => { if (c) { bx0 = Math.min(bx0, x); bx1 = Math.max(bx1, x); by0 = Math.min(by0, y); by1 = Math.max(by1, y); } }));
+      const mx0 = o.mirror ? 29 - bx1 : bx0, mx1 = o.mirror ? 29 - bx0 : bx1;
+      truth.push({ group: gi, row: r, i, box: [ox + mx0 * k, oy + by0 * k, (mx1 - mx0 + 1) * k, (by1 - by0 + 1) * k] });
+    }
+    centres.push(x0 + (n * (FW + 6) - 6) / 2);
+    gx = x0 + n * (FW + 6) + 34;
+  });
+  centres.forEach((cx, gi) => paint(figure(gi * 2, o), Math.round(cx - 15 * 8), 20, 8));
+  return { W, H, d, png: png(W, H, d), truth, img: { w: W, h: H, d } };
+}
+let sheetCache = null;
+const theSheet = () => (sheetCache = sheetCache || painterlySheet({ sparks: true }));
+const manifest = loadSlots();
+// detect, then make the slot map the way --detect does, then build
+function buildFrom(sheet, opts = {}, mapEdit) {
+  const det = detectSheet(sheet.img, {});
+  const names = ['walk', 'attack', 'hit'], map = { slots: {} };
+  det.groups.forEach((g, gi) => {
+    const need = manifest['jogger:' + names[gi]].frames;
+    map.slots['jogger:' + names[gi]] = { frames: fitCount(g.rows[0].frames.map((f) => ({ box: [f.box.x0, f.box.y0, f.box.x1 - f.box.x0, f.box.y1 - f.box.y0] })), need, gi === 0) };
+  });
+  if (mapEdit) mapEdit(map, det);
+  return { det, map, res: buildCharacter({ sheet: sheet.img, map, manifest, gore, opts, sheetName: 'fixture.png' }) };
+}
+const solidSet = (dec) => { const s = new Set(); for (let i = 0; i < dec.px.length; i += 4) if (dec.px[i + 3]) s.add(dec.px.slice(i, i + 3).join()); return s; };
+const hueZone = (palette, lo, hi, minS, minV) => palette.filter((c) => { const [h, s, v] = rgbToHsv(...c); return h >= lo && h <= hi && s >= minS && v >= minV; });
+
+test('--detect finds the small frames, ignores the big poses, and groups them into animations', () => {
+  const sh = theSheet();
+  const before = new Set(); for (let i = 0; i < sh.d.length; i += 4) before.add(sh.d.slice(i, i + 3).join());
+  assert.ok(before.size > 500, 'a painterly picture: ' + before.size + ' colours');
+  const det = detectSheet(sh.img, {});
+  assert.equal(det.heroes.length, 3, 'three big poses are ignored');
+  assert.equal(det.frames.length, 18);
+  assert.deepEqual(det.groups.map((g) => g.rows.map((r) => r.frames.length)), [[4, 4], [3, 3], [2, 2]]);
+  assert.equal(det.rows.length, 2);
+  for (const t of sh.truth) { // every real figure lies inside the box that was found for it
+    const f = det.groups[t.group].rows[t.row].frames[t.i], [x, y, w, h] = t.box;
+    assert.ok(f.box.x0 <= x + 3 && f.box.x1 >= x + w - 3 && f.box.y0 <= y + 3 && f.box.y1 >= y + h - 3, `figure ${t.group}.${t.row}.${t.i} is inside its box`);
+  }
+  const hitA = det.groups[2].rows[0].frames[1];
+  assert.ok(hitA.box.y0 < hitA.body.y0 - 20, 'the loose spark above a figure was joined to it, not made a frame of its own');
+  const held = fitCount([{ box: [1] }, { box: [2] }], 4, false);
+  assert.equal(held.length, 2); assert.equal(held[1].hold, 3, 'a one-shot animation holds its last frame');
+  assert.equal(fitCount([{ box: [1] }, { box: [2] }, { box: [3] }], 5, true).length, 5, 'a loop is stretched by ping-pong');
+  // a one-shot animation far short of its frame count (8 wanted, 3 in row A) uses row B's frames too, then holds the last one
+  const dm = draftMap(det, { prefix: 'jogger', slotFrames: { 'jogger:attack': 8, 'jogger:hit': 2 }, anims: ['walk', 'attack', 'hit'] });
+  assert.equal(dm.slots['jogger:attack'].frames.length, 6);
+  assert.equal(dm.slots['jogger:attack'].frames.reduce((n, f) => n + (f.hold || 1), 0), 8);
+  assert.equal(dm.slots['jogger:hit'].frames.length, 2, 'row A alone is enough for hit');
+});
+
+test('--detect on the command line writes the overlay and a draft map, and --character builds it without hand edits', () => {
+  const tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'import-art-detect-'));
+  const sh = theSheet(), input = path.join(tmp, 'sheet.png');
+  fs.writeFileSync(input, sh.png);
+  const log = console.log; let out = '';
+  console.log = (...a) => { out += a.join(' ') + '\n'; };
+  try {
+    assert.equal(main([input, '--detect', '--out', path.join(tmp, 'o')]), 0);
+    assert.deepEqual(fs.readdirSync(path.join(tmp, 'o')).sort(), ['detect-overlay.png', 'map.json']);
+    const map = JSON.parse(fs.readFileSync(path.join(tmp, 'o', 'map.json'), 'utf8'));
+    assert.deepEqual(Object.keys(map.slots), ['jogger:walk', 'jogger:attack', 'jogger:hit']);
+    assert.equal(map.slots['jogger:walk'].frames.length, 6, 'filled up to the six frames the game slot wants');
+    assert.match(map.bg, /^#[0-9a-f]{6}$/);
+    assert.ok(map.scale > 0.2 && map.scale < 0.6, 'a first guess at the shared scale: ' + map.scale);
+    const ov = decodeAnyPng(fs.readFileSync(path.join(tmp, 'o', 'detect-overlay.png')));
+    assert.deepEqual([ov.width, ov.height], [sh.W, sh.H]);
+    assert.match(out, /Found 18 small frame\(s\) in 3 animation group/);
+    assert.equal(main(['--character', path.join(tmp, 'o', 'map.json'), '--out', path.join(tmp, 'c')]), 0, 'the draft map builds as it is');
+    const files = fs.readdirSync(path.join(tmp, 'c'));
+    for (const f of ['CHARACTER-REPORT.md', 'palette-swatch.png', 'palette.json', 'contact-sheet-4x.png', 'zombie-jogger-walk-strip-v01.png', 'zombie-jogger-walk-strip-v01-compare-4x.png', 'zombie-jogger-hit-strip-v01-report.txt']) assert.ok(files.includes(f), f + ' was written');
+    assert.match(fs.readFileSync(path.join(tmp, 'c', 'CHARACTER-REPORT.md'), 'utf8'), /Verdict: READY/);
+    // refuses to install over nothing it was asked to touch: no --install, nothing in assets/
+    assert.ok(!files.some((f) => f.includes('installed')));
+  } finally { console.log = log; }
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
+test('--character: one shared palette, clean outline, grid and alpha rules, feet on the line, particles gone, same bytes twice', () => {
+  const sh = theSheet();
+  const { res, map } = buildFrom(sh);
+  assert.equal(res.strips.length, 3);
+  assert.ok(res.palette.length <= 15 && res.palette.length >= 6, 'palette size ' + res.palette.length);
+  const palSet = new Set(res.palette.map((c) => c.join())), ol = res.outline.join();
+  assert.ok(palSet.has(ol), 'the outline colour is in the palette (and counts toward the 15)');
+  const union = new Set();
+  for (const s of res.strips) {
+    const slot = s.slot, W = slot.fw * slot.frames, H = slot.fh;
+    assert.equal(s.img.w, W); assert.equal(s.img.h, H);
+    assert.deepEqual(checkPng(s.png, W, H), [], 'the repo check passes for ' + s.key); // 9-bit grid, hard alpha, 15 colours
+    const dec = decodeAnyPng(s.png);
+    for (const c of solidSet(dec)) { assert.ok(palSet.has(c), s.key + ' uses only the shared palette'); union.add(c); }
+    for (let f = 0; f < slot.frames; f++) {
+      let lowest = -1, comps = 0;
+      const solid = (x, y) => x >= 0 && y >= 0 && x < slot.fw && y < H && dec.px[(y * W + f * slot.fw + x) * 4 + 3] > 0;
+      const seen = new Set();
+      for (let y = 0; y < H; y++) for (let x = 0; x < slot.fw; x++) {
+        if (!solid(x, y)) continue;
+        lowest = y;
+        const open = !solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1);
+        if (open) assert.equal(dec.px.slice((y * W + f * slot.fw + x) * 4, (y * W + f * slot.fw + x) * 4 + 3).join(), ol, `${s.key} frame ${f}: every edge pixel is the outline colour`);
+        if (!seen.has(y * 100 + x)) { // count 8-connected pieces
+          comps++; const st = [[x, y]]; seen.add(y * 100 + x);
+          while (st.length) { const [a, b] = st.pop(); for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (solid(a + dx, b + dy) && !seen.has((b + dy) * 100 + a + dx)) { seen.add((b + dy) * 100 + a + dx); st.push([a + dx, b + dy]); } }
+        }
+      }
+      assert.equal(lowest, slot.py, `${s.key} frame ${f} stands on row ${slot.py}`);
+      assert.equal(comps, 1, `${s.key} frame ${f} is one piece (no loose specks)`);
+    }
+  }
+  assert.ok(union.size >= 5 && union.size <= res.palette.length);
+  assert.ok(res.strips.every((s) => s.verdict !== 'REDO'), res.strips.map((s) => s.report).join('\n'));
+  const hit = res.strips.find((s) => s.key === 'jogger:hit');
+  assert.match(hit.report, /Removed \d+ loose bit/, 'the report says the far-off spark was removed');
+  assert.match(res.report, /Shared palette \(\d+ colours/);
+  assert.ok(res.strips.every((s) => s.flicker < 0.02), 'frames do not shimmer');
+  // the same input gives the same bytes
+  const again = buildFrom(sh).res;
+  res.strips.forEach((s, i) => assert.ok(Buffer.compare(s.png, again.strips[i].png) === 0, 'same bytes twice: ' + s.key));
+  assert.equal(res.report, again.report);
+  // the outline can be turned off, and a colour can be asked for
+  const off = buildCharacter({ sheet: sh.img, map, manifest, gore, opts: { outline: 'off' } });
+  assert.ok(off.strips[0].outlinePx === 0);
+  const blue = buildCharacter({ sheet: sh.img, map, manifest, gore, opts: { outline: '#242448' } });
+  assert.ok(blue.palette.some((c) => c.join() === '36,36,72'), 'a chosen outline colour joins the palette');
+  assert.ok(blue.palette.length <= 15);
+});
+
+test('gore colours: acid green is moved to grey-teal, dark blood red only stays with --allow-blood', () => {
+  const green = painterlySheet({ skin: [144, 216, 0], seed: 5 });
+  const a = buildFrom(green).res, b = buildFrom(green, { avoidGore: false }).res;
+  assert.equal(hueZone(a.palette, 68, 112, 0.5, 0.3).length, 0, 'no acid yellow-green left in ' + JSON.stringify(a.palette) + a.goreMoves.join(';'));
+  assert.ok(hueZone(b.palette, 68, 112, 0.5, 0.3).length >= 1, 'with the rule off the acid green is kept');
+  for (const c of a.palette) for (const r of gore.ichor) assert.ok(Math.hypot(c[0] - r[0], c[1] - r[1], c[2] - r[2]) > 44, 'clear of the reserved ichor colours');
+  assert.ok(a.goreMoves.length > 0 && /->/.test(a.goreMoves[0]), 'the report lists what was moved: ' + a.goreMoves[0]);
+  assert.match(a.report, /moved away from the reserved ichor/);
+  const red = painterlySheet({ cloth: [144, 0, 0], seed: 6 });
+  const redOf = (p) => p.filter((c) => { const [h, s, v] = rgbToHsv(...c); return (h <= 14 || h >= 346) && s >= 0.75 && v >= 0.2; });
+  const r1 = buildFrom(red).res, r2 = buildFrom(red, { allowBlood: true }).res;
+  assert.equal(redOf(r1.palette).length, 0, 'blood red is moved by default: ' + r1.palette.map((c) => c.join(' ')));
+  assert.ok(redOf(r2.palette).length >= 1, 'blood red stays with --allow-blood');
+  assert.match(r2.report, /Blood red was allowed/);
+});
+
+test('a big cell (96 x 96) and a new enemy type that has no game slot yet', () => {
+  const sh = theSheet();
+  const { res } = buildFrom(sh, { prefix: 'ogre', size: '96x96' }, (map, det) => {
+    map.slots = { 'jogger:walk': { frames: det.groups[0].rows[0].frames.map((f) => ({ box: [f.box.x0, f.box.y0, f.box.x1 - f.box.x0, f.box.y1 - f.box.y0] })) } };
+  });
+  const s = res.strips[0];
+  assert.equal(s.key, 'ogre:walk'); assert.equal(s.fileName, 'ogre-walk-strip-v01.png');
+  assert.deepEqual([s.img.w, s.img.h], [384, 96]);
+  assert.deepEqual(checkPng(s.png, 384, 96), []);
+  const dec = decodeAnyPng(s.png);
+  let top = 96, low = -1;
+  for (let y = 0; y < 96; y++) for (let x = 0; x < 96; x++) if (dec.px[(y * 384 + x) * 4 + 3]) { top = Math.min(top, y); low = Math.max(low, y); }
+  assert.equal(low, 95); assert.ok(low - top + 1 >= 85 && low - top + 1 <= 94, 'the figure is about 90 px tall in a 96 px cell: ' + (low - top + 1));
+  assert.ok(res.scale > 0.6, 'a big cell means a bigger shared scale: ' + res.scale);
+  assert.ok(!s.slot.inManifest);
+});
+
+test('portrait grids are cut apart and built as one strip without a feet line', () => {
+  const W = 400, H = 220, d = new Uint8Array(W * H * 4);
+  for (let i = 0; i < W * H; i++) d.set([0, 0, 0, 255], i * 4);
+  const want = [];
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 5; c++) {
+    const x0 = c * 80 + 10 + c, y0 = r * 110 + 8 + r * 3, w = 50 + c, h = 70 - r * 4;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) d.set([90 + c * 20, 70 + r * 40 + (y % 9) * 3, 120 + ((x + y) % 7) * 4, 255], ((y0 + y) * W + x0 + x) * 4);
+    want.push([x0, y0, w, h]);
+  }
+  const img = { w: W, h: H, d };
+  assert.deepEqual(gridSplit(img, 5, 2, null), want, 'ten tight boxes, reading order');
+  const tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'import-art-grid-'));
+  fs.writeFileSync(path.join(tmp, 'faces.png'), png(W, H, d));
+  const log = console.log; console.log = () => {};
+  try {
+    assert.equal(main([path.join(tmp, 'faces.png'), '--grid-split', '5x2', '--size', '32x32', '--prefix', 'face', '--out', path.join(tmp, 'o')]), 0);
+    const map = JSON.parse(fs.readFileSync(path.join(tmp, 'o', 'map.json'), 'utf8'));
+    assert.equal(map.slots['face:faces'].frames.length, 10); assert.deepEqual(map.slots['face:faces'].cell, [32, 32]); assert.equal(map.slots['face:faces'].feet, false);
+    assert.equal(main(['--character', path.join(tmp, 'o', 'map.json'), '--out', path.join(tmp, 'c')]), 0);
+  } finally { console.log = log; }
+  const dec = decodeAnyPng(fs.readFileSync(path.join(tmp, 'c', 'face-faces-strip-v01.png')));
+  assert.deepEqual([dec.width, dec.height], [320, 32]);
+  for (let f = 0; f < 10; f++) {
+    let n = 0; for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) if (dec.px[(y * 320 + f * 32 + x) * 4 + 3]) n++;
+    assert.ok(n > 300, `portrait ${f} has art`);
+  }
+  assert.deepEqual(checkPng(fs.readFileSync(path.join(tmp, 'c', 'face-faces-strip-v01.png')), 320, 32), []);
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
+test('facing: a left-facing sheet is flagged, --flip fixes it', () => {
+  const left = painterlySheet({ mirror: true, seed: 8 });
+  const a = buildFrom(left).res;
+  assert.ok(a.strips.some((s) => s.warnings.some((w) => /faces LEFT/.test(w))), 'warns about the left-facing walk');
+  const b = buildFrom(left, { flip: true }).res;
+  assert.ok(!b.strips.some((s) => s.warnings.some((w) => /faces LEFT/.test(w))), 'flipped, it faces right');
+  assert.ok(!buildFrom(theSheet()).res.strips.some((s) => s.warnings.some((w) => /LEFT/.test(w))), 'the normal sheet is fine');
+});
+
+test('palette files, recolours and hue shifts', () => {
+  const tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'import-art-pal-'));
+  const input = path.join(tmp, 'sheet.png');
+  fs.writeFileSync(input, theSheet().png);
+  const log = console.log; console.log = () => {};
+  try {
+    assert.equal(main([input, '--detect', '--out', path.join(tmp, 'o')]), 0);
+    assert.equal(main(['--character', path.join(tmp, 'o', 'map.json'), '--out', path.join(tmp, 'c1'), '--save-palette', path.join(tmp, 'pal.json')]), 0);
+    assert.equal(main(['--character', path.join(tmp, 'o', 'map.json'), '--out', path.join(tmp, 'c2'), '--palette', path.join(tmp, 'pal.json')]), 0);
+  } finally { console.log = log; }
+  const p1 = paletteFromJson(fs.readFileSync(path.join(tmp, 'pal.json'), 'utf8'));
+  const p2 = paletteFromJson(fs.readFileSync(path.join(tmp, 'c2', 'palette.json'), 'utf8'));
+  assert.deepEqual(p2.palette, p1.palette, 'the saved palette is reused as it is');
+  const a = decodeAnyPng(fs.readFileSync(path.join(tmp, 'c2', 'zombie-jogger-walk-strip-v01.png')));
+  for (const c of solidSet(a)) assert.ok(p1.palette.some((q) => q.join() === c), 'only palette colours');
+  fs.rmSync(tmp, { recursive: true, force: true });
+  // recolour and hue shift act on colours before the palette is made
+  const t = makeTransform({ recolor: [parseRecolor('#90d800>#6c9090')] });
+  const moved = t(144, 216, 0).map(Math.round);
+  assert.ok(Math.hypot(moved[0] - 108, moved[1] - 144, moved[2] - 144) < 6, 'recolour: ' + moved);
+  assert.deepEqual(t(20, 20, 200).map(Math.round), [20, 20, 200], 'colours far from the recolour are left alone');
+  const h = makeTransform({ hueShifts: [parseHueShift('70-130:+70')] })(0, 200, 0);
+  assert.ok(Math.abs(rgbToHsv(...h)[0] - 190) < 2, 'hue 120 moved to about 190');
+  assert.throws(() => parseHueShift('green'), /70-130:\+70/);
+  assert.throws(() => parseRecolor('red'), /#90d800>#6c9090/);
+  // the keep-away rule is a colour change too: the acid green hue family goes grey-teal
+  const g = makeTransform({ avoidIchor: true })(144, 216, 0), gh = rgbToHsv(...g);
+  assert.ok(gh[0] > 150 && gh[1] < 0.45, 'acid green becomes grey-teal: ' + g.map(Math.round));
+});
+
+test('slot names can be remapped, and mistakes in the map are explained', () => {
+  const sh = theSheet();
+  const { res } = buildFrom(sh, { prefix: 'hippie' });
+  assert.deepEqual(res.strips.map((s) => s.key), ['hippie:walk', 'hippie:attack', 'hippie:hit']);
+  assert.equal(res.strips[0].fileName, 'hippie-walk-strip-v01.png');
+  const mapped = buildFrom(sh, {}, (map) => { map.slotMap = { 'jogger:hit': 'cheer:hit' }; }).res;
+  assert.ok(mapped.strips.some((s) => s.key === 'cheer:hit'));
+  const wrongCount = buildFrom(sh, {}, (map) => { map.slots['jogger:walk'].frames.pop(); }).res;
+  assert.equal(wrongCount.verdict, 'REDO');
+  assert.match(wrongCount.report, /needs 6 frame\(s\) but the map lists 5/);
+  assert.throws(() => buildFrom(sh, {}, (map) => { map.slots['jogger:hit'].frames[0].box = [5, 5, 40, 40]; }), /is empty/);
 });

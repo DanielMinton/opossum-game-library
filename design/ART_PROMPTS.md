@@ -22,6 +22,39 @@ Nothing goes into the game until you add `--install`.
 > **JPG or WebP?** The importer only reads PNG. On a Mac, convert first:
 > `sips -s format png "jogger.jpg" --out jogger.png`
 
+## New: one sheet, one command, the whole zombie (Importer v2, 2026-10-19, Proposed)
+
+Image tools often give you **one big sheet**: a row of large poses on top and small frames in rows below. The importer can now take that sheet as it is and build **every strip of the zombie in one run**, with the same size, the same ground line, **one shared set of colours**, and a clean dark outline, so the zombie looks the same in every animation.
+
+1. **Save the sheet as PNG** (on a Mac: `sips -s format png "sheet.webp" --out sheet.png`).
+2. **Find the frames.** From the `game` folder:
+   ```sh
+   node tools/import-art.mjs ~/Downloads/hippie/sheet.png --detect --out ~/Downloads/hippie
+   ```
+   It writes two files: `detect-overlay.png` (your sheet with a **numbered, coloured box round every frame**; one colour per animation; the big poses are boxed in grey and ignored) and `map.json` (the plain list of which boxes feed which strip).
+3. **Look at the overlay.** If a box is wrong, either run `--detect` again and tell it how many frames each animation has in one row (`--groups 4,3,2,3,3`: walk, attack, hit, defeat, idle), or open `map.json` in a text editor and fix the numbers (`"box": [left, top, width, height]`). To hold a frame longer, add `"hold": 2` to it. To use a frame twice, list it twice.
+4. **Build everything:**
+   ```sh
+   node tools/import-art.mjs --character ~/Downloads/hippie/map.json --out ~/Downloads/hippie/out
+   ```
+   You get one strip per animation, a **contact sheet** (all strips, enlarged), a **palette swatch**, before/after pictures and a plain-language **`CHARACTER-REPORT.md`** with a verdict (READY, READY WITH WARNINGS or REDO) and what to ask the art tool for next time.
+5. **Happy?** Add `--install` (it never overwrites without `--force`; strips whose slot does not exist in the game yet are only written to the output folder).
+
+Useful extras (all optional; `node tools/import-art.mjs --help` lists them):
+- **Colours:** acid yellow-green and blood red are the game's reserved gore colours, so by default the importer moves them away (green skin and slime become a desaturated grey-teal; blood red becomes rust). Keep blood red with `--allow-blood`. Change a colour yourself with `--recolor "#90d800>#6c9090"` or `--hue-shift "70-130:+70"`. Reuse a palette with `--save-palette zombie.json` / `--palette zombie.json` (for example so the baby zombie matches the hippie).
+- **New enemy type** (not in the game yet): add `--prefix hippie` (strips become `hippie-walk-strip-v01.png` and so on, 48x48 cells). A big boss: put `"cell": [96, 96]` on its slot in `map.json`, or run with `--size 96x96` (up to 192x192).
+- **Portraits or icons in a grid:** `node tools/import-art.mjs faces.png --grid-split 10x2 --size 32x32 --prefix boss` cuts an even grid (each cell tightened to its art) into one strip with no feet line.
+- **Faces left?** The report warns; add `--flip`.
+- **Loose sparks and slime flecks** that float away from the body are removed when they would poke out of the cell (`--trim-particles off` keeps them, `--keep-effects` keeps all effects).
+
+### The prompt that gets the best sheets (from the hippie review)
+
+Paste this at the end of the usual character description, instead of the magenta block, when you want one big sheet:
+
+> "A sprite sheet on one flat dark backdrop: along the top, five large hero poses (walk, attack, hit reaction, defeat, idle); below, **two rows of small frames** of the same animations (walk 4 frames, attack 3, hit 2, defeat 3, idle 3), each animation group separated by a wider gap. **Chunky pixel art at about 3x scale**: crisp hard pixels, **1-pixel dark outline** around the whole figure, **about 12 colours** with **3-step shading** (dark, mid, light), **no dithering, no painterly texture, no soft glow, no gradients**. **The same scale and the same ground line in every frame.** **No detached particles, sparks or slime flecks outside the body** (keep any drips attached to the body). **Skin a desaturated grey-teal, not acid green; slime purple, not bright green; no bright blood red on the body** (those colours are kept for the game's gore). **Facing right** in every frame. One animation at a time works best."
+
+If the tool makes them anyway, the importer fixes most of it (outline, colours, particles), but the closer the sheet is to this, the better the result.
+
 ## Show it Sammy (style and size reference)
 
 Attach `assets/characters/character-sammy/sammy-run-strip-v01.png` to the chat and say:

@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { decodeAnyPng, checkPng } from './png.mjs';
 import { png as encodePng } from './png-writer.mjs';
 import { parseCsv, suggestRow } from './licenses.mjs';
+import { runDetect, runCharacter } from './art-cli.mjs';
 
 const gameDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repoDir = path.resolve(gameDir, '..');
@@ -508,6 +509,12 @@ export function importArt(buf, options) {
       if (!bb) { problems.push(`Frame ${i + 1} is empty (nothing drawn where I expected it).`); asks.push('Ask for exactly ' + N + ' frames with the same character in every one, with clear space between them.'); return result({ img: null, srcInfo }); }
       const sub = mkImg(rg.x1 - rg.x0, rg.y1 - rg.y0);
       for (let y = 0; y < sub.h; y++) sub.d.set(img.d.subarray(((rg.y0 + y) * img.w + rg.x0) * 4, ((rg.y0 + y) * img.w + rg.x1) * 4), y * sub.w * 4);
+      if (options.flip) { // mirror this frame left to right (frame order stays the same)
+        const m = mkImg(sub.w, sub.h);
+        for (let y = 0; y < sub.h; y++) for (let x = 0; x < sub.w; x++) m.d.set(sub.d.subarray((y * sub.w + x) * 4, (y * sub.w + x) * 4 + 4), (y * sub.w + sub.w - 1 - x) * 4);
+        frames.push({ rg, sub: m, bbSrc: bb }); // only the rows of bbSrc are used later
+        continue;
+      }
       frames.push({ rg, sub, bbSrc: bb });
     }
     // Ground line per row of the sheet, measured on the full-size picture (so a second row of a sheet is not "in the air").
@@ -755,26 +762,75 @@ Output:
   --version N         with --install: save as -vNN (for example --version 2) instead of -v01
   --force             allow --install to overwrite an existing file
 
+Whole characters (the one-command way: one sheet -> every strip, one shared scale and palette):
+  node tools/import-art.mjs sheet.png --detect [--out dir]       finds every frame; writes detect-overlay.png and a draft map.json
+  node tools/import-art.mjs --character map.json [--out dir]     builds ALL the strips + CHARACTER-REPORT.md, contact sheet, palette swatch
+  --detect options:   --groups 4,3,2,3,3 (frames per animation in one row)  --anims walk,attack,hit,defeat,idle  --prefix jogger
+                      --min-height N --max-height N (what counts as a small frame)  --bg "#rrggbb"  --tolerance N  --no-heroes
+                      --grid-split 10x2 [--region x,y,w,h] [--size 32x32]   cut an even grid (portraits, icons) into one strip
+  --character options (all optional):
+    --prefix NAME       rename the slots to NAME:walk ... (a new enemy type; files become NAME-walk-strip-v01.png)
+    --size WxH          cell size for slots that are not in the game yet (up to 192x192; default 48x48); --no-feet for effects/portraits
+    --height H | --scale K   figure height / exact scale (default: a standing figure is ~93% of the cell height, 45 px in 48)
+    --outline auto|off|#rrggbb       1 px outline (default auto: dark palette colour)
+    --palette file.json | --save-palette file.json   reuse one palette across runs and sheets
+    --recolor "#from>#to" (repeatable)   --hue-shift "70-130:+70" (repeatable, degrees)
+    --no-avoid-gore-colours  --allow-blood  --allow-ichor        (default: acid green and blood red are moved away from the game's gore colours)
+    --saturation-boost N  --contrast N  --lift N  --levels auto|off|N  --smooth N  --colours N
+    --downscale vote|average   --no-stabilize   --despeckle N   --trim-particles auto|off|PX   --keep-effects
+    --flip              mirror every frame (for a sheet that faces left)
+
 JPG or WebP? Convert first. On a Mac: sips -s format png "in.jpg" --out out.png
 `;
 
 function parseArgs(argv) {
-  const o = { _: [] }, flags = new Set(['dry-run', 'install', 'force', 'shrink', 'feet', 'no-feet', 'relayout', 'help', 'list']);
+  const o = { _: [] }, flags = new Set(['dry-run', 'install', 'force', 'shrink', 'feet', 'no-feet', 'relayout', 'help', 'list',
+    'detect', 'stabilize', 'keep-effects', 'allow-blood', 'allow-ichor', 'flip', 'avoid-gore-colours', 'no-avoid-gore-colours', 'no-heroes', 'no-flatten', 'no-stabilize']);
+  const repeat = new Set(['recolor', 'hue-shift']);
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a.startsWith('--')) {
       const k = a.slice(2);
       if (flags.has(k)) o[k] = true;
-      else { if (i + 1 >= argv.length) throw new Error(`--${k} needs a value`); o[k] = argv[++i]; }
+      else {
+        if (i + 1 >= argv.length) throw new Error(`--${k} needs a value`);
+        if (repeat.has(k)) (o[k] = o[k] || []).push(argv[++i]); else o[k] = argv[++i];
+      }
     } else o._.push(a);
   }
   return o;
+}
+
+// Copies a finished strip into assets/ (only with --install; never overwrites without --force). Returns 1 when it refused.
+function doInstall(a, slot, stripPath) {
+  let rel = slot.path;
+  if (a.version) rel = rel.replace(/-v\d+(?=\.png$)/, '-v' + String(a.version).padStart(2, '0'));
+  const dest = path.join(repoDir, 'assets', rel);
+  if (fs.existsSync(dest) && !a.force) {
+    console.log(`Not installed: ${path.relative(repoDir, dest)} already exists. Add --force to replace it, or --version ${(/-v(\d+)\.png$/.exec(rel) || [0, 1])[1] * 1 + 1} to save it as a newer version (the highest number wins).`);
+    return 1;
+  }
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.copyFileSync(stripPath, dest);
+  console.log('Installed: ' + path.relative(repoDir, dest));
+  let rows = [];
+  try { rows = parseCsv(fs.readFileSync(path.join(repoDir, 'design', 'ASSET_SOURCES.csv'), 'utf8')); } catch (e) { /* no csv */ }
+  console.log('\nAdd this row to design/ASSET_SOURCES.csv (fill in who made it and the license):');
+  console.log(suggestRow('assets/' + rel, rows));
+  console.log('\nThen from the game/ folder: node tools/scan-assets.mjs   (and node tools/build.mjs when you want a fresh shareable copy).');
+  return 0;
 }
 
 export function main(argv) {
   let a;
   try { a = parseArgs(argv); } catch (e) { console.error(e.message); return 2; }
   const slots = loadSlots();
+  if (a.character || a.detect || a['grid-split']) {
+    try {
+      if (a.character) return runCharacter(a, slots, { gameDir, repoDir, install: doInstall });
+      return runDetect(a, slots);
+    } catch (e) { console.error('Problem: ' + e.message); return 2; }
+  }
   if (a.help || (!a._.length && !a.list)) { console.log(HELP); return a.help ? 0 : 2; }
   if (a.list) { for (const s of Object.values(slots)) console.log(`${s.key.padEnd(24)} ${s.fw * s.frames}x${s.fh}  (${s.frames} frame(s) of ${s.fw}x${s.fh}, pivot ${s.px},${s.py})`); return 0; }
   const input = a._[0];
@@ -800,7 +856,7 @@ export function main(argv) {
     res = importArt(buf, {
       slot, bg: a.bg, tolerance: a.tolerance, cols: a.cols, rows: a.rows, frames: a.frames && a.slot ? a.frames : undefined,
       srcPixel: a['src-pixel'], height: a.height, scale: a.scale, anchorX: a['anchor-x'], shrink: a.shrink, relayout: a.relayout,
-      colours: a.colours, feet: a['no-feet'] ? false : undefined, inputName: path.basename(input),
+      colours: a.colours, flip: a.flip, feet: a['no-feet'] ? false : undefined, inputName: path.basename(input),
       referenceStrip: fs.existsSync(refPath) ? fs.readFileSync(refPath) : undefined,
     });
   } catch (e) { console.error('Problem: ' + e.message); return 2; }
@@ -820,21 +876,7 @@ export function main(argv) {
   if (a.install) {
     if (!slot.path) { console.log('Cannot install: this is a hand-described slot with no file name in the manifest.'); return 1; }
     if (res.verdict === 'REDO') { console.log('Not installed: the verdict is REDO.'); return 1; }
-    let rel = slot.path;
-    if (a.version) rel = rel.replace(/-v\d+(?=\.png$)/, '-v' + String(a.version).padStart(2, '0'));
-    const dest = path.join(repoDir, 'assets', rel);
-    if (fs.existsSync(dest) && !a.force) {
-      console.log(`Not installed: ${path.relative(repoDir, dest)} already exists. Add --force to replace it, or --version ${(/-v(\d+)\.png$/.exec(rel) || [0, 1])[1] * 1 + 1} to save it as a newer version (the highest number wins).`);
-      return 1;
-    }
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.copyFileSync(stripPath, dest);
-    console.log('Installed: ' + path.relative(repoDir, dest));
-    let rows = [];
-    try { rows = parseCsv(fs.readFileSync(path.join(repoDir, 'design', 'ASSET_SOURCES.csv'), 'utf8')); } catch (e) { /* no csv */ }
-    console.log('\nAdd this row to design/ASSET_SOURCES.csv (fill in who made it and the license):');
-    console.log(suggestRow('assets/' + rel, rows));
-    console.log('\nThen from the game/ folder: node tools/scan-assets.mjs   (and node tools/build.mjs when you want a fresh shareable copy).');
+    if (doInstall(a, slot, stripPath)) return 1;
   } else if (res.verdict !== 'REDO' && slot.path) {
     console.log(`\nLooks good? Run the same command again with --install to copy it into assets/${slot.path}.`);
   }
