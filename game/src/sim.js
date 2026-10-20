@@ -54,14 +54,15 @@
   // config block (see config.js, "enemy types") read through typeOf(e). An enemy whose type has no row is an error, never a jogger.
   const BRAINS = {
     // brain: { update(s, e), states: every state the brain can put an enemy in (the render sweep draws each), anims: state -> animation }
-    walker: { update: (s, e) => updateWalker(s, e), states: ['spawn', 'patrol', 'chase', 'attack', 'hitreact', 'confused', 'defeat', 'dead'],
-      anims: { spawn: 'idle', patrol: 'walk', chase: 'walk', attack: 'attack', hitreact: 'hit', confused: 'idle', defeat: 'defeat', dead: 'defeat' } },
+    // sniff (possum 'sniff', the sweater): fooled by Play Possum, but walks over to Sammy first; once close it stands in 'confused'.
+    walker: { update: (s, e) => updateWalker(s, e), states: ['spawn', 'patrol', 'chase', 'attack', 'hitreact', 'confused', 'sniff', 'defeat', 'dead'],
+      anims: { spawn: 'idle', patrol: 'walk', chase: 'walk', attack: 'attack', hitreact: 'hit', confused: 'idle', sniff: 'walk', defeat: 'defeat', dead: 'defeat' } },
     turret: { update: (s, e) => updateTurret(s, e), states: ['idle', 'throw', 'hitreact', 'shrug', 'defeat', 'dead'],
       anims: { idle: 'idle', shrug: 'idle', throw: 'throw', hitreact: 'hit', defeat: 'defeat', dead: 'defeat' } },
   };
   const TYPE_FIELDS = ['brain', 'art', 'start', 'startAnim', 'hp', 'bodyW', 'bodyH', 'hitReactTime', 'defeatTime', 'flinch', 'knockback',
     'sawKnockback', 'cartKnock', 'shieldPush', 'hitY', 'possum', 'possumIgnore', 'defeatStyle', 'sawStyle'];
-  const POSSUM_KINDS = ['confused', 'shrug'];
+  const POSSUM_KINDS = ['confused', 'shrug', 'sniff'];
   S.ENEMY_TYPES = {};
   S.ENEMY_TYPE_FIELDS = TYPE_FIELDS;
   // Registers (or replaces) an enemy type from a config block. Throws on a missing field or an unknown brain, so a half-written
@@ -215,12 +216,24 @@
     if (p.state === 'ko' || s.mode !== 'playing') return false;
     if (s.god) return false;
     if (p.invuln > 0) return false;
+    // opts.attack: the source's own attack landed (not a bump). A type with shoveKnockX/Y throws Sammy that far instead of
+    // the usual hurtKnockX/Y; one with stripsLid takes the whole lid and still throws him (the sweater's shove).
+    const src = opts.attack && opts.source ? typeOf(opts.source).cfg : null;
+    const knockX = src && src.shoveKnockX != null ? src.shoveKnockX : P.hurtKnockX;
+    const knockY = src && src.shoveKnockY != null ? src.shoveKnockY : P.hurtKnockY;
+    const dir = opts.fromX != null ? (sign(p.x - opts.fromX) || -p.face) : -p.face;
+    if (src && src.shoveKnockX != null) sfx(s, 'sfx-zombie-shove');
     if (!opts.hazard && p.shield > 0) {
-      p.shield -= 1;
+      p.shield = src && src.stripsLid ? 0 : p.shield - 1;
       p.invuln = 0.3;
       sfx(s, p.shield > 0 ? 'sfx-shield-block' : 'sfx-shield-break');
       effect(s, 'spark', p.x + p.face * 10, p.y - 18, 0.2);
       if (opts.source) { const push = typeOf(opts.source).cfg.shieldPush; if (push) opts.source.x += sign(opts.source.x - p.x) * push; }
+      if (src && src.stripsLid) { // the lid is gone and Sammy still flies: the hurt reel, no heart lost
+        if (p.state === 'playdead' || p.state === 'getup') p.possumCd = C.possum.cooldown;
+        releaseConfused(s);
+        p.state = 'hurt'; p.t = 0; p.vx = dir * knockX; p.vy = -knockY; p.grounded = false;
+      }
       return 'blocked';
     }
     if (p.state === 'playdead' || p.state === 'getup') p.possumCd = C.possum.cooldown;
@@ -237,10 +250,7 @@
       return 'ko';
     }
     p.state = 'hurt'; p.t = 0; p.invuln = P.invulnTime;
-    if (!opts.hazard) {
-      const dir = opts.fromX != null ? (sign(p.x - opts.fromX) || -p.face) : -p.face;
-      p.vx = dir * P.hurtKnockX; p.vy = -P.hurtKnockY; p.grounded = false;
-    }
+    if (!opts.hazard) { p.vx = dir * knockX; p.vy = -knockY; p.grounded = false; }
     return 'hurt';
   }
   S.hurtPlayer = hurtPlayer;
@@ -268,6 +278,10 @@
         for (let i = 0; i < 3; i++) effect(s, 'chunk', gx, e.y - 30 + i * 8, 0.9, { dir, i });
         s.hitstop = Math.max(s.hitstop || 0, 0.06);
         s.shake = Math.max(s.shake, 0.25);
+      } else if (k.pool) {
+        // Melts into a goo pool (the hippie): a drawing-only effect under him that outlives the body; never from the saw.
+        effect(s, 'melt-pool', e.x, e.y, k.pool, { type: e.type, melt: k.defeatTime });
+        sfx(s, 'sfx-zombie-melt');
       }
       return;
     }
@@ -281,7 +295,7 @@
     for (const e of s.enemies) {
       if (!e.confused) continue;
       e.confused = false;
-      if (e.state === 'confused') { e.state = 'patrol'; e.home = e.x; e.t = 0; }
+      if (e.state === 'confused' || e.state === 'sniff') { e.state = 'patrol'; e.home = e.x; e.t = 0; }
       e.ignoreT = typeOf(e).cfg.possumIgnore; // lost interest: won't re-notice Sammy straight away
       if (e.state === 'shrug') { e.state = 'idle'; e.t = 0; }
     }
@@ -303,6 +317,7 @@
         e.confused = true;
         const how = typeOf(e).cfg.possum;
         if (how === 'confused' && e.state !== 'attack' && e.state !== 'hitreact') { e.state = 'confused'; e.t = 0; e.vx = 0; }
+        if (how === 'sniff' && e.state !== 'attack' && e.state !== 'hitreact') { e.state = 'sniff'; e.t = 0; }
         if (how === 'shrug' && e.state !== 'hitreact') { e.state = 'shrug'; e.t = 0; }
       }
     }
@@ -492,6 +507,7 @@
     const dx = p.x - e.x, dy = p.y - e.y;
     const canNotice = p.state !== 'ko' && !playerHidden(p) && e.ignoreT <= 0 && Math.abs(dx) <= J.notice && Math.abs(dy) < 40;
     const aheadSupported = () => !e.grounded || isSupported(s, e.x + e.face * (J.bodyW / 2 + 2), e.y);
+    const fooled = J.possum === 'sniff' ? 'sniff' : 'confused'; // where it settles when Play Possum has it and an attack or reel ends
 
     switch (e.state) {
       case 'patrol': {
@@ -517,18 +533,26 @@
         e.vx = 0;
         if (e.t >= J.attackHitStart && e.t < J.attackHitEnd && !e.attackHit) {
           const r = { x: e.face > 0 ? e.x + 4 : e.x - 4 - J.hitW, y: e.y - J.hitY, w: J.hitW, h: J.hitH };
-          if (overlap(r, playerBox(p))) { e.attackHit = true; hurtPlayer(s, { fromX: e.x, source: e }); }
+          if (overlap(r, playerBox(p))) { e.attackHit = true; hurtPlayer(s, { fromX: e.x, source: e, attack: true }); }
         }
-        if (e.t >= J.attackTime) { e.state = e.confused ? 'confused' : 'chase'; e.t = 0; e.cd = J.attackCooldown; }
+        if (e.t >= J.attackTime) { e.state = e.confused ? fooled : 'chase'; e.t = 0; e.cd = J.attackCooldown; }
         break;
       }
       case 'hitreact': {
         e.vx *= 0.85;
-        if (e.t >= J.hitReactTime) { e.state = e.confused ? 'confused' : 'chase'; e.t = 0; e.cd = Math.max(e.cd, 0.4); }
+        if (e.t >= J.hitReactTime) { e.state = e.confused ? fooled : 'chase'; e.t = 0; e.cd = Math.max(e.cd, 0.4); }
         break;
       }
       case 'spawn': e.vx = 0; if (e.grounded && e.t > 0.6) { e.state = 'chase'; e.t = 0; } break;
       case 'confused': e.vx = 0; break;
+      case 'sniff': {
+        // Fooled, but curious: shambles toward the lying Sammy at patrol speed, stops sniffStop px short (or at a ledge or a
+        // wall), faces him and stands there (confused) until he gets up. Touching him never hurts in this state.
+        if (Math.abs(dx) > 2) e.face = sign(dx);
+        if (Math.abs(dx) <= J.sniffStop || !aheadSupported() || e.blocked) { e.state = 'confused'; e.t = 0; e.vx = 0; sfx(s, 'sfx-zombie-sniff'); }
+        else e.vx = e.face * J.patrolSpeed;
+        break;
+      }
       case 'defeat': e.vx = 0; if (e.t >= J.defeatTime) e.state = 'dead'; break;
     }
     // Touching a zombie that is walking or attacking hurts (not while it reels back or is confused).
@@ -804,6 +828,7 @@
   };
 
   // Exposed for tests and the renderer.
+  S.makeEnemy = makeEnemy; // (def, idx, extra): a fresh enemy of def.type at def.x; the render sweep uses it for types the level lacks
   S.overlap = overlap;
   S.footBox = footBox;
   S.playerBox = playerBox;

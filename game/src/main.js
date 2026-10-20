@@ -480,8 +480,8 @@
     p.shield = 3; draw('shield'); p.shield = 1; draw('shield-cracked'); p.possumCd = 3; draw('possum-cooldown');
     // Every enemy type in every state its brain has (dead is never drawn), plus the no-flinch flash, in its placeholder or real art.
     for (const [type, T] of Object.entries(S.ENEMY_TYPES)) {
-      const e = state.enemies.find((q) => q.type === type && q.state !== 'dead') || state.enemies.find((q) => q.type === type);
-      if (!e) continue;
+      // A type the level doesn't place yet still gets drawn: a stand-in is made for the sweep (resetLevel clears it after).
+      const e = state.enemies.find((q) => q.type === type && q.state !== 'dead') || state.enemies.find((q) => q.type === type) || standIn(type, p.x + 40, 'sweep');
       e.x = p.x + 40;
       for (const st of T.states) {
         if (st === 'dead') continue;
@@ -511,6 +511,17 @@
     return drawn;
   }
 
+  // A fresh enemy of a type at x, added to the state (for the sweep, the gore demo and ?lineup=1 when the level has none of that type).
+  function standIn(type, x, tag) {
+    const e = S.makeEnemy({ type, x }, 0, { id: tag + '-' + type });
+    state.enemies.push(e);
+    return e;
+  }
+  // ?lineup=1 (with ?test=shot): one of every enemy type standing in a row to Sammy's right, facing him (placeholder or real art).
+  function lineup(x) {
+    Object.keys(S.ENEMY_TYPES).forEach((type, i) => { const e = standIn(type, x + i * 48, 'lineup'); e.face = -1; e.state = 'confused'; e.anim = 'idle'; });
+  }
+
   // Puts zombies going down in every defeat style, plus every gore effect, near x (render sweep and ?goredemo=T shots).
   function goreDemo(x, t) {
     t = t || 0.2;
@@ -518,11 +529,10 @@
     const styles = [];
     for (const [type, T] of Object.entries(S.ENEMY_TYPES)) styles.push([type, T.cfg.defeatStyle], [type, T.cfg.sawStyle]);
     styles.forEach(([type, style], i) => {
-      const e = state.enemies.find((q) => q.type === type && !q.goreDemo && q.state !== 'dead') ||
-        Object.assign({}, state.enemies.find((q) => q.type === type), { id: 'demo' + i });
-      if (!e.type) return;
+      const e = state.enemies.find((q) => q.type === type && !q.goreDemo && q.state !== 'dead') || standIn(type, x + i * 36, 'demo' + i);
       Object.assign(e, { goreDemo: true, x: x + i * 36, y: C.groundY, face: -1, state: 'defeat', t, anim: 'defeat', animT: t, defeatStyle: style });
-      if (!state.enemies.includes(e)) state.enemies.push(e);
+      const k = S.ENEMY_TYPES[type].cfg;
+      if (k.pool) state.effects.push({ kind: 'melt-pool', x: x + i * 36, y: C.groundY, t, life: k.pool, melt: k.defeatTime, type });
     });
     const y = C.groundY - 20;
     state.effects.push({ kind: 'blood', x: x + 36, y, t, life: 0.8, n: 10, dir: 1, power: 1 },
@@ -578,6 +588,7 @@
         result.ok = errors.length === 0;
       }
       if (params.has('goredemo')) goreDemo(state.player.x + 30, parseFloat(params.get('goredemo')) || 0.2);
+      if (params.has('lineup')) lineup(state.player.x + 40);
       if (params.has('title')) state.mode = 'title';
       if (params.has('paused')) state.mode = 'paused';
       touch.update(state, state.muted);

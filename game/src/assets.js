@@ -20,6 +20,9 @@
   const sam = (extra) => Object.assign({ px: 28 }, extra || {});
   const JOG = 'enemies/enemy-zombie-jogger/';
   const VEN = 'enemies/enemy-zombie-hot-dog-vendor/';
+  const HIP = 'enemies/enemy-zombie-hippie/';
+  const SWE = 'enemies/enemy-zombie-sweater/';
+  const big = { fw: 64, fh: 56, px: 32, py: 55 }; // the sweater's cells: he stands about 52 px, wider than a 48 px cell
   const CART = 'props/prop-hot-dog-cart/';
   const LID = 'items/item-powerup-trash-lid-shield/';
   const SAW = 'items/item-powerup-chainsaw/';
@@ -52,6 +55,19 @@
     strip('jogger:hit', JOG + 'zombie-jogger-hit-strip-v01.png', 2, 12, 'once'),
     strip('jogger:defeat', JOG + 'zombie-jogger-defeat-strip-v01.png', 8, 12, 'once'),
     strip('jogger:idle', JOG + 'zombie-jogger-idle-strip-v01.png', 4, 6, 'loop'),
+
+    // Zombie roster (2026-10-20, Proposed; design/ZOMBIE-ROSTER-AND-BOSSES.md 2.3-2.4). The art is made separately and drops
+    // into these paths: the hippie in the usual 48x48 cells, feet (24, 47); the sweater is the big one, 64x56 cells, feet (32, 55).
+    strip('hippie:walk', HIP + 'zombie-hippie-walk-strip-v01.png', 6, 6, 'loop'),          // a shamble
+    strip('hippie:attack', HIP + 'zombie-hippie-attack-strip-v01.png', 4, 10, 'once', { hitFrame: 2 }), // claw lunge
+    strip('hippie:hit', HIP + 'zombie-hippie-hit-strip-v01.png', 2, 12, 'once'),
+    strip('hippie:defeat', HIP + 'zombie-hippie-defeat-strip-v01.png', 8, 12, 'once'),     // the melt
+    strip('hippie:idle', HIP + 'zombie-hippie-idle-strip-v01.png', 4, 6, 'loop'),
+    strip('sweater:walk', SWE + 'zombie-sweater-walk-strip-v01.png', 6, 6, 'loop', big),    // a plod
+    strip('sweater:attack', SWE + 'zombie-sweater-attack-strip-v01.png', 4, 8, 'once', Object.assign({ hitFrame: 2 }, big)), // two-handed shove
+    strip('sweater:hit', SWE + 'zombie-sweater-hit-strip-v01.png', 2, 12, 'once', big),    // the white-flash pose (he never reels)
+    strip('sweater:defeat', SWE + 'zombie-sweater-defeat-strip-v01.png', 8, 10, 'once', big), // the flop
+    strip('sweater:idle', SWE + 'zombie-sweater-idle-strip-v01.png', 4, 6, 'loop', big),
 
     strip('vendor:idle', VEN + 'zombie-vendor-idle-strip-v01.png', 4, 6, 'loop'),
     strip('vendor:throw', VEN + 'zombie-vendor-throw-strip-v01.png', 4, 10, 'once', { releaseFrame: 2 }),
@@ -128,6 +144,8 @@
     'sfx-checkpoint', 'sfx-gate-open', 'sfx-level-clear', 'sfx-start',
     // Stage B: chainsaw and gore (sfx-chainsaw-rev loops while the saw revs)
     'sfx-chainsaw-start', 'sfx-chainsaw-rev', 'sfx-chainsaw-cut', 'sfx-gore-splat',
+    // Zombie roster (2026-10-20): the hippie melting into goo, the sweater's two-handed shove landing, the sweater sniffing a "dead" Sammy
+    'sfx-zombie-melt', 'sfx-zombie-shove', 'sfx-zombie-sniff',
   ];
   S.SOUND_MANIFEST = SFX_IDS.map((id) => ({ id, kind: 'sfx', dir: 'audio/sfx/' + id + '/' })).concat([
     { id: 'music-level-01-central-park', kind: 'music', dir: 'audio/music/music-level-01-central-park/' },

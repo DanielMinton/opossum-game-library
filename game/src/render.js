@@ -200,7 +200,10 @@
     sliced: ['RIIIP.', 'WELL, SHIT.', 'HALVSIES.', 'FUCK ME.'],
     low: ['SHHK.', 'WELL, SHIT.', 'DONE.'],
   };
-  const GAGS_BY_TYPE = {}; // e.g. hippie: { melt: ['PEACE. OUT.', …] }
+  const GAGS_BY_TYPE = { // a type's own lines by style; anything not listed here falls back to GAGS by style
+    hippie: { melt: ['PEACE. OUT.', 'FAR OUT, MAN.', 'BUMMER.'] },
+    sweater: { flop: ['BUNNY DOWN.', 'FASHION VICTIM.', 'NICE SWEATER.'] },
+  };
   S.GAGS = GAGS; S.GAGS_BY_TYPE = GAGS_BY_TYPE;
   // Gags drawn this frame (reset in S.render), so several kills at once stack instead of printing over each other.
   let gagsShown = [], camNow = 0;
@@ -312,9 +315,123 @@
     if (e.state === 'throw') R(ctx, K.vendor, x + f * 8, y - hgt - 2, 4 * f, 10);
   }
 
+  // Coded placeholder figures with one clean 1 px outline round the whole silhouette: every block is first drawn in black one
+  // pixel bigger, then in its colour (flash = every colour block white, the outline stays). blocks: [colour, x, y, w, h].
+  function figure(ctx, blocks, flash) {
+    for (const b of blocks) R(ctx, K.black, b[1] - 1, b[2] - 1, b[3] + 2, b[4] + 2);
+    for (const b of blocks) R(ctx, flash ? K.white : b[0], b[1], b[2], b[3], b[4]);
+  }
+  // Marks over a walker: ? while Play Possum has it (confused, or the sweater's sniff walk-up), ! while it drops into the arena.
+  function walkerMarks(ctx, e, x, y) {
+    if (e.state === 'confused' || e.state === 'sniff') S.drawTextCentered(ctx, '?', x, y, K.white, 2, K.black);
+    if (e.state === 'spawn') S.drawTextCentered(ctx, '!', x, y, K.heart, 2, K.black);
+  }
+
+  // ---------- hippie: purple and olive, 45 px, melts into goo ----------
+  function drawHippie(ctx, e) {
+    const flash = flashing(e), style = styleOf(e), x = Math.round(e.x), y = Math.round(e.y);
+    if (defeated(e) && style === 'sliced') {
+      drawSliced(ctx, e, () => { if (!sprite(ctx, 'hippie:hit', 0, e.x, e.y, e.face, false, 0)) drawHippiePlaceholder(ctx, e, false, true); }, 40);
+    } else if (!sprite(ctx, 'hippie:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawHippiePlaceholder(ctx, e, flash);
+    if (defeated(e)) gag(ctx, e, style, y - 56);
+    walkerMarks(ctx, e, x, y - 52);
+  }
+  // standing: the upright pose even while defeated (the chainsaw cut uses it). The melt sinks the pose into the ground; the
+  // goo pool under him is a separate 'melt-pool' effect from the rules, so it is there with real art too.
+  function drawHippiePlaceholder(ctx, e, flash, standing) {
+    const x = Math.round(e.x), y = Math.round(e.y), f = e.face;
+    const melting = !standing && defeated(e);
+    const sink = melting ? Math.min(1, e.t / C.hippie.defeatTime) : 0;
+    const attack = e.state === 'attack', lunge = attack && e.t >= C.hippie.attackHitStart && e.t < C.hippie.attackHitEnd;
+    const lean = lunge ? f * 3 : 0;
+    const step = melting || e.state === 'confused' || e.state === 'spawn' ? 0 : Math.floor(e.animT * 6) % 2;
+    const bob = Math.floor(e.animT * 3) % 2;
+    const armLen = lunge ? 12 : attack ? 8 : 6;
+    const armX = f > 0 ? x + 8 + lean : x - 8 - armLen + lean;
+    const blocks = [
+      [K.hippieJeans, x - 7 + step * 2, y - 14, 5, 14], [K.hippieJeans, x + 2 - step * 2, y - 14, 5, 14],  // ripped jeans
+      [K.cart, x - 8 + step * 2, y - 3, 7, 3], [K.cart, x + 1 - step * 2, y - 3, 7, 3],                      // red sneakers
+      [K.moon, x - 8 + lean, y - 32, 16, 18],                                                               // peace-sign shirt
+      [K.hippie, x - 9 + lean, y - 32, 5, 18], [K.hippie, x + 4 + lean, y - 32, 5, 18],                      // torn purple vest
+      [K.hippieSkin, armX, y - 28, armLen, 3],                                                              // claw arm
+      [K.stoneLight, x - 8 + lean, y - 44, 3, 15], [K.stoneLight, x + 5 + lean, y - 44, 3, 15], [K.stoneLight, x - 7 + lean, y - 46, 14, 3], // grey dreads
+      [K.hippieSkin, x - 5 + lean, y - 44, 10, 11],                                                         // olive face
+      [K.band, x - 6 + lean, y - 43, 12, 2],                                                                // tie-dye headband
+    ];
+    ctx.save();
+    if (melting) { ctx.beginPath(); ctx.rect(x - 32, y - 60, 64, 60); ctx.clip(); ctx.translate(0, Math.round(sink * 46)); }
+    figure(ctx, blocks, flash);
+    const detail = (c) => (flash ? K.white : c);
+    for (let i = 0; i < 4; i++) R(ctx, detail(K.mustard), x - 5 + lean + i * 3, y - 43 + (i & 1), 1, 1);      // the dye
+    R(ctx, K.dark, x - 1 + lean, y - 29, 2, 7); R(ctx, K.dark, x - 3 + lean, y - 25, 2, 2); R(ctx, K.dark, x + 1 + lean, y - 25, 2, 2); // peace sign
+    R(ctx, detail(K.moon), x + f * 2 - 1 + lean, y - 41, 2, 2);                                              // glowing pale eye
+    R(ctx, detail(K.hippieGoo), x + f * 3 + lean, y - 35, 2, 3 + bob);                                        // slime from the mouth
+    if (lunge) { R(ctx, K.white, f > 0 ? armX + armLen - 1 : armX, y - 29, 1, 1); R(ctx, K.white, f > 0 ? armX + armLen - 1 : armX, y - 26, 1, 1); } // claws
+    ctx.restore();
+  }
+
+  // ---------- sweater: gold zigzag knit, purple and teal, 52 px; never flinches, flops over ----------
+  function drawSweater(ctx, e) {
+    const flash = flashing(e), style = styleOf(e), x = Math.round(e.x), y = Math.round(e.y);
+    if (defeated(e) && style === 'sliced') {
+      drawSliced(ctx, e, () => { if (!sprite(ctx, 'sweater:hit', 0, e.x, e.y, e.face, false, 0)) drawSweaterPlaceholder(ctx, e, false, true); }, 48);
+    } else if (!sprite(ctx, 'sweater:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawSweaterPlaceholder(ctx, e, flash);
+    if (defeated(e) && style === 'flop') drawFlopBits(ctx, e); // slippers and the duck fly off, with real art or without
+    if (defeated(e)) gag(ctx, e, style, y - 72);
+    walkerMarks(ctx, e, x, y - 70); // he is 60 px tall with the brain: the marks sit above it
+  }
+  function drawSweaterPlaceholder(ctx, e, flash, standing) {
+    const x = Math.round(e.x), y = Math.round(e.y), f = e.face;
+    const flopping = !standing && defeated(e);
+    const attack = e.state === 'attack', tell = attack && e.t < C.sweater.attackHitStart, shove = attack && !tell;
+    const step = flopping || e.state === 'confused' || e.state === 'spawn' ? 0 : Math.floor(e.animT * 6) % 2;
+    const blocks = [
+      [K.slipper, x - 11 + step * 2, y - 5, 10, 5], [K.slipper, x + 1 - step * 2, y - 5, 10, 5],              // bunny slippers
+      [K.slipperEar, f > 0 ? x - 3 + step * 2 : x - 11 + step * 2, y - 8, 2, 3], [K.slipperEar, f > 0 ? x + 9 - step * 2 : x + 1 - step * 2, y - 8, 2, 3], // ears
+      [K.sweaterTealDk, x - 8 + step * 2, y - 22, 7, 17], [K.sweaterTealDk, x + 1 - step * 2, y - 22, 7, 17], // torn trousers
+      [K.sweaterGold, x - 12, y - 44, 24, 23],                                                              // the knit
+      [K.sweaterSkin, x - 7, y - 56, 14, 12],                                                               // head
+      [K.brainPink, x - 5, y - 59, 10, 4],                                                                  // exposed brain
+    ];
+    if (tell) { blocks.push([K.sweaterSkin, x - 16, y - 54, 5, 14], [K.sweaterSkin, x + 11, y - 54, 5, 14]); }           // both arms up
+    else if (shove) { blocks.push([K.sweaterSkin, f > 0 ? x + 12 : x - 26, y - 40, 14, 5], [K.sweaterSkin, f > 0 ? x + 12 : x - 26, y - 33, 14, 5]); } // both arms out
+    else blocks.push([K.sweaterSkin, f > 0 ? x + 11 : x - 16, y - 42, 5, 14]);                                           // one arm hanging
+    ctx.save();
+    if (flopping) {
+      // Topples backwards (away from where he faces) over half a second, then lies there sinking a little.
+      const k = Math.min(1, e.t / 0.5);
+      ctx.translate(x, y); ctx.rotate(-f * k * Math.PI / 2); ctx.translate(-x, -y + Math.round(Math.max(0, e.t - 0.5) * 10));
+    }
+    figure(ctx, blocks, flash);
+    const detail = (c) => (flash ? K.white : c);
+    for (const [row, col] of [[y - 41, K.sweaterPurple], [y - 33, K.sweaterTeal], [y - 25, K.sweaterPurple]]) {     // zigzags
+      for (let i = 0; i < 6; i++) R(ctx, detail(col), x - 12 + i * 4, row + (i & 1) * 2, 4, 2);
+    }
+    R(ctx, detail(K.grey), x - 4, y - 44, 8, 1);                                                           // the duck's chain
+    R(ctx, detail(K.mustard), x + f * 2 - 2, y - 42, 4, 3); R(ctx, detail(K.hotdog), x + f * 4 - (f < 0 ? 1 : 0), y - 41, 1, 1); // rubber duck
+    R(ctx, detail(K.slipperEar), x - 3, y - 58, 6, 1);                                                      // brain ridge
+    R(ctx, detail(K.moon), x + f * 3 - 1, y - 53, 2, 2);                                                    // the eye that stayed in
+    R(ctx, detail(K.slipperEar), x + f * 6, y - 51, 1, 4); R(ctx, detail(K.white), x + f * 6 - 1, y - 48, 3, 3); R(ctx, K.black, x + f * 6, y - 47, 1, 1); // the one hanging out
+    R(ctx, detail(K.white), x - 3 - f, y - 46, 6, 1);                                                       // wide grin
+    ctx.restore();
+  }
+  // Flop: both slippers and the duck fly off him in arcs (from his age alone, no stored state), bouncing once on the path.
+  function drawFlopBits(ctx, e) {
+    const x = Math.round(e.x), y = Math.round(e.y), f = e.face, t = e.t;
+    const bits = [[-f * 50, -120, 0, 'slipper'], [-f * 90, -90, 0, 'slipper'], [f * 40, -150, -40, 'duck']];
+    for (const [vx, vy, y0, kind] of bits) {
+      const bx = Math.round(x + vx * t);
+      let by = y + y0 + vy * t + gravity * t * t;
+      if (by > y - 2) by = y - 2 - Math.abs(Math.sin(t * 10)) * 5 * Math.max(0, 1 - t);
+      by = Math.round(by);
+      if (kind === 'slipper') { R(ctx, K.black, bx - 5, by - 5, 10, 6); R(ctx, K.slipper, bx - 4, by - 4, 8, 4); R(ctx, K.slipperEar, bx + (vx > 0 ? 2 : -4), by - 6, 2, 2); }
+      else { R(ctx, K.black, bx - 3, by - 4, 6, 5); R(ctx, K.mustard, bx - 2, by - 3, 4, 3); R(ctx, K.hotdog, bx + (f > 0 ? 2 : -3), by - 2, 1, 1); }
+    }
+  }
+
   // One drawer per enemy type (S.ENEMY_TYPES). A type with no drawer is an error, never drawn as a jogger.
   // New types go here with their own drawer (real strip `<art>:<anim>` first, coded placeholder in contrasting colours when missing).
-  const DRAW = { jogger: drawJogger, vendor: drawVendor };
+  const DRAW = { jogger: drawJogger, vendor: drawVendor, hippie: drawHippie, sweater: drawSweater };
   S.ENEMY_DRAW = DRAW;
   function drawEnemy(ctx, e) {
     const draw = DRAW[e.type];
@@ -423,6 +540,7 @@
       else if (f.kind === 'ichor') drawBits(ctx, f, f.n || 5, f.dir || 0, 0.6, [GORE.ichor, GORE.ichorDark]);
       else if (f.kind === 'chunk') drawChunks(ctx, f);
       else if (f.kind === 'sparks') drawSparks(ctx, f);
+      else if (f.kind === 'melt-pool') drawMeltPool(ctx, f);
     }
   }
   // Droplets thrown from a hit, worked out from the effect's age alone (no stored state), landing as flat smears.
@@ -458,6 +576,19 @@
       R(ctx, GORE.bloodDark, x - 2, y + 1, 2, 1);
       R(ctx, GORE.blood, x - dir * 4, y, 2, 1); // trail
     }
+  }
+  // The hippie's goo pool: spreads under him while he melts (f.melt seconds), lies there, then soaks away in the last third of
+  // a second. Purple from his own palette, never a gore colour, so it looks the same in both gore settings. Drawing only.
+  function drawMeltPool(ctx, f) {
+    const x = Math.round(f.x), y = Math.round(f.y), t = f.t;
+    const grow = Math.min(1, t / (f.melt || 0.5)), fade = Math.max(0, Math.min(1, (f.life - t) / 0.3));
+    const w = Math.round((8 + 28 * grow) * fade);
+    if (w < 2) return;
+    R(ctx, K.black, x - w / 2 - 1, y - 3, w + 2, 4);
+    R(ctx, K.hippieGoo, x - w / 2, y - 2, w, 2);
+    R(ctx, K.hippie, x - w / 2 + 1, y, w - 2, 1);
+    R(ctx, K.hippie, x - w / 2, y - 2, 2, 2); R(ctx, K.hippie, x + w / 2 - 2, y - 2, 2, 2);
+    if (w > 14 && Math.floor(t * 6) % 2 === 0) { R(ctx, K.white, x - w / 4, y - 2, 1, 1); R(ctx, K.white, x + w / 5, y - 1, 1, 1); } // bubbles
   }
   // The saw biting: hot sparks spraying from the blade (same in both gore settings).
   function drawSparks(ctx, f) {

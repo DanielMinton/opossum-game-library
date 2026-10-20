@@ -100,6 +100,50 @@
       defeatStyle: 'deflate', sawStyle: 'sliced',
     },
     // New enemy types go here (hippie, sweater, cheerleader, baby, brute): one block each, same fields, a `brain`.
+    // Optional hooks a block may add (read by the walker brain and the damage code only when present):
+    //   pool: seconds the goo pool it melts into stays on the ground after a whip kill (an effect, drawing only; no slow).
+    //   shoveKnockX / shoveKnockY: how far its ATTACK throws Sammy (a plain bump still uses sammy.hurtKnockX/Y).
+    //   stripsLid: true = its attack takes every charge of the trash lid in one go (Sammy is still thrown, loses no heart).
+    //   sniffStop: with possum 'sniff', how close (px) it walks to a playing-dead Sammy before it stops to sniff.
+    hippie: {                  // enemy-zombie-hippie (design 2.3): stoned, rotting, the "slow wall": 3 whips, half knockback. Brain: walker
+      brain: 'walker', art: 'hippie', start: 'patrol', startAnim: 'walk',
+      hp: 3,
+      patrolSpeed: 18, chaseSpeed: 36, patrolRange: 48,
+      notice: 80, giveUpDist: 128, giveUpTime: 2.0,
+      attackRange: 26,
+      attackTime: 0.4,         // claw lunge: 4 frames @ 10 fps
+      attackHitStart: 0.2,     // hit frame = 2
+      attackHitEnd: 0.3,
+      attackCooldown: 1.6,
+      hitW: 18, hitH: 20,
+      bodyW: 20, bodyH: 40,
+      hitReactTime: 2 / 12,
+      defeatTime: 8 / 12,      // the melt
+      flinch: true, knockback: 60, sawKnockback: 20, cartKnock: 80, shieldPush: 16, hitY: 26,
+      possum: 'confused', possumIgnore: 3.0, // too stoned to notice Sammy for twice a jogger's grace
+      defeatStyle: 'melt', sawStyle: 'sliced',
+      pool: 1.6,               // the goo pool under him: grows while he melts (0.67 s), lingers about a second, then gone
+    },
+
+    sweater: {                 // enemy-zombie-sweater (design 2.4): loud zigzag sweater, bunny slippers, rubber duck. The brawler. Brain: walker, no flinch
+      brain: 'walker', art: 'sweater', start: 'patrol', startAnim: 'walk',
+      hp: 3,
+      patrolSpeed: 22, chaseSpeed: 50, patrolRange: 48,
+      notice: 100, giveUpDist: 144, giveUpTime: 2.5,
+      attackRange: 32,
+      attackTime: 4 / 8,       // two-handed shove: 4 frames @ 8 fps (both arms up on frames 0-1 = the tell)
+      attackHitStart: 2 / 8,   // hit frame = 2
+      attackHitEnd: 3 / 8,
+      attackCooldown: 1.5,
+      hitW: 24, hitH: 26,
+      bodyW: 24, bodyH: 48,
+      hitReactTime: 2 / 12,    // how long the white flash lasts (he never reels)
+      defeatTime: 8 / 10,      // the flop
+      flinch: false, knockback: 0, sawKnockback: 0, cartKnock: 0, shieldPush: 0, hitY: 36, // a hit flashes him white and changes nothing else
+      shoveKnockX: 240, shoveKnockY: 150, stripsLid: true, // twice a jogger's bump (sammy.hurtKnockX 120); the lid comes off whole
+      possum: 'sniff', sniffStop: 32, possumIgnore: 1.5,   // fooled, but walks up and stands over Sammy (32 px: his body never touches the lying one)
+      defeatStyle: 'flop', sawStyle: 'sliced',
+    },
 
     cart: {                    // prop-hot-dog-cart INTERACTION.md
       w: 64, h: 48,
@@ -149,6 +193,11 @@
     // Scenery extras (2026-10-19, Proposed): foliage ramp, earth, lit stone, water foam, wood, bins. None of these are gore colours.
     grassHi: '#48906c', grassLo: '#004824', soilWarm: '#6c4848', soilWarmDk: '#482424', slateHi: '#9090b4', stoneMoon: '#b4b4d8',
     leaf3: '#6c2400', woodDk: '#482400', waterMid: '#2448b4', foam: '#b4d8fc', canMid: '#486c48',
+    // Zombie roster placeholders (2026-10-20, Proposed): each type in its own contrasting scheme, from the importer palettes.
+    // Hippie = purple vest and goo over olive skin; sweater = gold knit with purple and teal zigzags over dark brown skin.
+    hippie: '#904890', hippieDark: '#6c2448', hippieSkin: '#90b490', hippieGoo: '#9048d8', hippieJeans: '#48486c',
+    sweaterGold: '#fcb448', sweaterPurple: '#900048', sweaterTeal: '#24d8d8', sweaterTealDk: '#489090', sweaterSkin: '#904824',
+    slipper: '#fcd890', slipperEar: '#d89090', brainPink: '#fc90b4',
     // Reserved for gore only (STYLE_GUIDE "Reserved colours")
     blood0: '#480000', blood: '#900000', bloodHi: '#b40024', ichor0: '#486c00', ichor: '#90d800', ichorHi: '#d8fc48',
     bone: '#fcd8b4', meat: '#d86c6c',
