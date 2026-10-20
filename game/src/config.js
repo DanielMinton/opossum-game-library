@@ -129,6 +129,9 @@
     lampGlow: '#fcb424', lampHalo: '#d89000', lampDeep: '#904800',
     stone: '#242448', stoneMid: '#48486c', stoneLight: '#6c6c90', arch: '#000024',
     leaf0: '#fcb400', leaf1: '#d86c00', leaf2: '#b44800',
+    // Scenery extras (2026-10-19, Proposed): foliage ramp, earth, lit stone, water foam, wood, bins. None of these are gore colours.
+    grassHi: '#48906c', grassLo: '#004824', soilWarm: '#6c4848', soilWarmDk: '#482424', slateHi: '#9090b4', stoneMoon: '#b4b4d8',
+    leaf3: '#6c2400', woodDk: '#482400', waterMid: '#2448b4', foam: '#b4d8fc', canMid: '#486c48',
     // Reserved for gore only (STYLE_GUIDE "Reserved colours")
     blood0: '#480000', blood: '#900000', bloodHi: '#b40024', ichor0: '#486c00', ichor: '#90d800', ichorHi: '#d8fc48',
     bone: '#fcd8b4', meat: '#d86c6c',

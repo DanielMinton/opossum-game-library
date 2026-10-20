@@ -65,35 +65,10 @@
       }
       drawMoon(ctx, 52, 50, 13);
     }
-    // Placeholder shapes stay inside each band's rows, like real art would.
-    tiled(ctx, 'bg:skyline', camX, (ox, y, w, h) => {
-      for (let i = 0; i < w / 32; i++) {
-        const bw = 16 + Math.floor(rnd(i + 7) * 20), bh = 16 + Math.floor(rnd(i + 31) * 40);
-        const bx = ox + i * 32;
-        R(ctx, K.skyline, bx, y + h - bh, bw, bh);
-        if (rnd(i + 3) > 0.6) R(ctx, K.skyline, bx + bw / 2 - 1, y + h - bh - 8, 2, 8);
-        // Lit windows: a few warm squares per building, on a 4 px grid.
-        for (let wy = y + h - bh + 4; wy < y + h - 4; wy += 5) for (let wx = bx + 3; wx < bx + bw - 3; wx += 4) {
-          if (rnd(wx * 7 + wy * 13 + i) > 0.82) R(ctx, K.window, wx, wy, 2, 2);
-        }
-      }
-    });
-    tiled(ctx, 'bg:treeline', camX, (ox, y, w, h) => {
-      for (let i = 0; i < w / 16; i++) {
-        const r = 4 + Math.floor(rnd(i + 99) * 10);
-        R(ctx, K.trees, ox + i * 16, y + 14 - r, 18, r);
-      }
-      R(ctx, K.trees, ox, y + 12, w, h - 12);
-    });
-    tiled(ctx, 'bg:bushes', camX, (ox, y, w, h) => {
-      R(ctx, K.trees, ox, y, w, 8); // band is solid, so its top rows continue the tree line
-      for (let i = 0; i < w / 22; i++) {
-        const r = 4 + Math.floor(rnd(i + 55) * 8);
-        R(ctx, K.bushes, ox + i * 22, y + 12 - r, 20, r);
-        if (rnd(i + 17) > 0.6) R(ctx, [K.leaf0, K.leaf1, K.leaf2][i % 3], ox + i * 22 + 6, y + 14 - r, 1, 1); // autumn leaf
-      }
-      R(ctx, K.bushes, ox, y + 8, w, h - 8);
-    });
+    // Placeholder bands are drawn in scenery.js (cached canvases of the real bands' size), so they stay inside their rows like real art.
+    tiled(ctx, 'bg:skyline', camX);
+    tiled(ctx, 'bg:treeline', camX);
+    tiled(ctx, 'bg:bushes', camX);
   }
   // Checkerboard of colour c over a rectangle (the 16-bit way to blend two colours).
   function dither(ctx, c, x, y, w, h) {
@@ -112,143 +87,39 @@
     R(ctx, K.moonCrater, cx - 5, cy - 3, 4, 3); R(ctx, K.moonCrater, cx + 3, cy + 2, 3, 3);
     R(ctx, K.moonCrater, cx - 1, cy + 6, 2, 2); R(ctx, K.moonMid, cx + 4, cy - 6, 2, 2);
   }
-  // Amber lamp glow: a dithered halo that thins out with distance. Never see-through pixels.
-  function lampGlow(ctx, cx, cy) {
-    for (let y = -14; y <= 14; y++) for (let x = -16; x <= 16; x++) {
-      const d = Math.sqrt(x * x + y * y * 1.3), px = cx + x, py = cy + y;
-      if (d < 5) { if ((px + py) & 1) R(ctx, K.lampGlow, px, py, 1, 1); }
-      else if (d < 10) { if (((px + py) & 1) && (py & 1)) R(ctx, K.lampHalo, px, py, 1, 1); }
-      else if (d < 15) { if ((px & 3) === 0 && (py & 3) === (px & 4 ? 2 : 0)) R(ctx, K.lampDeep, px, py, 1, 1); }
-    }
-  }
-  function tiled(ctx, key, camX, fallback) {
-    const b = BG[key], m = S.images[key];
+  function tiled(ctx, key, camX) {
+    const b = BG[key], m = S.images[key], placeholder = m ? null : S.sceneryBand && S.sceneryBand(key);
     const off = -((camX * b.scroll) % b.fw);
     for (let ox = off; ox < W; ox += b.fw) {
       if (m) ctx.drawImage(m.img, Math.round(ox), b.y);
-      else fallback(Math.round(ox), b.y, b.fw, b.fh);
+      else if (placeholder) ctx.drawImage(placeholder, Math.round(ox), b.y);
     }
   }
 
   // ---------- world ----------
-  // The last screen (the gauntlet arena) is Bethesda Terrace: stone floor instead of grass and earth.
+  // The last screen (the gauntlet arena) is Bethesda Terrace: flagstones instead of grass and earth.
+  // Ground, paths, puddles and lamp light come from scenery.js (real 'scenery:ground-*' art when it exists).
   function drawGround(ctx, s, x0, x1) {
     const A = s.level.arena;
     for (const g of s.level.ground) {
       const a = Math.max(g.x0, x0), b = Math.min(g.x1, Math.min(x1, A.x0));
-      if (a < b) {
-        R(ctx, K.dirt, a, G, b - a, H - G);
-        R(ctx, K.grass, a, G, b - a, 4);
-        for (let x = Math.floor(a / 8) * 8; x < b; x += 8) {
-          if (rnd(x) > 0.5) R(ctx, K.grass, x + 2, G - 2, 2, 2);
-          if (rnd(x + 1) > 0.7) R(ctx, K.dirtDark, x + 3, G + 10 + Math.floor(rnd(x + 2) * 18), 3, 2);
-          if (rnd(x + 5) > 0.82) R(ctx, [K.leaf0, K.leaf1, K.leaf2][x % 3], x + 5, G + 1, 2, 1);           // fallen leaves
-          if (rnd(x + 9) > 0.8) { R(ctx, K.stoneLight, x + 1, G + 6 + Math.floor(rnd(x + 3) * 8), 1, 2); }  // wet glint
-          if (rnd(x + 13) > 0.6) R(ctx, K.waterHi, x + 6, G + 5 + Math.floor(rnd(x + 4) * 26), 1, 1);       // light-blue puddle glint
-        }
-      }
-      // Bethesda Terrace: rain-slick stone slabs.
+      if (a < b) S.drawGroundRun(ctx, 'park', a, b);
       const sa = Math.max(g.x0, x0, A.x0), sb = Math.min(g.x1, x1);
-      if (sa < sb) {
-        R(ctx, K.stoneMid, sa, G, sb - sa, H - G);
-        R(ctx, K.stoneLight, sa, G, sb - sa, 2);
-        for (let row = 0; row < 3; row++) {
-          const y = G + 2 + row * 10;
-          R(ctx, K.stone, sa, y + 9, sb - sa, 1);
-          for (let x = Math.floor(sa / 24) * 24 + (row & 1) * 12; x < sb; x += 24) if (x >= sa) R(ctx, K.stone, x, y, 1, 9);
-        }
-        for (let x = Math.floor(sa / 8) * 8; x < sb; x += 8) if (rnd(x + 21) > 0.7) dither(ctx, K.stoneLight, x + 2, G + 4, 1, 4 + Math.floor(rnd(x) * 6));
-        for (const lx of terraceLamps(A)) if (lx > sa - 24 && lx < sb + 24) lampPool(ctx, lx);
-      }
+      if (sa < sb) S.drawGroundRun(ctx, 'terrace', sa, sb);
     }
-    // Lamp reflections on the wet ground: short vertical dithered amber streaks under each lamp.
-    for (const p of s.level.platforms) if (p.kind === 'lamp') {
-      const lx = p.x + p.w / 2;
-      if (lx < x0 || lx > x1) continue;
-      for (let i = -2; i <= 2; i++) for (let y = G + 3; y < G + 30 - Math.abs(i) * 8; y += 2) R(ctx, i ? K.lampHalo : K.lampGlow, lx + i * 3 + ((y >> 1) & 1), y, i ? 1 : 2, 1);
-    }
+    S.drawGroundDecor(ctx, s, x0, x1);
     for (const w of s.level.water) {
       R(ctx, K.water, w.x0, w.y, w.x1 - w.x0, H - w.y);
+      R(ctx, K.waterMid, w.x0, w.y, w.x1 - w.x0, 1);
       const ph = Math.floor(s.t * 4) % 2;
       for (let x = w.x0 + ph * 4; x < w.x1 - 4; x += 8) R(ctx, K.waterHi, x, w.y + 2 + ((x / 8) % 2) * 6, 4, 1);
     }
   }
 
-  // Bethesda Terrace backdrop for the arena (decoration only; nothing here is solid):
-  // an arcade wall with arches, a balustrade on top, and the angel fountain in the middle.
-  // Lamp x positions on the terrace balustrade: clear of the fountain in the middle and the EXIT sign.
-  const terraceLamps = (A) => [A.x0 + 48, A.x0 + 112, A.x0 + 208];
-  // Warm dithered pool of lamplight on wet stone, thinning out from the centre, plus a short bright reflection streak.
-  function lampPool(ctx, lx) {
-    for (let y = G + 1; y < G + 13; y++) for (let x = -26; x <= 26; x++) {
-      const d = Math.hypot(x / 26, (y - G - 5) / 7), px = lx + x;
-      if (d < 0.5 ? (px + y) & 1 : d < 1 && ((px + y) & 3) === 0 && (y & 1)) R(ctx, d < 0.5 ? K.lampHalo : K.lampDeep, px, y, 1, 1);
-    }
-    for (let y = G + 2; y < G + 26; y += 2) R(ctx, K.lampGlow, lx + ((y >> 1) & 1), y, 1, 1);
-  }
-  function drawTerrace(ctx, A) {
-    const x0 = A.x0, x1 = A.x1, wallTop = 140;
-    R(ctx, K.stoneMid, x0, wallTop, x1 - x0, G - wallTop);
-    R(ctx, K.stoneLight, x0, wallTop, x1 - x0, 2);
-    for (let ax = x0 + 12; ax + 28 <= x1; ax += 44) {                // arches: dark openings with round tops
-      R(ctx, K.arch, ax + 4, wallTop + 14, 20, G - wallTop - 14);
-      R(ctx, K.arch, ax + 6, wallTop + 11, 16, 3); R(ctx, K.arch, ax + 9, wallTop + 9, 10, 2);
-      R(ctx, K.stoneLight, ax + 2, wallTop + 14, 2, G - wallTop - 14); // pillar highlight, light from the left
-      dither(ctx, K.stone, ax + 4, G - 6, 20, 6);
-    }
-    R(ctx, K.stoneLight, x0, 124, x1 - x0, 3);                         // balustrade rail
-    for (let bx = x0 + 2; bx < x1; bx += 6) { R(ctx, K.stoneMid, bx, 127, 3, 13); R(ctx, K.stoneLight, bx, 128, 1, 10); }
-    R(ctx, K.stone, x0, 138, x1 - x0, 2);
-    for (const lx of terraceLamps(A)) {                                // amber lamps on the balustrade
-      lampGlow(ctx, lx, 104);
-      R(ctx, K.pole, lx - 1, 104, 3, 20); R(ctx, K.pole, lx - 4, 100, 9, 4); R(ctx, K.lamp, lx - 2, 104, 5, 3);
-    }
-    // Angel fountain: wide lower basin, column, wide upper bowl, the angel on top with lifted wings and one raised arm.
-    // Moonlit stone (mid + light values) so it reads against the dark skyline.
-    const cx = Math.round((x0 + x1) / 2);
-    R(ctx, K.stoneMid, cx - 3, 112, 6, G - 112);                       // column
-    R(ctx, K.stoneLight, cx - 3, 112, 1, G - 124);
-    R(ctx, K.stoneMid, cx - 24, 130, 48, 4); R(ctx, K.stoneLight, cx - 24, 130, 48, 1); // upper bowl, wide
-    R(ctx, K.stoneMid, cx - 16, 134, 32, 3); R(ctx, K.stoneMid, cx - 8, 137, 16, 3);
-    dither(ctx, K.waterHi, cx - 22, 131, 44, 1);
-    for (let y = 135; y < G - 12; y += 2) { R(ctx, K.waterHi, cx - 23 + (y & 2), y, 1, 1); R(ctx, K.waterHi, cx + 22 - (y & 2), y, 1, 1); } // spill
-    R(ctx, K.stoneMid, cx - 6, 108, 12, 4);                             // plinth
-    R(ctx, K.stoneMid, cx - 3, 94, 6, 14); R(ctx, K.stoneMid, cx - 5, 100, 10, 8); // robe, flaring at the hem
-    R(ctx, K.stoneMid, cx - 2, 89, 4, 5);                               // head
-    for (let i = 0; i < 6; i++) {                                       // wings: solid feathered mass, lifted up and out
-      const top = 93 - i * 2, h = 13 - i * 2 + (i === 5 ? 1 : 0);
-      R(ctx, K.stoneMid, cx + 3 + i * 2, top, 2, h); R(ctx, K.stoneMid, cx - 5 - i * 2, top, 2, h);
-      R(ctx, K.stoneLight, cx + 3 + i * 2, top, 2, 1); R(ctx, K.stoneLight, cx - 5 - i * 2, top, 2, 1);
-      if (i > 1) { R(ctx, K.stone, cx + 3 + i * 2, top + h - 1, 2, 1); R(ctx, K.stone, cx - 5 - i * 2, top + h - 1, 2, 1); } // feather tips
-    }
-    for (let i = 0; i < 6; i++) R(ctx, K.stoneLight, cx + 3 + i, 92 - i * 2, 2, 2); // raised arm, moonlit, in front of the wing
-    R(ctx, K.moonMid, cx + 8, 80, 2, 2);                                 // hand
-    R(ctx, K.stoneLight, cx - 2, 89, 4, 1); R(ctx, K.stoneLight, cx - 3, 94, 1, 14); R(ctx, K.stoneLight, cx - 5, 100, 1, 8); // moonlit edges
-    R(ctx, K.stoneLight, cx - 6, 108, 12, 1);
-    R(ctx, K.stoneMid, cx - 48, G - 12, 96, 12);                       // lower basin
-    R(ctx, K.stoneLight, cx - 48, G - 12, 96, 2);
-    R(ctx, K.water, cx - 44, G - 10, 88, 3);
-    dither(ctx, K.waterHi, cx - 44, G - 10, 88, 1);
-    R(ctx, K.stone, cx - 48, G - 2, 96, 2);
-  }
-
   function drawStatic(ctx, s) {
     const A = s.level.arena;
-    if (A.x1 > s.cam.x - 16 && A.x0 < s.cam.x + W + 16) drawTerrace(ctx, A);
-    for (const b of s.level.solids) {
-      if (b.kind === 'rock') { R(ctx, K.rock, b.x, b.y, b.w, b.h); R(ctx, K.grey, b.x + 3, b.y + 2, b.w - 10, 3); }
-      else if (b.kind === 'fence') { R(ctx, K.fence, b.x, b.y, b.w, b.h); R(ctx, K.fence, b.x - 6, b.y + 6, b.w + 12, 3); R(ctx, K.fence, b.x - 6, b.y + 15, b.w + 12, 3); }
-    }
-    for (const p of s.level.platforms) {
-      if (p.kind === 'bench') {
-        R(ctx, K.bench, p.x, p.y, p.w, 4); R(ctx, K.bench, p.x, p.y - 10, p.w, 3);
-        R(ctx, K.dark, p.x + 2, p.y + 4, 3, G - p.y - 4); R(ctx, K.dark, p.x + p.w - 5, p.y + 4, 3, G - p.y - 4);
-      } else if (p.kind === 'lamp') {
-        lampGlow(ctx, p.x + p.w / 2, p.y + 6);
-        R(ctx, K.pole, p.x + p.w / 2 - 2, p.y + 4, 4, G - p.y - 4);
-        R(ctx, K.pole, p.x, p.y, p.w, 4); R(ctx, K.lamp, p.x + 4, p.y + 4, p.w - 8, 3);
-      }
-    }
+    // Trees, the terrace, rocks, fences, benches, lamps: scenery.js. The solids and platforms they sit on are in level.js.
+    S.drawScenery(ctx, s, 'back', camNow);
     for (const cp of s.cps) {
       R(ctx, K.pole, cp.x - 1, G - 40, 3, 40);
       R(ctx, cp.active ? K.umbrella : K.lampOff, cp.x + 2, G - 40, 12, 8);
@@ -663,7 +534,7 @@
 
   function drawTitle(ctx, s) {
     drawBackground(ctx, (s.titleT || 0) * 20);
-    R(ctx, K.dirt, 0, G, W, H - G); R(ctx, K.grass, 0, G, W, 4);
+    S.drawGroundRun(ctx, 'park', 0, W);
     panel(ctx, 40, 24, 240, 150);
     S.drawTextCentered(ctx, S.TEXT.title.name, W / 2, 31, K.sammy, 3, K.black);
     S.drawTextCentered(ctx, S.TEXT.title.hunter, W / 2, 50, K.heart, 4, K.black);
@@ -728,6 +599,7 @@
     drawEffects(ctx, s, 'back');
     drawSammy(ctx, s);
     drawEffects(ctx, s, 'front');
+    S.drawScenery(ctx, s, 'front', camX);              // drifting leaves, in front of everyone
     ctx.restore();
     drawHud(ctx, s);
     if (s.mode === 'paused') {

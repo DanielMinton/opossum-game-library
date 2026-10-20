@@ -1,4 +1,4 @@
-Sammy placeholder prototype — code afc22b805507 (changes only when index.html changes)
+Sammy placeholder prototype — code 3d279b9dbddc (changes only when index.html changes)
 Open index.html in a browser. Everything is in this folder; nothing is fetched from the internet.
 
 Art included (6):
@@ -15,7 +15,7 @@ Sound files left out (2):
   audio/music/music-level-01-central-park/music-level-01-central-park-v02.ogg  (commercial_use is "tbd"; it must be "yes")
 
 Still placeholders (no real file yet):
-Still missing — art (33):
+Still missing — art (51):
   assets/characters/character-sammy/
     sammy-idle-strip-v01.png  192×48
     sammy-jump-rise-strip-v01.png  96×48
@@ -55,6 +55,25 @@ Still missing — art (33):
     central-park-bg-skyline-v01.png  512×64
     central-park-bg-treeline-v01.png  512×32
     central-park-bg-bushes-v01.png  512×32
+    scenery-ground-park-strip-v01.png  32×32
+    scenery-ground-path-strip-v01.png  32×32
+    scenery-lamp-v01.png  16×64
+    scenery-lamp-glow-v01.png  48×48
+    scenery-bench-v01.png  32×32
+    scenery-tree-far-strip-v01.png  128×96
+    scenery-tree-near-strip-v01.png  192×128
+    scenery-fence-v01.png  16×24
+    scenery-rock-v01.png  32×16
+    scenery-trashcan-v01.png  16×24
+    scenery-leaves-fg-strip-v01.png  640×64
+    scenery-puddle-strip-v01.png  64×8
+  assets/environments/environment-bethesda-terrace/
+    bethesda-ground-terrace-strip-v01.png  32×32
+    bethesda-fountain-strip-v01.png  384×96
+    bethesda-angel-v01.png  48×64
+    bethesda-balustrade-v01.png  32×24
+    bethesda-arch-v01.png  64×80
+    bethesda-stairs-v01.png  64×32
 Still missing — sounds (26):
   assets/audio/sfx/sfx-jump/sfx-jump-v01.ogg
   assets/audio/sfx/sfx-land/sfx-land-v01.ogg
