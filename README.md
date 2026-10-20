@@ -286,7 +286,7 @@ Today the real art is all of Sammy (13 animation strips) plus the chainsaw picku
 The game is a plain website, so hosting is simple. Once it's online you can play it on a phone (and use "Add to Home Screen" on iPhone).
 
 1. Go to [vercel.com](https://vercel.com), sign in with GitHub, click **Add New → Project**, and pick this repository (`opossum-game-library`).
-2. Vercel reads `vercel.json` from the repo, so the settings are already filled in: it runs the game's build and publishes the `game/dist` folder. Just click **Deploy**.
+2. Vercel reads `vercel.json` from the repo, so the settings are already filled in: it runs the game's build and publishes the `game/dist` folder. Just click **Deploy**. Leave **Root Directory** blank (the whole repo); the config also copes if it is set to `game`, but blank is simplest.
 3. After a minute you get a link like `https://opossum-game-library.vercel.app`. Every push to GitHub updates it automatically.
 
 **Two things to know:**
