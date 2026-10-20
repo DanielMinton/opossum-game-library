@@ -1,4 +1,4 @@
-Sammy placeholder prototype — code 5db3e56bcabc (changes only when index.html changes)
+Sammy placeholder prototype — code 17d9aac7de0d (changes only when index.html changes)
 Open index.html in a browser. Everything is in this folder; nothing is fetched from the internet.
 
 Art included (48):
@@ -51,10 +51,10 @@ Art included (48):
   enemies/enemy-zombie-brute/brute-blood-slash-strip-v01.png
   enemies/enemy-zombie-brute/brute-dust-strip-v01.png
 Art left out (0):
-Sound files included (0):
-Sound files left out (2):
-  audio/music/music-level-01-central-park/music-level-01-central-park-v02.mp3  (commercial_use is "tbd"; it must be "yes")
-  audio/music/music-level-01-central-park/music-level-01-central-park-v02.ogg  (commercial_use is "tbd"; it must be "yes")
+Sound files included (2):
+  audio/music/music-level-01-central-park/music-level-01-central-park-v02.mp3
+  audio/music/music-level-01-central-park/music-level-01-central-park-v02.ogg
+Sound files left out (0):
 
 Still placeholders (no real file yet):
 Still missing — art (42):

@@ -107,6 +107,7 @@ To answer, edit this file, or just tell Claude (for example, "go with the sugges
 - **Why it matters:** `design/GAME_BRIEF.md` still marks these "TBD". A "yes" lets Claude mark them settled. A "no" on (a), (b) or (c) would mean big changes, so it's best to say early.
 
 ### 21. Which Suno plan was the theme song made on?
+- **Answered 2026-10-20: a paid plan.** Commercial use is granted, so the song now ships in the public build and plays as the level music online.
 - **Added 2026-10-19.** Your theme song "Sammy the Opossum : Zombie Hunter" was made with Suno. Suno lets you use songs commercially (for example, in a game you sell) only if they were made while you had a **paid plan** (Pro or Premier). Songs made on the **free plan** are for non-commercial use only. It's worth checking Suno's current terms too, since they can change.
 - **Suggested:** tell Claude which plan you were on when you made it. If it was a paid plan, Claude marks the song's row in `design/ASSET_SOURCES.csv` as cleared and it goes into the shareable copy. If it was the free plan, the song can stay for testing, and you can re-make it on a paid plan or choose other music before release.
 - **What the game does now:** the song plays as the level music in your own copy (`game/index.html`), but the shareable copy (`game/dist/`) leaves it out ("commercial_use is tbd") and plays the placeholder tune instead.

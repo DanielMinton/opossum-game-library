@@ -532,3 +532,7 @@ All **Proposed (reversible)**.
 - **Text clipping fix:** floating effect text such as "OUT OF GAS. SHIT." and "BETHESDA TERRACE. NOBODY LEAVES." is now kept fully on screen even when Sammy stands at the left fence. Found by a text-fit check of every on-screen string (all other text fits on desktop and sideways phones; upright-phone text still needs a real phone).
 - **Chainsaw balance (new owner question 22):** an autopilot run showed the chainsaw is very generous (a full 20 s tank covers about 80 kills; the final fight has 9). Nothing was changed. The two options (scarcer fuel, or a bigger final fight) are in `design/OWNER_DECISIONS.md` question 22, to be decided after a person plays it.
 
+## 2026-10-20: Theme song cleared to ship
+
+- **Confirmed by the owner:** "Sammy the Opossum : Zombie Hunter" was made on a paid Suno plan, which grants commercial use. The three song rows in `design/ASSET_SOURCES.csv` (full song v01, loop v02 mp3/ogg) are now `commercial_use` yes, so the build includes the loop and the live site plays it. Owner question 21 is closed.
+
