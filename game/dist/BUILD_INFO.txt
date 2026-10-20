@@ -1,4 +1,4 @@
-Sammy placeholder prototype — code cdc4b32aff7c (changes only when index.html changes)
+Sammy placeholder prototype — code 5db3e56bcabc (changes only when index.html changes)
 Open index.html in a browser. Everything is in this folder; nothing is fetched from the internet.
 
 Art included (48):

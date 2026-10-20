@@ -47,6 +47,8 @@ The same game page works on desktop and on phones and tablets (with touch button
 
 ## Play it now
 
+**Online:** the latest build is at **<https://sammytheopossum.vercel.app/>** — it works on phones too (hold the phone sideways). Every push to GitHub updates it.
+
 1. On GitHub, click the green **Code** button, then **Download ZIP**, and unzip it. (Developers can use `git clone` instead.)
 2. Double-click **`game/index.html`**. It opens in your web browser and the game starts.
 
@@ -293,7 +295,7 @@ The game is a plain website, so hosting is simple. Once it's online you can play
 
 Command-line alternative: `npm i -g vercel`, then `vercel --prod` in the project folder.
 
-**Share picture and icons:** when the link is pasted into a chat or social post it shows the card in `game/share/og-image.png`; the tab, home-screen and app icons are beside it. The page points at `https://opossum-game-library.vercel.app/og-image.png`; if your Vercel address is different, change that line in `game/index.html` (search for `og:image`).
+**Share picture and icons:** when the link is pasted into a chat or social post it shows the card in `game/share/og-image.png`; the tab, home-screen and app icons are beside it. The page points at `https://sammytheopossum.vercel.app/og-image.png`; if your Vercel address is different, change that line in `game/index.html` (search for `og:image`).
 
 ## Tests
 
