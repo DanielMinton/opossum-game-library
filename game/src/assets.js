@@ -24,6 +24,9 @@
   const HIP = 'enemies/enemy-zombie-hippie/';
   const SWE = 'enemies/enemy-zombie-sweater/';
   const big = { fw: 64, fh: 56, px: 32, py: 55 }; // the sweater's cells: he stands about 52 px, wider than a 48 px cell
+  const CHEER = 'enemies/enemy-zombie-cheerleader/'; // 48x48, feet (24, 47) like the jogger (zombie roster, 2026-10-20)
+  const BABY = 'enemies/enemy-zombie-baby/';         // a toddler: 32x32 cells, feet (16, 31), about 30 px standing
+  const baby = { fw: 32, fh: 32, px: 16, py: 31 };
   const CART = 'props/prop-hot-dog-cart/';
   const LID = 'items/item-powerup-trash-lid-shield/';
   const SAW = 'items/item-powerup-chainsaw/';
@@ -77,6 +80,21 @@
     strip('vendor:defeat', VEN + 'zombie-vendor-defeat-strip-v01.png', 6, 12, 'once'),
     strip('projectile:hotdog', VEN + 'hot-dog-projectile-strip-v01.png', 4, 12, 'loop', mid),
     strip('effect:splat', VEN + 'hot-dog-splat-strip-v01.png', 4, 15, 'once', mid),
+
+    // Cheerleader (templates/examples/enemy-zombie-cheerleader/ASSET.md). The attack strip is picked by state, not by a clock:
+    // frame 1 rising, 2 falling (the leap), 3 landing; frame 0 is spare (the windup shows the idle strip: she stops and cheers).
+    strip('cheerleader:walk', CHEER + 'zombie-cheerleader-walk-strip-v01.png', 6, 8, 'loop'),
+    strip('cheerleader:attack', CHEER + 'zombie-cheerleader-attack-strip-v01.png', 4, 1, 'frame'),
+    strip('cheerleader:hit', CHEER + 'zombie-cheerleader-hit-strip-v01.png', 2, 12, 'once'),
+    strip('cheerleader:defeat', CHEER + 'zombie-cheerleader-defeat-strip-v01.png', 8, 12, 'once'),
+    strip('cheerleader:idle', CHEER + 'zombie-cheerleader-idle-strip-v01.png', 4, 6, 'loop'),
+
+    // Baby (templates/examples/enemy-zombie-baby/ASSET.md): 32x32 cells, feet (16, 31).
+    strip('baby:walk', BABY + 'zombie-baby-walk-strip-v01.png', 6, 10, 'loop', baby),
+    strip('baby:attack', BABY + 'zombie-baby-attack-strip-v01.png', 4, 12, 'once', Object.assign({ hitFrame: 2 }, baby)),
+    strip('baby:hit', BABY + 'zombie-baby-hit-strip-v01.png', 2, 12, 'once', baby),
+    strip('baby:defeat', BABY + 'zombie-baby-defeat-strip-v01.png', 8, 12, 'once', baby),
+    strip('baby:idle', BABY + 'zombie-baby-idle-strip-v01.png', 4, 6, 'loop', baby),
 
     strip('cart:upright', CART + 'hot-dog-cart-upright-v01.png', 1, 1, 'hold', cart),
     strip('cart:rocking', CART + 'hot-dog-cart-rocking-strip-v01.png', 3, 12, 'loop', cart),
@@ -148,6 +166,8 @@
     'sfx-chainsaw-start', 'sfx-chainsaw-rev', 'sfx-chainsaw-cut', 'sfx-gore-splat',
     // Zombie roster (2026-10-20): the hippie melting into goo, the sweater's two-handed shove landing, the sweater sniffing a "dead" Sammy
     'sfx-zombie-melt', 'sfx-zombie-shove', 'sfx-zombie-sniff',
+    // Zombie roster (2026-10-20): the cheerleader's cheer (her tell) and jump, the baby's rattle smack and its last cry
+    'sfx-cheer', 'sfx-leap', 'sfx-baby-rattle', 'sfx-baby-cry',
   ];
   S.SOUND_MANIFEST = SFX_IDS.map((id) => ({ id, kind: 'sfx', dir: 'audio/sfx/' + id + '/' })).concat([
     { id: 'music-level-01-central-park', kind: 'music', dir: 'audio/music/music-level-01-central-park/' },

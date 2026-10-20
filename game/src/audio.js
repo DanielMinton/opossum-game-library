@@ -33,6 +33,10 @@
     'sfx-zombie-melt': ['sawtooth', 260, 40, 0.6, 0.25],   // a wet, sinking gloop: the hippie dissolving
     'sfx-zombie-shove': ['noise', 300, 40, 0.3, 0.4],      // a heavy thud: the sweater's shove connecting
     'sfx-zombie-sniff': ['noise', 900, 1400, 0.12, 0.12],  // two short snuffles when the sweater reaches a "dead" Sammy
+    'sfx-cheer': ['square', 660, 990, 0.3, 0.2],        // cheerleader: the "RAH" tell before her leap
+    'sfx-leap': ['noise', 300, 1200, 0.15, 0.15],       // cheerleader: launch whoosh
+    'sfx-baby-rattle': ['noise', 1800, 1400, 0.1, 0.2], // baby: rattle smack
+    'sfx-baby-cry': ['triangle', 900, 300, 0.4, 0.25],  // baby: its last wail
   };
   const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
   const TRACKS = {

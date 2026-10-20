@@ -37,6 +37,8 @@ export const GROUPS = [
   { id: 'vendor', folder: 'enemies/enemy-zombie-hot-dog-vendor', title: 'ZOMBIE HOT DOG VENDOR AND HIS HOT DOGS' },
   { id: 'hippie', folder: 'enemies/enemy-zombie-hippie', title: 'ZOMBIE HIPPIE (PURPLE AND OLIVE, MELTS)' },
   { id: 'sweater', folder: 'enemies/enemy-zombie-sweater', title: 'ZOMBIE SWEATER (THE BRAWLER, 64 X 56 CELLS)' },
+  { id: 'cheerleader', folder: 'enemies/enemy-zombie-cheerleader', title: 'ZOMBIE CHEERLEADER' },
+  { id: 'baby', folder: 'enemies/enemy-zombie-baby', title: 'ZOMBIE BABY (32 X 32 CELLS)' },
   { id: 'cart', folder: 'props/prop-hot-dog-cart', title: 'HOT DOG CART AND HOT DOG PICKUP' },
   { id: 'lid', folder: 'items/item-powerup-trash-lid-shield', title: 'TRASH LID SHIELD' },
   { id: 'chainsaw', folder: 'items/item-powerup-chainsaw', title: 'CHAINSAW' },
@@ -65,6 +67,9 @@ const NOTES = {
   'scenery:bethesda-balustrade': 'REPEATS EVERY 32 PX, ON TOP OF THE ARCADE WALL',
   'scenery:bethesda-arch': 'FIVE OF THESE SIDE BY SIDE MAKE THE ARCADE WALL. WARM LIGHT INSIDE THE OPENING',
   'hud:chainsaw': 'SCREEN ICON (TOP OF THE SCREEN), NEXT TO THE FUEL GAUGE. ANCHOR IS THE TOP-LEFT PIXEL',
+  'cheerleader:attack': 'THE GAME PICKS THE FRAME: 1 = RISING, 2 = FALLING (THE LEAP), 3 = LANDING. FRAME 0 IS SPARE',
+  'cheerleader:idle': 'ALSO THE TELL BEFORE HER LEAP: SHE STOPS AND CHEERS',
+  'baby:walk': 'A TODDLER: ABOUT 30 PX TALL IN A 32 X 32 CELL, FEET AT (16, 31)',
 };
 const LOOPS = { loop: 'LOOPS', once: 'PLAYS ONCE', hold: 'PLAYS ONCE, HOLDS THE LAST FRAME', frame: 'DOES NOT ANIMATE' };
 

@@ -55,14 +55,15 @@
   const BRAINS = {
     // brain: { update(s, e), states: every state the brain can put an enemy in (the render sweep draws each), anims: state -> animation }
     // sniff (possum 'sniff', the sweater): fooled by Play Possum, but walks over to Sammy first; once close it stands in 'confused'.
-    walker: { update: (s, e) => updateWalker(s, e), states: ['spawn', 'patrol', 'chase', 'attack', 'hitreact', 'confused', 'sniff', 'defeat', 'dead'],
-      anims: { spawn: 'idle', patrol: 'walk', chase: 'walk', attack: 'attack', hitreact: 'hit', confused: 'idle', sniff: 'walk', defeat: 'defeat', dead: 'defeat' } },
+    // windup / leap / land: the leaping kinds (`leap: true`, the cheerleader) use them instead of attack.
+    walker: { update: (s, e) => updateWalker(s, e), states: ['spawn', 'patrol', 'chase', 'attack', 'windup', 'leap', 'land', 'hitreact', 'confused', 'sniff', 'defeat', 'dead'],
+      anims: { spawn: 'idle', patrol: 'walk', chase: 'walk', attack: 'attack', windup: 'idle', leap: 'attack', land: 'attack', hitreact: 'hit', confused: 'idle', sniff: 'walk', defeat: 'defeat', dead: 'defeat' } },
     turret: { update: (s, e) => updateTurret(s, e), states: ['idle', 'throw', 'hitreact', 'shrug', 'defeat', 'dead'],
       anims: { idle: 'idle', shrug: 'idle', throw: 'throw', hitreact: 'hit', defeat: 'defeat', dead: 'defeat' } },
   };
   const TYPE_FIELDS = ['brain', 'art', 'start', 'startAnim', 'hp', 'bodyW', 'bodyH', 'hitReactTime', 'defeatTime', 'flinch', 'knockback',
     'sawKnockback', 'cartKnock', 'shieldPush', 'hitY', 'possum', 'possumIgnore', 'defeatStyle', 'sawStyle'];
-  const POSSUM_KINDS = ['confused', 'shrug', 'sniff'];
+  const POSSUM_KINDS = ['confused', 'shrug', 'sniff', 'ignore']; // 'sniff' = walks up and stands over Sammy (the sweater); 'ignore' = Play Possum does nothing to it (the baby)
   S.ENEMY_TYPES = {};
   S.ENEMY_TYPE_FIELDS = TYPE_FIELDS;
   // Registers (or replaces) an enemy type from a config block. Throws on a missing field or an unknown brain, so a half-written
@@ -73,7 +74,7 @@
     if (!brain) throw new Error('enemy type "' + name + '" has unknown brain "' + cfg.brain + '" (known: ' + Object.keys(BRAINS).join(', ') + ')');
     if (!brain.states.includes(cfg.start)) throw new Error('enemy type "' + name + '" starts in "' + cfg.start + '", which its brain has no state for');
     if (!POSSUM_KINDS.includes(cfg.possum)) throw new Error('enemy type "' + name + '" has unknown possum reaction "' + cfg.possum + '"');
-    if (!brain.states.includes(cfg.possum)) throw new Error('enemy type "' + name + '" reacts to Play Possum with "' + cfg.possum + '", which its brain has no state for');
+    if (cfg.possum !== 'ignore' && !brain.states.includes(cfg.possum)) throw new Error('enemy type "' + name + '" reacts to Play Possum with "' + cfg.possum + '", which its brain has no state for');
     const T = { name, cfg, brain: cfg.brain, update: brain.update, states: brain.states, anims: brain.anims };
     S.ENEMY_TYPES[name] = T;
     return T;
@@ -97,6 +98,20 @@
       defeatStyle: k.defeatStyle, // how it goes down; k.sawStyle ('sliced') when the chainsaw does it
     }, extra || {});
   }
+  S.makeEnemy = makeEnemy;
+  // One level entry can stand a litter: { type: 'baby', x: 3010, litter: 3 } makes three, litterGap px apart (ids e5, e5-1, e5-2),
+  // each patrolling round its own spot. The default litter is 1, so every other entry is one zombie, as before.
+  function makeEnemies(def, idx) {
+    const n = Math.max(1, def.litter || 1), gap = typeOf(def).cfg.litterGap || 32;
+    const out = [];
+    for (let j = 0; j < n; j++) {
+      const e = makeEnemy(def, idx, j ? { id: 'e' + idx + '-' + j } : null);
+      e.x += j * gap; e.home = e.x;
+      out.push(e);
+    }
+    return out;
+  }
+  S.makeEnemies = makeEnemies;
   function makeCart(def, idx) {
     return { id: 'cart' + idx, def, x: def.x, state: 'upright', t: 0, anim: 'upright', animT: 0, spill: [] };
   }
@@ -114,7 +129,7 @@
   function resetLevel(s) {
     const L = s.level;
     s.player = makePlayer(L.start.x, L.start.y);
-    s.enemies = L.enemies.map((d, i) => makeEnemy(d, i));
+    s.enemies = [].concat(...L.enemies.map((d, i) => makeEnemies(d, i)));
     s.carts = L.carts.map((d, i) => makeCart(d, i));
     s.pickups = L.pickups.map((d, i) => makePickup(d, i));
     s.projectiles = [];
@@ -272,6 +287,7 @@
       e.sliceDir = dir; // the cut top half slides this way (away from Sammy)
       s.stats.defeated += 1;
       sfx(s, 'sfx-zombie-defeat-comedic');
+      if (k.defeatSfx) sfx(s, k.defeatSfx); // a sound of its own (the baby's cry)
       sfx(s, 'sfx-gore-splat');
       effect(s, 'ichor', gx, e.y - (saw ? 22 : 36), 0.8, { n: saw ? 10 : 6 });
       if (saw) {
@@ -313,11 +329,14 @@
     sfx(s, 'sfx-play-dead');
     for (const e of s.enemies) {
       if (e.state === 'defeat' || e.state === 'dead') continue;
+      const how = typeOf(e).cfg.possum;
+      if (how === 'ignore') continue; // never fooled (the baby): it keeps coming, and a bump still hurts
       if (Math.abs(e.x - p.x) <= C.possum.radius && Math.abs(e.y - p.y) < 48) {
         e.confused = true;
-        const how = typeOf(e).cfg.possum;
-        if (how === 'confused' && e.state !== 'attack' && e.state !== 'hitreact') { e.state = 'confused'; e.t = 0; e.vx = 0; }
-        if (how === 'sniff' && e.state !== 'attack' && e.state !== 'hitreact') { e.state = 'sniff'; e.t = 0; }
+        // An attack or a leap already started still finishes (a leap frozen in mid-air would look wrong); it goes confused on landing.
+        const busy = ['attack', 'hitreact', 'leap', 'land'].includes(e.state);
+        if (how === 'confused' && !busy) { e.state = 'confused'; e.t = 0; e.vx = 0; }
+        if (how === 'sniff' && !busy) { e.state = 'sniff'; e.t = 0; }
         if (how === 'shrug' && e.state !== 'hitreact') { e.state = 'shrug'; e.t = 0; }
       }
     }
@@ -483,7 +502,7 @@
     s.player = makePlayer(cp.x, G);
     s.player.invuln = 1.0;
     s.enemies = s.enemies.filter((e) => !e.arena && e.def.x <= cp.x);
-    L.enemies.forEach((d, i) => { if (d.x > cp.x) s.enemies.push(makeEnemy(d, i)); });
+    L.enemies.forEach((d, i) => { if (d.x > cp.x) s.enemies.push(...makeEnemies(d, i)); });
     s.carts = s.carts.map((c, i) => (c.def.x > cp.x ? makeCart(c.def, i) : c));
     s.pickups = s.pickups.filter((pk) => !pk.spilled);
     for (const pk of s.pickups) if (pk.def.x > cp.x) pk.collected = false;
@@ -505,9 +524,11 @@
     const p = s.player;
     e.t += DT; e.cd = Math.max(0, e.cd - DT); e.ignoreT = Math.max(0, (e.ignoreT || 0) - DT);
     const dx = p.x - e.x, dy = p.y - e.y;
-    const canNotice = p.state !== 'ko' && !playerHidden(p) && e.ignoreT <= 0 && Math.abs(dx) <= J.notice && Math.abs(dy) < 40;
+    // A type that ignores Play Possum notices a lying Sammy like a standing one.
+    const canNotice = p.state !== 'ko' && (J.possum === 'ignore' || !playerHidden(p)) && e.ignoreT <= 0 && Math.abs(dx) <= J.notice && Math.abs(dy) < 40;
     const aheadSupported = () => !e.grounded || isSupported(s, e.x + e.face * (J.bodyW / 2 + 2), e.y);
     const fooled = J.possum === 'sniff' ? 'sniff' : 'confused'; // where it settles when Play Possum has it and an attack or reel ends
+    const reach = J.leap ? J.leapRange : J.attackRange; // how close it gets before its attack (or its leap)
 
     switch (e.state) {
       case 'patrol': {
@@ -522,11 +543,33 @@
       case 'chase': {
         if (p.state === 'ko') { e.state = 'patrol'; e.home = e.x; break; }
         if (Math.abs(dx) > 2) e.face = sign(dx);
-        e.vx = Math.abs(dx) > J.attackRange - 6 ? e.face * J.chaseSpeed : 0;
+        e.vx = Math.abs(dx) > reach - 6 ? e.face * J.chaseSpeed : 0;
         if (!aheadSupported()) e.vx = 0;
         if (Math.abs(dx) > J.giveUpDist && !e.arena) { e.lostT += DT; if (e.lostT > J.giveUpTime) { e.state = 'patrol'; e.home = e.x; } }
         else e.lostT = 0;
-        if (Math.abs(dx) <= J.attackRange && Math.abs(dy) < 30 && e.cd <= 0) { e.state = 'attack'; e.t = 0; e.attackHit = false; e.vx = 0; }
+        if (Math.abs(dx) <= reach && Math.abs(dy) < 30 && e.cd <= 0 && e.grounded) {
+          if (J.leap) {
+            // Only where the landing spot is ground (never into the pond or off a ledge) and nothing solid stands in the way.
+            if (leapClear(s, e, J)) { e.state = 'windup'; e.t = 0; e.vx = 0; sfx(s, 'sfx-cheer'); }
+          } else { e.state = 'attack'; e.t = 0; e.attackHit = false; e.vx = 0; if (J.attackSfx) sfx(s, J.attackSfx); }
+        }
+        break;
+      }
+      // The leap (cheerleader): windup = she stops and cheers (harmless tell), leap = airborne and hurts on touch, land = stuck, harmless.
+      case 'windup': {
+        e.vx = 0;
+        if (Math.abs(dx) > 2) e.face = sign(dx);
+        if (e.t >= J.leapWindup) { e.state = 'leap'; e.t = 0; e.vx = e.face * J.leapVx; e.vy = -J.leapVy; e.grounded = false; sfx(s, 'sfx-leap'); }
+        break;
+      }
+      case 'leap': {
+        if (e.blocked) e.vx = 0; // hit a wall: drop straight down
+        if ((e.grounded && e.t > DT * 2) || e.t >= J.leapMaxAir) { e.state = 'land'; e.t = 0; e.vx = 0; }
+        break;
+      }
+      case 'land': {
+        e.vx = 0;
+        if (e.t >= J.leapLand) { e.state = e.confused ? fooled : 'chase'; e.t = 0; e.cd = J.leapCooldown; }
         break;
       }
       case 'attack': {
@@ -555,13 +598,25 @@
       }
       case 'defeat': e.vx = 0; if (e.t >= J.defeatTime) e.state = 'dead'; break;
     }
-    // Touching a zombie that is walking or attacking hurts (not while it reels back or is confused).
-    if ((e.state === 'patrol' || e.state === 'chase' || e.state === 'attack') && overlap(footBox(e, J.bodyW, J.bodyH), playerBox(p))) {
+    // Touching a zombie that is walking, attacking or leaping hurts (not while it reels back, is confused, winds up or lands).
+    if ((e.state === 'patrol' || e.state === 'chase' || e.state === 'attack' || e.state === 'leap') && overlap(footBox(e, J.bodyW, J.bodyH), playerBox(p))) {
       hurtPlayer(s, { fromX: e.x, source: e });
     }
     if (e.state !== 'dead') moveBody(s, e, J.bodyW, J.bodyH);
     if (e.y > 260) e.state = 'dead';
     setAnim(e, BRAINS.walker.anims[e.state]);
+  }
+
+  // How far a leap carries on flat ground: leapVx for the time gravity takes to bring leapVy back down (about 72 px for the cheerleader).
+  const leapLength = (J) => J.leapVx * (2 * J.leapVy / C.gravity);
+  S.leapLength = leapLength;
+  // Is the leap worth taking: the landing spot is ground, and no rock, fence, cart or gate stands in the lane she flies through.
+  function leapClear(s, e, J) {
+    const len = leapLength(J), landX = e.x + e.face * len;
+    if (!isSupported(s, landX, e.y)) return false;
+    const lane = { x: Math.min(e.x, landX) - J.bodyW / 2, y: e.y - J.bodyH, w: len + J.bodyW, h: J.bodyH - 2 };
+    for (const b of getSolids(s)) if (b.kind !== 'ground' && overlap(lane, b)) return false;
+    return true;
   }
 
   // The "turret" brain (the hot dog vendor): stands still, faces Sammy, throws when he is in range, shrugs at Play Possum.

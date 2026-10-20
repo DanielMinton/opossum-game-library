@@ -2,7 +2,7 @@
 // It runs right, jumps over obstacles and gaps, and tail-whips anything in front of it.
 // It proves the level can be finished; it is not a good player.
 (function (S) {
-  S.makeBot = function () { return { frame: 0, lastX: 0, stall: 0, jumpHold: 0 }; };
+  S.makeBot = function () { return { frame: 0, lastX: 0, stall: 0, jumpHold: 0, wait: 0 }; };
 
   S.botInput = function (s, b) {
     const inp = S.makeInput();
@@ -27,11 +27,18 @@
     const front = (x) => (x - p.x) * p.face > -4 && Math.abs(x - p.x) < 34;
     let whip = alive.some((e) => front(e.x) && Math.abs(e.y - p.y) < 30);
     for (const c of s.carts) if ((c.state === 'upright' || c.state === 'rocking') && front(c.x + 8)) whip = true;
-    if (alive.some((e) => Math.abs(e.x - p.x) < 34 && Math.abs(e.y - p.y) < 30 && Math.sign(e.x - p.x) !== p.face && dir === 0)) {
-      dir = -p.face; // turn to face a zombie behind us
-    }
-    // Outside the arena: stop and fight a zombie that is close ahead instead of running into it.
+    // Outside the arena: stop and fight a zombie that is close ahead instead of running into it, and stop for one right behind
+    // that is coming for us (a leaper that just landed, a toddler that caught up). One that keeps its distance (a cheerleader
+    // waiting to leap, or anything behind a fence) is not worth waiting for: after half a second, walk on.
+    const travel = dir;
     if (s.arena.state !== 'fight' && alive.some((e) => (e.x - p.x) * dir > 0 && Math.abs(e.x - p.x) < 40 && Math.abs(e.y - p.y) < 30)) dir = 0;
+    if (s.arena.state !== 'fight' && dir !== 0 && alive.some((e) => (e.x - p.x) * dir < 0 && Math.abs(e.x - p.x) < 28 && Math.abs(e.y - p.y) < 30 && (e.state === 'chase' || e.state === 'attack' || e.state === 'land'))) dir = 0;
+    b.wait = dir === 0 && !whip && s.arena.state !== 'fight' ? b.wait + 1 : 0;
+    if (b.wait > 30) dir = travel;
+    // Standing still with a zombie behind us: turn to face it (one step that way flips the facing; then the whip takes it).
+    if (alive.some((e) => Math.abs(e.x - p.x) < 34 && Math.abs(e.y - p.y) < 30 && Math.sign(e.x - p.x) !== p.face && dir === 0)) {
+      dir = -p.face;
+    }
     inp.held.right = dir > 0;
     inp.held.left = dir < 0;
     inp.pressed.attack = whip;
