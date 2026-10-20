@@ -1,6 +1,11 @@
 # CLAUDE.md — Sammy (opossum game library)
 
-A 16-bit Genesis-style 2D platformer prototype: Sammy the opossum fights cartoon zombies in Central Park. Today it is one playable level with **placeholder art and sound only**. The owner is non-technical: write docs in plain, short, accurate language with no jargon.
+A 16-bit Genesis-style 2D platformer prototype, "Sammy the Opossum: Zombie Hunter" (working title): Sammy the opossum hunts zombies in Central Park at night, ending on Bethesda Terrace. Today it is one playable level with **placeholder art and sound only**. The owner is non-technical: write docs in plain, short, accurate language with no jargon.
+
+## Tone
+- **Owner rule (Confirmed 2026-10-19): uncensored deadpan humour with cursing and swearing is encouraged** for Sammy and the zombies, in game text (title, prompts, banners, gags). Dry, matter-of-fact, profane. Don't bleep it, don't use symbols like `F***`. Short lines: the 3×5 font only has A–Z, 0–9 and `.,!?:-+/'()*=><%"#_` (no `;` or `&`).
+- Badass action-horror with dark humour (Confirmed 2026-10-19). Sammy is a badass "who doesn't fuck around with zombies".
+- Docs written **to the owner** stay plain, short and polite; the swearing is for the game's own voice.
 
 ## Repo map
 - `game/`: the game. Plain HTML5 canvas + classic `<script>` JS, no engine, no npm packages. Native 320×224, scaled by whole numbers of *device* pixels (`src/layout.js` `S.computeFit`, positioned on whole device pixels; don't reintroduce flex centring or CSS-point scaling). Runs by double-clicking `game/index.html` (file://).

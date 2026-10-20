@@ -1,6 +1,6 @@
 # Sammy: placeholder prototype (level 1, Sheep Meadow)
 
-This is a playable first level that uses **placeholder art and sound**. The first real art is in: Sammy's run animation. The level music is real too: the owner's theme song "Sammy the Opossum : Zombie Hunter" (made with Suno; it plays here but is left out of `dist/` until its license is confirmed, owner question 21). Otherwise Sammy is a grey box with ears and a pink nose, zombies are green boxes, and every sound effect is a code-generated beep. The new "Zombie Hunter" direction (chainsaw, night-time park, stylized gore; see `design/DECISIONS.md`) isn't in the game yet; the chainsaw comes next. The on-screen label "PLACEHOLDER ART – NOT FINAL" stays visible the whole time. Your real art and sound replace the placeholders automatically, one file at a time, as you add them (see **Adding art** and **Adding sound** below).
+This is a playable first level that uses **placeholder art and sound**. The first real art is in: Sammy's run animation. The level music is real too: the owner's theme song "Sammy the Opossum : Zombie Hunter" (made with Suno; it plays here but is left out of `dist/` until its license is confirmed, owner question 21). Otherwise Sammy is a grey box with ears and a pink nose, zombies are green boxes, and every sound effect is a code-generated beep. The look is now the "Zombie Hunter" night park (placeholder boxes: night sky, full moon, stars, lit skyline windows, amber lamp glow, wet ground) with a placeholder Bethesda Terrace (stone floor, arches, balustrade, angel fountain) for the final fight. The game's text is deadpan and swears on purpose (owner rule). The chainsaw and gore come next (see `design/DECISIONS.md`). The on-screen label "PLACEHOLDER ART – NOT FINAL" stays visible the whole time. Your real art and sound replace the placeholders automatically, one file at a time, as you add them (see **Adding art** and **Adding sound** below).
 
 Every gameplay value comes from the examples in `templates/examples/`, which are **proposals, not approved design**. Changes the prototype made are listed in `design/DECISIONS.md`. The questions only you can answer (title, art style, how gory, and more) are in `design/OWNER_DECISIONS.md`, each with a suggested answer.
 
@@ -144,7 +144,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | 61 game-rule checks (see the list below) |
+| `node --test tests/sim.test.mjs` | 63 game-rule checks (see the list below) |
 | `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 51 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 | `index.html?test=touch&touch=1` | The touch-button check by hand (it taps the real buttons for you) |
@@ -172,6 +172,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - starting sound on phones (with a pretend sound engine and sound files): every kind of tap tries, a refused try is retried, a silent sample plays, every file and copy is primed without a sound and gets its volume back, files are primed only when a finger lifts, a click or a key press (a pretend phone that, like a real one, lets muted files play any time but unlocks them only then: a finger going down must not count), it stops listening once sound is on, it restarts after a call or the lock screen but never while hidden, music waits for the unpause, and mute reaches every copy
 - the drawing templates: one for every planned picture at its exact size, kept outside `assets/`; their guide marks are part see-through, so the scanner warns about a guide left in; making them again gives the same files
 - the "Zombie Hunter" files: the theme song is found by the scanner, is the level track (and the gauntlet's fallback), starts with the first press on the title screen, and its license row keeps it out of the build with a clear reason; the concept picture stays reference-only; the three README pictures are self-contained and the cast's numbers (3 lid hits, 3 hot dogs) match the game
+- the night look: every palette colour is on the 9-bit grid, the gore colours are used for nothing else, the HUD stands out from the sky; the title, quips, prompts (keyboard and touch) and arena banners fit their boxes and use only letters the font has
 
 **Browser checks** cover:
 - the shareable copy is up to date: `dist/index.html` has the current code from `src/`, and `BUILD_INFO.txt` has the matching code. If not, it says "run node tools/build.mjs". (So after changing anything in `src/`, build before running this test.)

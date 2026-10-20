@@ -60,13 +60,14 @@
 
     // On-screen tutorial prompts by x range (screen-by-screen beats in LEVEL.md).
     // touch: the wording used instead when the on-screen touch buttons are showing.
+    // Voice: deadpan and profane on purpose (owner rule, CLAUDE.md "Tone"). One line each, 3x5 font, fits 312 px.
     prompts: [
-      { x0: 0,    x1: 300,  text: 'ARROWS: MOVE   Z: JUMP', touch: 'ARROW PAD: MOVE   JUMP BUTTON: JUMP' },
-      { x0: 340,  x1: 660,  text: 'X: TAIL-WHIP', touch: 'WHIP BUTTON: TAIL-WHIP' },
-      { x0: 1060, x1: 1160, text: 'GRAB THE TRASH LID: BLOCKS 3 HITS' },
-      { x0: 1620, x1: 1760, text: 'WHIP THE CART!' },
-      { x0: 1920, x1: 2080, text: 'C: PLAY POSSUM - ZOMBIES LOSE TRACK OF YOU', touch: 'POSSUM BUTTON: PLAY DEAD - ZOMBIES LOSE YOU' },
-      { x0: 3380, x1: 3520, text: 'THE PARK EXIT IS AHEAD...' },
+      { x0: 0,    x1: 300,  text: 'ARROWS: MOVE   Z: JUMP   IT\'S NIGHT. IT\'S ZOMBIES. FINE.', touch: 'ARROW PAD: MOVE   JUMP BUTTON: JUMP   FUCK ZOMBIES.' },
+      { x0: 340,  x1: 660,  text: 'X: TAIL-WHIP. SMACK THE DEAD BASTARDS.', touch: 'WHIP BUTTON: TAIL-WHIP. SMACK THE DEAD BASTARDS.' },
+      { x0: 1060, x1: 1160, text: 'TRASH LID: BLOCKS 3 HITS. CLASSY AS SHIT.' },
+      { x0: 1620, x1: 1760, text: 'WHIP THE CART TWICE. FREE HOT DOGS. THEY HEAL. DON\'T ASK.' },
+      { x0: 1920, x1: 2080, text: 'C: PLAY DEAD. ZOMBIES ARE DUMB AS SHIT.', touch: 'POSSUM BUTTON: PLAY DEAD. ZOMBIES ARE DUMB AS SHIT.' },
+      { x0: 3380, x1: 3520, text: 'BETHESDA TERRACE AHEAD. SHIT GETS REAL.' },
     ],
   };
 })(globalThis.SAMMY = globalThis.SAMMY || {});

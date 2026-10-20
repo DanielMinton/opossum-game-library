@@ -34,6 +34,11 @@ This is Sammy's filled-in copy of `templates/STYLE_GUIDE.md`. **Every answer her
 
 The owner's direction (Confirmed) is night-time Central Park, Bethesda Terrace as the inspiration, a ferocious Sammy and a gorier fight. Everything in this section is **Proposed**: a way to draw that direction within the 16-bit rules above.
 
+**Voice and humour (owner rule, Confirmed 2026-10-19)**
+- **Uncensored deadpan humour with cursing and swearing is encouraged** for Sammy and the zombies: dry, matter-of-fact and profane, never bleeped. Examples in the game: "HE DOESN'T FUCK AROUND WITH ZOMBIES.", "ZOMBIES ARE DUMB AS SHIT.", "THE DEAD CAN FUCKING WAIT."
+- Keep lines short and flat, like someone stating a fact. The joke is the calm delivery, not shouting.
+- Control hints come first in a prompt, the joke after, so the instruction is still clear.
+
 **Scene and light**
 - **Night sky:** navy at the top, through indigo, to a dusky purple glow just above the skyline. Flat bands with dithered seams, no smooth gradients. A few stars (single pixels).
 - **Full moon:** big and pale, with 2–3 crater shades. The moon is the main light: keep light from the **top-left** (the moon sits upper left or behind the scene). *The README banner draws its moon upper right, behind the angel fountain, for the picture's layout; it's page art, not game art, so this rule still holds for the game.*

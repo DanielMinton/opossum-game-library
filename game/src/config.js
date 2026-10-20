@@ -99,19 +99,27 @@
   };
 
   // 9-bit colour: each channel snapped to 0,36,72,...,252 (templates/STYLE_GUIDE.md)
+  // Night palette (Zombie Hunter look, design/STYLE_GUIDE.md "Night mood"). Proposed.
   S.PAL = {
     black: '#000000', white: '#fcfcfc', grey: '#909090', dark: '#242424',
-    sky0: '#244890', sky1: '#486cb4', sky2: '#9090d8', sky3: '#d8b4b4', sky4: '#fcd8b4',
-    skyline: '#48486c', trees: '#246c48', bushes: '#249048',
-    grass: '#48b424', dirt: '#906c24', dirtDark: '#6c4824',
-    water: '#246cd8', waterHi: '#90b4fc',
+    sky0: '#000024', sky1: '#000048', sky2: '#24246c', sky3: '#48246c', sky4: '#6c486c', // night sky, top to horizon glow
+    skyline: '#242448', trees: '#002424', bushes: '#244824',
+    grass: '#246c48', dirt: '#48486c', dirtDark: '#242448',                          // night grass; wet blue-grey earth
+    water: '#00246c', waterHi: '#6c90d8',
     sammy: '#d8d8d8', sammyDark: '#909090', nose: '#fc90b4',
     jogger: '#6cb46c', joggerDark: '#246c24', band: '#fc24fc',
     vendor: '#b4b46c', vendorDark: '#6c6c24', hat: '#fcfcfc',
     cart: '#d82424', cartDark: '#902424', umbrella: '#fcd824',
     hotdog: '#fcb424', mustard: '#fcfc24',
     lid: '#909090', lidHi: '#d8d8d8',
-    bench: '#906c24', rock: '#6c6c6c', fence: '#6c4824', pole: '#242424', lamp: '#fcfc90', lampOff: '#6c6c48',
-    heart: '#fc2424', gate: '#484848', hud: '#000024',
+    bench: '#906c24', rock: '#6c6c90', fence: '#6c4824', pole: '#242424', lamp: '#fcd86c', lampOff: '#6c6c48',
+    heart: '#fc2424', gate: '#484848', hud: '#242448', hudHi: '#48486c',
+    // Night extras
+    moon: '#fcfcd8', moonMid: '#d8d8b4', moonCrater: '#b4b490', star: '#d8d8fc', window: '#fcd86c',
+    lampGlow: '#fcb424', lampHalo: '#d89000', lampDeep: '#904800',
+    stone: '#242448', stoneMid: '#48486c', stoneLight: '#6c6c90', arch: '#000024',
+    leaf0: '#fcb400', leaf1: '#d86c00', leaf2: '#b44800',
+    // Reserved for gore only (STYLE_GUIDE "Reserved colours")
+    blood0: '#480000', blood: '#900000', bloodHi: '#b40024', ichor0: '#486c00', ichor: '#90d800', ichorHi: '#d8fc48',
   };
 })(globalThis.SAMMY = globalThis.SAMMY || {});
