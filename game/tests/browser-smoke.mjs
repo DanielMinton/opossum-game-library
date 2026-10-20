@@ -186,6 +186,31 @@ check('real sounds play through real key presses without errors (start music, ju
   ks.ok && ks.sounds.loaded.length === 2 && ks.sounds.plays['sfx-jump'] > 0 && ks.sounds.plays['music-level-01-central-park'] > 0,
   `mode ${ks.mode}, errors ${JSON.stringify(ks.errors)}, sounds ${JSON.stringify(ks.sounds)}`);
 
+// 3b: real scenery art in its own temporary copy: three correct pictures are loaded and drawn instead of the coded
+// placeholders, and a wrong-size one is reported and not used.
+{
+  const tmp2 = fs.mkdtempSync(path.join(os.tmpdir(), 'sammy-scenery-test-'));
+  fs.cpSync(path.join(gameDir, 'index.html'), path.join(tmp2, 'game', 'index.html'));
+  fs.cpSync(path.join(gameDir, 'src'), path.join(tmp2, 'game', 'src'), { recursive: true });
+  const env = path.join(tmp2, 'assets', 'environments', 'environment-central-park-tileset');
+  fs.mkdirSync(env, { recursive: true });
+  fs.writeFileSync(path.join(env, 'scenery-lamp-v01.png'), png(16, 64, (x, y) => (x > 5 && x < 10 ? [252, 72, 252, 255] : [0, 0, 0, 0])));
+  fs.writeFileSync(path.join(env, 'scenery-bench-v01.png'), png(32, 32, (x, y) => (y > 10 ? [252, 144, 0, 255] : [0, 0, 0, 0])));
+  fs.writeFileSync(path.join(env, 'scenery-ground-park-strip-v01.png'), png(32, 32, (x, y) => [36, 108, 72, 255]));
+  fs.writeFileSync(path.join(env, 'scenery-rock-v01.png'), png(20, 10, () => [216, 36, 36, 255]));   // wrong size on purpose (32x16)
+  const sc = scan(tmp2, path.join(tmp2, 'game', 'src', 'asset-files.js'));
+  check('scenery scan finds the 4 test pictures and warns only about the wrong-size rock', sc.found.length === 4 && sc.warnings.length === 1 && /scenery-rock-v01\.png: wrong size/.test(sc.warnings[0]), JSON.stringify(sc.warnings));
+  const r = runPage(path.join(tmp2, 'game', 'index.html'), 'test=full');
+  const d = r.realArtDraws || {};
+  check('real scenery pictures load (lamp, bench, ground) and the wrong-size rock does not',
+    r.assets && r.assets.loaded.length === 3 && r.assets.warnings.length === 1 && /scenery-rock/.test(r.assets.warnings[0]), JSON.stringify(r.assets));
+  check('real scenery is drawn instead of the placeholder (lamp, bench, ground); the rejected rock is not',
+    d['scenery:lamp'] > 0 && d['scenery:bench'] > 0 && d['scenery:ground-park'] > 0 && !d['scenery:rock'], JSON.stringify(d));
+  check('no errors with real scenery (full playthrough and every screen)', r.ok && r.errors.length === 0 && r.renderSweep >= 27, JSON.stringify(r.errors));
+  if (shots) { fs.mkdirSync(shots, { recursive: true }); screenshot(path.join(tmp2, 'game', 'index.html'), 'test=shot&frames=1500', path.join(shots, 'real-scenery-test.png')); }
+  fs.rmSync(tmp2, { recursive: true, force: true });
+}
+
 // 8: starting sound on phones (?test=audio), with the two test sounds as real <audio> files.
 // Headless browsers can't make a real touch, so the first run lets sound start without one (as a real tap would)
 // and the second uses the normal rule (sound needs a real touch): there, nothing may break and it keeps listening.

@@ -77,6 +77,38 @@
     strip('bg:treeline', ENV + 'central-park-bg-treeline-v01.png', 1, 1, 'hold', { fw: 512, fh: 32, px: 0, py: 0, feet: false, y: 144, scroll: 0.25 }),
     strip('bg:bushes', ENV + 'central-park-bg-bushes-v01.png', 1, 1, 'hold', { fw: 512, fh: 32, px: 0, py: 0, feet: false, y: 176, scroll: 0.5 }),
   ];
+  // Scenery pieces (2026-10-19, Proposed): placed in the world from level.js `scenery`. Cosmetic only; the rules never read them.
+  // Real art replaces the coded placeholder in src/scenery.js one piece at a time. Sizes, pivots and the rows that line up with
+  // the rules (bench seat, lamp ledge) are written up in design/ART_BRIEFS.md, "Scenery (park and Bethesda Terrace)".
+  // Props: pivot = bottom-centre (feet on the ground line), frames side by side. Tiles: repeat every fw px, drawn from their left edge.
+  const PARK = ENV;
+  const BETH = 'environments/environment-bethesda-terrace/';
+  const prop = (key, path, fw, fh, frames, fps, extra) =>
+    strip(key, path, frames, fps, frames > 1 && fps > 0 ? 'loop' : 'hold', Object.assign({ fw, fh, px: fw >> 1, py: fh - 1, feet: true }, extra || {}));
+  // Ground tiles hang from the ground line (top-left pivot, row 0 = the first row below the grass line y 192); strips are variants, not an animation.
+  const tile = (key, path, variants) => strip(key, path, variants, 0, 'hold', { fw: 16, fh: 32, px: 0, py: 0, feet: false, tile: true, variants });
+  S.ASSET_MANIFEST.push(
+    tile('scenery:ground-park', PARK + 'scenery-ground-park-strip-v01.png', 2),
+    tile('scenery:ground-path', PARK + 'scenery-ground-path-strip-v01.png', 2),
+    tile('scenery:ground-terrace', BETH + 'bethesda-ground-terrace-strip-v01.png', 2),
+    prop('scenery:lamp', PARK + 'scenery-lamp-v01.png', 16, 64, 1, 1),
+    prop('scenery:lamp-glow', PARK + 'scenery-lamp-glow-v01.png', 48, 48, 1, 1, { px: 24, py: 24, feet: false }),
+    prop('scenery:bench', PARK + 'scenery-bench-v01.png', 32, 32, 1, 1),
+    prop('scenery:tree-far', PARK + 'scenery-tree-far-strip-v01.png', 64, 96, 2, 0, { variants: 2 }),
+    prop('scenery:tree-near', PARK + 'scenery-tree-near-strip-v01.png', 96, 128, 2, 0, { variants: 2 }),
+    prop('scenery:fence', PARK + 'scenery-fence-v01.png', 16, 24, 1, 1),
+    prop('scenery:rock', PARK + 'scenery-rock-v01.png', 32, 16, 1, 1),
+    prop('scenery:trashcan', PARK + 'scenery-trashcan-v01.png', 16, 24, 1, 1),
+    // Foreground drifting leaves: a 320 px wide band that repeats sideways, 2 frames at 2 fps, moves at 1.3x the camera. Top-left pivot.
+    strip('scenery:leaves-fg', PARK + 'scenery-leaves-fg-strip-v01.png', 2, 2, 'loop', { fw: 320, fh: 64, px: 0, py: 0, feet: false, y: 96, scroll: 1.3 }),
+    // Puddle: lies flat on the ground, its top row on the ground line (y 192), pivot top-centre.
+    prop('scenery:puddle', PARK + 'scenery-puddle-strip-v01.png', 32, 8, 2, 2, { py: 0, feet: false }),
+    prop('scenery:bethesda-fountain', BETH + 'bethesda-fountain-strip-v01.png', 128, 96, 3, 6),
+    prop('scenery:bethesda-angel', BETH + 'bethesda-angel-v01.png', 48, 64, 1, 1),
+    prop('scenery:bethesda-balustrade', BETH + 'bethesda-balustrade-v01.png', 32, 24, 1, 1),
+    prop('scenery:bethesda-arch', BETH + 'bethesda-arch-v01.png', 64, 80, 1, 1),
+    prop('scenery:bethesda-stairs', BETH + 'bethesda-stairs-v01.png', 64, 32, 1, 1),
+  );
   // Not wired yet: central-park-tiles-v01.png needs a tile map (which metatile goes where) before it can be drawn.
 
   // Sound the game will use as soon as it exists (names from templates/examples/audio/AUDIO.md).

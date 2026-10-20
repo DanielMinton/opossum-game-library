@@ -15,6 +15,17 @@ Record date, decision, supporting asset or requirement, and unresolved questions
 - **Decisions only the owner can make:** `design/OWNER_DECISIONS.md`. *(Added 2026-10-19:)* the short list of everything waiting on the owner is `design/OPEN_TASKS.md`.
 - **Confirmed major priority, being built:** the game must look beautiful and play well on desktop **and** on phones and tablets. Steps 1 (sharper, bigger scaling), 2 (on-screen touch buttons), 3 (phone layout) and 4 (reliable sound on phones) are done; nothing has been tried on a real phone yet. The checklist for that is `design/MOBILE_TEST_CHECKLIST.md`. See "Desktop and mobile confirmed" below.
 
+## 2026-10-19: Scenery slots and park look
+
+All **Proposed (not approved), reversible.** The owner asked for "legit scenery" and said real art will come from other tools.
+- **18 scenery slots** (`scenery:*` in `game/src/assets.js`), versioned names like all art: park ground, path and terrace ground (16×32 tiles, 2 variants), lamp 16×64 and lamp glow 48×48, bench 32×32, far trees 64×96 and near trees 96×128 (2 variants each), fence 16×24, rock 32×16, bin 16×24, leaves band 320×64 (2 frames, 1.3× camera speed), puddle 32×8 (2 frames), and for Bethesda: fountain 128×96 (3 frames, 6 fps), angel 48×64, balustrade 32×24, arch 64×80, stairs 64×32. Folders: `environment-central-park-tileset/` and `environment-bethesda-terrace/`.
+- **Two sizes differ from the request:** the bench is **32×32**, not 32×24, because the seat has to sit at row 12 to match the bench platforms (y 172) and a backrest needs room above it. The lamp keeps 16×64; its ledge (row 12) is the platform at y 140 and the post is the part below. The angel stands 67 px above the ground line, on the fountain.
+- **How it draws:** `src/scenery.js` draws each missing piece in code onto a small cached canvas of the real picture's size, so real art and placeholders go through the same path. Real art wins per piece; wrong size is rejected like any art. No random numbers: screenshots are stable.
+- **Level data:** `L.scenery` in `level.js` lists where pieces stand (lamps and benches on their platforms, fences and rocks on the solids, plus trees, bins, puddles, paths and the terrace). `sim.js` never reads it; a test plays with and without it.
+- **Near trees** draw in front of everyone and slide past at 1.15× the camera. Open question: is a thin trunk crossing Sammy for a moment OK, or should they go behind him?
+- **New palette colours:** foliage ramp, warm earth, lit stone, foam, wood, bin green (none are gore colours).
+- Tests now: 76 game-rule, 55 browser checks (including real scenery art loading in a temporary copy).
+
 ## 2026-10-19: Desktop and mobile confirmed as a major priority
 
 **Decision (Confirmed by the owner):** the game must render beautifully and be fully playable on desktop and on mobile devices (phones and tablets). The owner says this was intended from the start; earlier docs had wrongly proposed "touch later, if at all" and listed touch controls as excluded. Those lines are corrected in `design/GAME_BRIEF.md`.

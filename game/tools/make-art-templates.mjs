@@ -38,13 +38,30 @@ export const GROUPS = [
   { id: 'cart', folder: 'props/prop-hot-dog-cart', title: 'HOT DOG CART AND HOT DOG PICKUP' },
   { id: 'lid', folder: 'items/item-powerup-trash-lid-shield', title: 'TRASH LID SHIELD' },
   { id: 'chainsaw', folder: 'items/item-powerup-chainsaw', title: 'CHAINSAW' },
-  { id: 'background', folder: 'environments/environment-central-park-tileset', title: 'CENTRAL PARK BACKGROUND' },
+  { id: 'background', folder: 'environments/environment-central-park-tileset', title: 'CENTRAL PARK BACKGROUND', match: (m) => m.key.startsWith('bg:') },
+  { id: 'scenery', folder: 'environments/environment-central-park-tileset', title: 'CENTRAL PARK SCENERY (GROUND, LAMPS, BENCHES, TREES, LEAVES)', match: (m) => m.key.startsWith('scenery:') },
+  { id: 'bethesda', folder: 'environments/environment-bethesda-terrace', title: 'BETHESDA TERRACE SCENERY' },
 ];
 
 // Extra notes for files whose frames mean something special.
 const NOTES = {
   'overlay:lid': 'THE GAME PICKS THE FRAME: 0 = 3 BLOCKS LEFT, 1 = 2 LEFT, 2 = 1 LEFT',
   'hud:lid': 'SCREEN ICON (TOP OF THE SCREEN), NOT IN THE PARK. ANCHOR IS THE TOP-LEFT PIXEL',
+  'scenery:ground-park': 'TWO 16 X 32 VARIANTS SIDE BY SIDE (NOT AN ANIMATION). TOP-LEFT ANCHOR: ROW 0 IS THE FIRST ROW BELOW THE GROUND LINE. REPEATS EVERY 16 PX',
+  'scenery:ground-path': 'TWO 16 X 32 VARIANTS (NOT AN ANIMATION). REPEATS EVERY 16 PX. DRAWN OVER THE GRASS ON PATH STRETCHES',
+  'scenery:ground-terrace': 'TWO 16 X 32 VARIANTS (NOT AN ANIMATION). REPEATS EVERY 16 PX. THE TERRACE FLOOR',
+  'scenery:lamp': 'ROW 12 IS THE LEDGE SAMMY STANDS ON (LAMP PLATFORMS ARE AT Y 140). LANTERN IS LIT',
+  'scenery:lamp-glow': 'DRAWN BEHIND THE LAMP, CENTRED ON THE LANTERN. DITHERED, NO SEE-THROUGH PIXELS',
+  'scenery:bench': 'ROW 12 IS THE SEAT TOP (BENCH PLATFORMS ARE AT Y 172)',
+  'scenery:tree-far': 'TWO TREE VARIANTS (NOT AN ANIMATION). NO OUTLINE. STANDS BEHIND THE WALKING LANE',
+  'scenery:tree-near': 'TWO TREE VARIANTS (NOT AN ANIMATION). OUTLINED. DRAWN IN FRONT OF EVERYONE, KEEP THE TRUNK THIN',
+  'scenery:fence': 'REPEATS EVERY 16 PX. PLACED IN RUNS OF THREE AROUND EACH FENCE POST',
+  'scenery:leaves-fg': 'TWO FRAMES OF DRIFTING LEAVES, FAINT AND SPARSE. LEFT AND RIGHT EDGES MUST JOIN UP',
+  'scenery:puddle': 'LIES FLAT: TOP ROW SITS ON THE GROUND LINE. TWO FRAMES, THE GLINTS MOVE',
+  'scenery:bethesda-fountain': 'THREE FRAMES, THE WATER FALLS AND LOOPS. ROW 29 IS THE PEDESTAL TOP THE ANGEL STANDS ON',
+  'scenery:bethesda-angel': 'STANDS ON TOP OF THE FOUNTAIN (ITS FEET POINT IS 67 PX ABOVE THE GROUND LINE)',
+  'scenery:bethesda-balustrade': 'REPEATS EVERY 32 PX, ON TOP OF THE ARCADE WALL',
+  'scenery:bethesda-arch': 'FIVE OF THESE SIDE BY SIDE MAKE THE ARCADE WALL. WARM LIGHT INSIDE THE OPENING',
   'hud:chainsaw': 'SCREEN ICON (TOP OF THE SCREEN), NEXT TO THE FUEL GAUGE. ANCHOR IS THE TOP-LEFT PIXEL',
 };
 const LOOPS = { loop: 'LOOPS', once: 'PLAYS ONCE', hold: 'PLAYS ONCE, HOLDS THE LAST FRAME', frame: 'DOES NOT ANIMATE' };
@@ -54,7 +71,7 @@ const repeats = (m) => isBand(m) && m.scroll > 0; // the sky is drawn once and n
 export const templatePath = (m) => m.path.replace(/-v\d+\.png$/i, '-TEMPLATE.png');
 export const groupOf = (m) => {
   const folder = path.posix.dirname(m.path);
-  const g = GROUPS.find((x) => x.folder === folder);
+  const g = GROUPS.find((x) => x.folder === folder && (!x.match || x.match(m)));
   if (!g) throw new Error(`no contact-sheet group for folder ${folder} (add it to GROUPS in tools/make-art-templates.mjs)`);
   return g;
 };

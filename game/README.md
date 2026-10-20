@@ -73,6 +73,11 @@ The level is 12 screens long, about 1 minute for a fast run and 3–5 minutes fo
 
 Frame sizes, frame counts, speeds and the feet point (24, 47) follow the draft style guide (`design/STYLE_GUIDE.md`) and each example's animation table. Exceptions for Sammy: his feet point is (28, 47), not (24, 47), so his tail has room behind him; and his tail-whip strip uses wider 64×48 frames with the feet point at (36, 47). Background band rows, scroll speeds and loop widths are in the `bg:` lines of `game/src/assets.js`.
 
+
+### Scenery art (2026-10-19, Proposed)
+
+The park and Bethesda Terrace are drawn in code today (ground, path, trees, lamps, benches, fences, rocks, bins, puddles, drifting leaves, and the terrace arches, balustrade, stairs, angel and fountain). Each piece has a slot, and a real picture replaces its coded drawing as soon as the file exists at the right size. Files go in `assets/environments/environment-central-park-tileset/` (`scenery-*`) and `assets/environments/environment-bethesda-terrace/` (`bethesda-*`). Slots: ground-park (32×32, 2 tiles), ground-path (32×32), lamp (16×64), lamp-glow (48×48), bench (32×32), tree-far (128×96, 2 trees), tree-near (192×128, 2 trees), fence (16×24), rock (32×16), trashcan (16×24), leaves-fg (640×64, 2 frames), puddle (64×8, 2 frames), bethesda ground (32×32), fountain (384×96, 3 frames), angel (48×64), balustrade (32×24), arch (64×80), stairs (64×32). Where each one stands is in `level.js` (`scenery`); it is cosmetic only. Briefs: `design/ART_BRIEFS.md`, "Scenery (park and Bethesda Terrace)".
+
 ### Requested art the game can't show yet
 
 The docs ask for these, but the game has no place to draw them yet, so adding the files changes nothing on screen (and the scanner's missing list leaves them out):
@@ -146,8 +151,8 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | 75 game-rule checks (see the list below) |
-| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 51 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
+| `node --test tests/sim.test.mjs` | 76 game-rule checks (see the list below) |
+| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 55 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 | `index.html?test=touch&touch=1` | The touch-button check by hand (it taps the real buttons for you) |
 | `index.html?test=audio&touch=1` | The phone-sound check by hand (result appears as text in the top left) |
@@ -176,9 +181,11 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - the drawing templates: one for every planned picture at its exact size, kept outside `assets/`; their guide marks are part see-through, so the scanner warns about a guide left in; making them again gives the same files
 - the "Zombie Hunter" files: the theme song is found by the scanner, is the level track (and the gauntlet's fallback), starts with the first press on the title screen, and its license row keeps it out of the build with a clear reason; the concept picture stays reference-only; the three README pictures are self-contained and the cast's numbers (3 lid hits, 3 hot dogs) match the game
 - the night look: every palette colour is on the 9-bit grid, the gore colours are used for nothing else, the HUD stands out from the sky; the title, quips, prompts (keyboard and touch) and arena banners fit their boxes and use only letters the font has
+- scenery: 18 slots with bottom-centre pivots, level data only names real pieces, benches and lamps sit on their platforms, `sim.js` never reads scenery and the game plays the same without it
 - the gore setting: low gore never draws a gore colour and full does; it's picked from `?gore=`, then the remembered choice, then full, and blocked storage is fine; the rules never read it, G is not a game button, and the game plays the same in full and low
 
 **Browser checks** cover:
+- real scenery art (lamp, bench, ground) in a temporary copy loads and is drawn instead of the coded placeholder; a wrong-size rock is reported and not used
 - the shareable copy is up to date: `dist/index.html` has the current code from `src/`, and `BUILD_INFO.txt` has the matching code. If not, it says "run node tools/build.mjs". (So after changing anything in `src/`, build before running this test.)
 - the source game and the built game each play title → level → gauntlet → clear → restart with no errors
 - real key presses through the normal game loop start the game and move Sammy
@@ -219,6 +226,7 @@ The test art and test sounds live in a temporary copy of the library, never your
 | `src/input.js`, `src/main.js` | Controls, screen fitting, main loop and `?test=` self-checks |
 | `src/touch.js` | On-screen touch buttons for phones and tablets (where they go is worked out in `layout.js`) |
 | `src/phone.js` | Phone page behaviour: the "turn your phone sideways" message, full screen, no accidental zoom or long-press menus |
+| `src/scenery.js` | Scenery: coded placeholders for the park and Bethesda Terrace, and the drawing of real scenery art |
 | `src/bot.js` | Autopilot used only by the tests |
 | `tools/` | Art and sound scanner (with PNG checks in `png.mjs`), WAV-to-OGG converter, build script, license rules (`licenses.mjs`), and the drawing-template maker (`make-art-templates.mjs`, which writes blank templates and contact sheets to `templates/art-templates/`; `png-writer.mjs` saves its PNGs) |
 | `tests/` | Game-rule tests and the browser check |

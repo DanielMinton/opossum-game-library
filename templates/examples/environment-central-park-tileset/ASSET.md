@@ -28,6 +28,21 @@ How to use this example: a filled-in `ASSET.md` for a level tileset and its scro
 | 7 | `central-park-mockup-v01.png` | One full 320×224 screen mock-up showing all layers together (reference) | 320×224 |
 | 8 | `central-park-source-v01.aseprite` (or .psd) | Layered source | — |
 
+Scenery rows 9-20 were added 2026-10-19 (Proposed). They are placed by `level.js` `scenery` and are cosmetic only; the Bethesda Terrace pieces are in `environment-bethesda-terrace/ASSET.md`. Full briefs: `design/ART_BRIEFS.md`, "Scenery (park and Bethesda Terrace)".
+
+| 9 | `scenery-ground-park-strip-v01.png` | Park ground tile, 2 variants of 16×32 side by side (grass edge on top, wet earth below); repeats every 16 px along the ground | 32×32 (2 × 16×32) |
+| 10 | `scenery-ground-path-strip-v01.png` | Wet path stone, 2 variants of 16×32 | 32×32 (2 × 16×32) |
+| 11 | `scenery-lamp-v01.png` | Lit lamp post, feet bottom-centre; row 12 is the standing ledge | 16×64 |
+| 12 | `scenery-lamp-glow-v01.png` | Dithered amber glow drawn behind the lamp, centre = pivot | 48×48 |
+| 13 | `scenery-bench-v01.png` | Park bench, seat top at row 12 | 32×32 |
+| 14 | `scenery-tree-far-strip-v01.png` | Tree behind the walking lane, 2 variants of 64×96, no outline | 128×96 (2 × 64×96) |
+| 15 | `scenery-tree-near-strip-v01.png` | Foreground tree drawn in front of everyone, 2 variants of 96×128, outlined | 192×128 (2 × 96×128) |
+| 16 | `scenery-fence-v01.png` | Iron railing, repeats every 16 px | 16×24 |
+| 17 | `scenery-rock-v01.png` | Schist boulder, matches the 32×16 rock solids | 32×16 |
+| 18 | `scenery-trashcan-v01.png` | Litter bin | 16×24 |
+| 19 | `scenery-leaves-fg-strip-v01.png` | Drifting autumn leaves in front of everything, 2 frames of 320×64, 2 fps, moves at 1.3× the camera | 640×64 (2 × 320×64) |
+| 20 | `scenery-puddle-strip-v01.png` | Reflective puddle lying on the ground, 2 frames of 32×8, 2 fps | 64×8 (2 × 32×8) |
+
 ## Grid (Proposed)
 - Base tile: **8×8 px**. Level building block ("metatile"): **16×16 px** = 2×2 tiles.
 - One screen = 20×14 metatiles (320×224).

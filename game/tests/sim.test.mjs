@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const src = path.join(here, '..', 'src');
-for (const f of ['config', 'font', 'level', 'assets', 'sim', 'bot', 'layout', 'render', 'audio']) {
+for (const f of ['config', 'font', 'level', 'assets', 'sim', 'bot', 'layout', 'scenery', 'render', 'audio']) {
   vm.runInThisContext(fs.readFileSync(path.join(src, f + '.js'), 'utf8'), { filename: f + '.js' });
 }
 const S = globalThis.SAMMY;
@@ -673,6 +673,25 @@ test('chainsaw art cells are wide enough for the saw reach, with the same pivot 
   assert.deepEqual([pk.fw, pk.fh, pk.frames, pk.px, pk.py], [32, 16, 4, 16, 15]);
   const hud = S.ASSET_MANIFEST.find((a) => a.key === 'hud:chainsaw');
   assert.deepEqual([hud.fw, hud.fh, hud.px, hud.py, hud.feet], [16, 16, 0, 0, false]);
+});
+
+test('scenery: slots have sizes and pivots that fit, level data only names real pieces, and the rules never read it', () => {
+  const sc = S.ASSET_MANIFEST.filter((m) => m.key.startsWith('scenery:'));
+  assert.equal(sc.length, 18);
+  for (const m of sc) {
+    assert.match(m.path, /^environments\/environment-(central-park-tileset|bethesda-terrace)\/.+-v01\.png$/, m.key);
+    if (m.feet) { assert.equal(m.px, m.fw >> 1, m.key); assert.equal(m.py, m.fh - 1, m.key); }
+  }
+  const TYPES = new Set(['tree-far', 'tree-near', 'bench', 'lamp', 'fence', 'rock', 'trashcan', 'puddle', 'path', 'arch', 'balustrade', 'stairs', 'fountain', 'angel']);
+  for (const p of S.LEVEL1.scenery) assert.ok(TYPES.has(p.type), 'scenery type ' + p.type);
+  // benches and lamps sit on the platforms: seat row 12 of 32 and ledge row 12 of 64 line up with the platform tops
+  const near = (type, x) => S.LEVEL1.scenery.some((p) => p.type === type && p.x === x);
+  for (const p of S.LEVEL1.platforms) assert.ok(near(p.kind, p.x + p.w / 2), p.kind + ' piece at platform ' + p.x);
+  assert.equal(C.groundY - 32 + 12, 172); assert.equal(C.groundY - 64 + 12, 140);
+  assert.ok(!/scenery/.test(fs.readFileSync(path.join(src, 'sim.js'), 'utf8')), 'sim.js must not read scenery');
+  const run = () => { const s = start(); step(s, { held: { right: true, attack: true } }, 300); return JSON.stringify([s.player.x, s.stats]); };
+  const a = run(); const keep = S.LEVEL1.scenery; S.LEVEL1.scenery = []; const b = run(); S.LEVEL1.scenery = keep;
+  assert.equal(a, b, 'the game plays the same with no scenery');
 });
 
 test('placeholder font: M, W, H and N look different, and text width matches drawing', () => {
@@ -1411,7 +1430,7 @@ const listPngs = (dir) => {
 test('art templates: every planned picture has a template of the exact size, outside assets/, and in a contact sheet', async () => {
   const T = await import('../tools/make-art-templates.mjs');
   const { readChunks } = await import('../tools/png.mjs');
-  assert.equal(S.ASSET_MANIFEST.length, 39);
+  assert.equal(S.ASSET_MANIFEST.length, 57);
   for (const m of S.ASSET_MANIFEST) {
     const rel = T.templatePath(m);
     assert.match(rel, /-TEMPLATE\.png$/);

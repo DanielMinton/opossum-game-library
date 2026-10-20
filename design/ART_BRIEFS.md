@@ -537,6 +537,68 @@ All layers are placed by their top-left corner, with no feet point. They are sin
 
 ---
 
+## Scenery (park and Bethesda Terrace)
+
+*Proposed (not approved), 2026-10-19.* The park is drawn in code today and looks decent; each piece below can be replaced by a real picture. Folders: `assets/environments/environment-central-park-tileset/` (park) and `assets/environments/environment-bethesda-terrace/` (terrace). Templates: `templates/art-templates/environments/...` (blank, exact size, plus contact sheets `contact-sheet-scenery.png` and `contact-sheet-bethesda.png`). Mood only: `assets/references/zombie-hunter-concept-v01.jpg`.
+
+**Look for all of it:** Central Park at night. Cool blue-green and indigo, rain-slick wet stone, a few warm **amber lamp** pools (dithered, never see-through), and **autumn leaves** (orange, rust, gold) as small bright accents. Light from the top-left (the moon). Foreground pieces get a **1 px dark outline** and 3 shades per material; background-ish pieces (far trees, the leaves band) have no outline. 9-bit colours, 15 colours or fewer per file, hard pixels, dither instead of fading. The ground lane must stay a bit lighter than what is behind it so Sammy and the zombies stand out. Feet pieces stand on the **bottom-centre** pixel. Everything is cosmetic: nothing here changes how the game plays.
+
+| Piece | File | Size | Frames |
+|---|---|---|---|
+| Park ground | `scenery-ground-park-strip-v01.png` | 32×32 | 2 tiles of 16×32 |
+| Wet path | `scenery-ground-path-strip-v01.png` | 32×32 | 2 tiles of 16×32 |
+| Terrace floor | `bethesda-ground-terrace-strip-v01.png` | 32×32 | 2 tiles of 16×32 |
+| Lamp post | `scenery-lamp-v01.png` | 16×64 | 1 |
+| Lamp glow | `scenery-lamp-glow-v01.png` | 48×48 | 1 |
+| Bench | `scenery-bench-v01.png` | 32×32 | 1 |
+| Far tree | `scenery-tree-far-strip-v01.png` | 128×96 | 2 trees of 64×96 |
+| Near tree | `scenery-tree-near-strip-v01.png` | 192×128 | 2 trees of 96×128 |
+| Fence | `scenery-fence-v01.png` | 16×24 | 1 |
+| Rock | `scenery-rock-v01.png` | 32×16 | 1 |
+| Litter bin | `scenery-trashcan-v01.png` | 16×24 | 1 |
+| Drifting leaves | `scenery-leaves-fg-strip-v01.png` | 640×64 | 2 @ 2 fps |
+| Puddle | `scenery-puddle-strip-v01.png` | 64×8 | 2 @ 2 fps |
+| Fountain | `bethesda-fountain-strip-v01.png` | 384×96 | 3 @ 6 fps |
+| Angel | `bethesda-angel-v01.png` | 48×64 | 1 |
+| Balustrade | `bethesda-balustrade-v01.png` | 32×24 | 1 |
+| Arch | `bethesda-arch-v01.png` | 64×80 | 1 |
+| Stairs | `bethesda-stairs-v01.png` | 64×32 | 1 |
+
+### Ground tiles (park, path, terrace)
+- A tile strip holds **2 variants side by side** (not an animation). The game picks one per 16 px column, so the ground doesn't repeat evenly. Every tile repeats sideways: its left and right edges must join up.
+- **Row 0 is the first row below the grass line.** Park: a grass edge (3-4 rows) then wet blue-grey earth with pebbles, leaf specks, glints; darker with depth. The game adds a few grass blades above the line in the placeholder only, so put any blades inside the tile. Path: staggered flagstones, light top-left edges, dark joints, wet glints. Terrace: big pale slabs, moon glints, cracks.
+
+### Lamp and glow
+- **Lamp:** cast-iron post, lit lantern. **Row 12 is the ledge Sammy stands on** (lamp platforms are at y 140 = 192 - 64 + 12); finial above, post below. Warm bright glass (amber to pale), dark iron with a moon rim on the left.
+- **Glow:** drawn behind the lamp, centred on the lantern (centre pixel (24, 24)). Checkerboard amber that thins out with distance. No see-through pixels.
+
+### Bench
+Slatted wooden back, wooden seat, iron ends. **Row 12 is the seat top** (bench platforms are at y 172 = 192 - 32 + 12). Amber light catching the seat edge.
+
+### Trees
+- **Far tree** (64×96, 2 variants): round canopy and a trunk with a root flare, dark blue-greens with a few rust patches, no outline. Stands behind the walking lane.
+- **Near tree** (96×128, 2 variants): drawn **in front of everyone**, drifting past a little faster than the camera. Dark, outlined, a **thin trunk** (so it hides little) and a canopy high above Sammy's head. Keep the canopy in the top 70 rows.
+
+### Fence, rock, bin
+- **Fence:** wrought-iron railing, spear tops, repeats every 16 px (the game uses 3 in a row around each fence post).
+- **Rock:** Manhattan schist boulder, flat at the bottom, a crack, a little moss; matches the 32×16 rock blocks.
+- **Bin:** a green wire-basket litter bin with a lid, 1 px outline.
+
+### Drifting leaves
+320×64, 2 frames, faint and sparse (about 16 leaves of 2-3 pixels in orange, rust and gold). It sits in front of everything and moves at 1.3 times the camera's speed, so **the left and right edges must join up** and it must not hide Sammy.
+
+### Puddle
+32×8, lies flat; its top row sits on the ground line. Dark blue water, a moon streak, a pale glint that moves between the 2 frames.
+
+### Bethesda Terrace
+- **Fountain** (128×96, 3 frames at 6 fps): a wide fluted basin with water, two bowls and a pedestal, water falling bowl to bowl. The water moves a little each frame and the 3 frames loop. **Row 29 is the pedestal top the angel stands on.**
+- **Angel** (48×64): the Angel of the Waters: wings spread, one arm raised, a plinth. Stone in 3-4 steps with a lit moon edge on every upper-left edge. The game puts its feet point 67 px above the ground line, on the fountain.
+- **Balustrade** (32×24): cap rail, 4 vase-shaped balusters, base rail. Repeats every 32 px along the top of the arcade wall.
+- **Arch** (64×80): one bay of the arcade wall: stone blocks, a lit arch ring with a keystone, a dark opening with **warm amber light inside** (lanterns, lit floor). Five side by side fill the 320 px screen.
+- **Stairs** (64×32): four stone steps seen from the front, moonlit treads and shaded risers.
+
+---
+
 ## Sounds
 
 **Feel (Proposed):** 16-bit era console sound: FM-synth bass and bright leads plus simple chip beeps and noise drums. Original sounds only: don't sample or imitate sounds or tunes from commercial games. **2026-10-19:** sound effects are now **punchy and gnarly with dark humour** rather than comic (meaty hits, wet splats, creepy groans); where a line below says "comic" or "not scary", it's superseded by this. Music: the owner's theme song is now the level track (below).

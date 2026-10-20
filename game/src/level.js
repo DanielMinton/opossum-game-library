@@ -4,6 +4,35 @@
 // One screen is 320 px wide; screen n starts at x = (n - 1) * 320.
 (function (S) {
   const G = S.CONFIG.groundY; // config.js loads first
+  // The scenery list is built from the layout numbers below so it can't drift from the platforms and solids it decorates.
+  S.buildScenery1 = function () {
+    const out = [];
+    const add = (type, x, o) => out.push(Object.assign({ type, x }, o || {}));
+    // Far trees: world-locked, standing just behind the walking lane, one every 200-ish px (not on Bethesda Terrace).
+    [90, 300, 520, 770, 1010, 1240, 1470, 1700, 1930, 2150, 2490, 2720, 2950, 3180, 3400].forEach((x, i) => add('tree-far', x, { v: (i * 7 + 3) % 5 < 2 ? 1 : 0 }));
+    // Paths: wet stone stretches where people would walk, round the benches and lamps.
+    out.push({ type: 'path', x0: 368, x1: 656 }, { type: 'path', x0: 1280, x1: 1568 }, { type: 'path', x0: 2480, x1: 2768 }, { type: 'path', x0: 3216, x1: 3520 });
+    // Platforms: benches (seat at row 12 of the 32 px picture) and lamps (the ledge is row 12 of 64).
+    add('bench', 420 + 16); add('bench', 2368 + 16);
+    for (const x of [1352, 1492, 3352]) add('lamp', x + 12);
+    for (const x of [650, 2050, 2690, 3130]) add('lamp', x);          // lamps nobody can stand on (the ledge is just decoration)
+    // Solids: rocks (32x16) and fences (8x24 post with railing either side).
+    for (const x of [720, 872, 2960]) add('rock', x + 16);
+    for (const x of [1580, 3100, 3260]) add('fence', x + 4, { run: 3 });
+    for (const x of [330, 1230, 1900, 2540, 3060]) add('trashcan', x);
+    for (const x of [190, 560, 820, 1300, 1700, 2020, 2260, 2780, 3200, 3440]) add('puddle', x + (x % 3) * 4);
+    // Foreground trees: drawn in front of everyone, drifting past a little faster than the camera. Few, thin trunks.
+    [250, 900, 1660, 2210, 2840, 3400].forEach((x, i) => add('tree-near', x, { v: i & 1, y: G + 4 }));
+    // Bethesda Terrace (the arena, x 3520-3840): arcade wall of 5 arches, balustrade on top (lamps stand behind it), stairs, the angel fountain.
+    const A0 = 3520;
+    for (let i = 0; i < 5; i++) add('arch', A0 + 32 + 64 * i);
+    for (let i = 0; i < 10; i++) add('balustrade', A0 + 16 + 32 * i, { y: 112 });
+    for (const x of [A0 + 64, A0 + 256]) add('lamp', x, { y: 110, terrace: true });
+    add('stairs', A0 + 32);
+    add('fountain', A0 + 160);
+    add('angel', A0 + 160, { y: G - 67 });                              // feet on top of the fountain's pedestal
+    return out;
+  };
   S.LEVEL1 = {
     id: 'level-01-sheep-meadow',
     name: 'SHEEP MEADOW',
@@ -58,6 +87,12 @@
 
     // Gauntlet arena = last screen. Camera locks; fences block both sides.
     arena: { x0: 3520, x1: 3840, trigger: 3560, gateX: 3800, gateW: 24, exitX: 3820 },
+
+    // Scenery: where the pretty pieces stand. Cosmetic only (sim.js never reads it; the solids, platforms and arena above are what count).
+    // type = a scenery piece (see S.ASSET_MANIFEST 'scenery:*'); x = centre of its feet (or left edge for runs); y = feet row (default ground line).
+    // v = which variant of a 2-variant strip. 'path' = a stretch of wet path stone instead of grass (x0..x1, multiples of 16).
+    // Lamps and benches sit exactly on the lamp/bench platforms above; fences and rocks on the solids.
+    scenery: S.buildScenery1(),
 
     // On-screen tutorial prompts by x range (screen-by-screen beats in LEVEL.md).
     // touch: the wording used instead when the on-screen touch buttons are showing.
