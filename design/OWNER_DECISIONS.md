@@ -110,3 +110,11 @@ To answer, edit this file, or just tell Claude (for example, "go with the sugges
 - **Suggested:** tell Claude which plan you were on when you made it. If it was a paid plan, Claude marks the song's row in `design/ASSET_SOURCES.csv` as cleared and it goes into the shareable copy. If it was the free plan, the song can stay for testing, and you can re-make it on a paid plan or choose other music before release.
 - **What the game does now:** the song plays as the level music in your own copy (`game/index.html`), but the shareable copy (`game/dist/`) leaves it out ("commercial_use is tbd") and plays the placeholder tune instead.
 - **Why it matters:** without commercial rights, the song can't go into a game you sell or put on a public store page.
+
+### 22. How strong should the chainsaw be?
+- **Added 2026-10-19, from a computer playtest (the game's autopilot), not a person.** The chainsaw is very generous. With it, the autopilot clears the whole level in about 55 seconds and never runs low on fuel: a full tank (20 seconds of revving) covers roughly 80 kills, and the final fight has only 9 zombies. Without it, the autopilot dies in the final fight every time (partly because it never dodges, so that says little about a person).
+- **Option A, scarcer:** cut the fuel to 10–12 seconds and make just carrying it drain faster. Wasting fuel on the way to the fight can then leave you dry before wave 3.
+- **Option B, power fantasy with tension:** keep the fuel and make the final fight bigger, for example waves of 3, 4 and 6 zombies.
+- **Suggested:** nothing changes until a person has played it. Then pick A or B, or tell Claude what felt wrong.
+- **What the game does now:** 20 seconds of fuel, carrying drains a quarter as fast as revving, waves of 2, 3 and 4. All numbers are in `game/src/config.js`.
+- **Why it matters:** the chainsaw is the payoff of the whole level. Too strong and the final fight is a walkover; too weak and it isn't the "badass" moment you asked for.

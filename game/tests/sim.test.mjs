@@ -1485,12 +1485,15 @@ test('art templates: making them again gives the same pictures; old ones are cle
 test('theme song: found in the real library as the level music (started by the first press on the title screen, kept through the gauntlet), but held out of the build until its Suno plan is confirmed', async () => {
   const { scan } = await import('../tools/scan-assets.mjs');
   const { parseCsv, excludeReason, cleared } = await import('../tools/licenses.mjs');
-  const song = 'audio/music/music-level-01-central-park/music-level-01-central-park-v01.mp3';
-  assert.ok(fs.existsSync(path.join(libRoot, 'assets', song)), 'song file is in assets/');
+  // The level music is the owner's chosen loop edit (v02, in mp3 and ogg); the full song stays as v01 and is ignored because the newest version wins.
+  const song = 'audio/music/music-level-01-central-park/music-level-01-central-park-v02.mp3';
+  const songOgg = song.replace('.mp3', '.ogg');
+  assert.ok(fs.existsSync(path.join(libRoot, 'assets', song)) && fs.existsSync(path.join(libRoot, 'assets', songOgg)), 'loop files are in assets/');
+  assert.ok(fs.existsSync(path.join(libRoot, 'assets', song.replace('-v02', '-v01'))), 'the full song is kept as v01');
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sammy-song-'));
   try {
     const r = scan(libRoot, path.join(tmp, 'asset-files.js')); // reads the real library, writes only to the temp folder
-    assert.deepEqual(r.sounds['music-level-01-central-park'], [song], 'the scanner lists it, so the game loads it');
+    assert.deepEqual(r.sounds['music-level-01-central-park'], [song, songOgg], 'the scanner lists the newest version (both formats), so the game loads it');
     assert.ok(!r.unusedSounds.includes(song), 'its name is recognised');
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   assert.equal(S.MUSIC_TRACKS.level[0], 'music-level-01-central-park', 'level track');

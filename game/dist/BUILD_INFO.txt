@@ -1,4 +1,4 @@
-Sammy placeholder prototype — code 3ef59493b5ac (changes only when index.html changes)
+Sammy placeholder prototype — code afc22b805507 (changes only when index.html changes)
 Open index.html in a browser. Everything is in this folder; nothing is fetched from the internet.
 
 Art included (6):
@@ -10,8 +10,9 @@ Art included (6):
   items/item-powerup-chainsaw/hud-icon-chainsaw-v01.png
 Art left out (0):
 Sound files included (0):
-Sound files left out (1):
-  audio/music/music-level-01-central-park/music-level-01-central-park-v01.mp3  (commercial_use is "tbd"; it must be "yes")
+Sound files left out (2):
+  audio/music/music-level-01-central-park/music-level-01-central-park-v02.mp3  (commercial_use is "tbd"; it must be "yes")
+  audio/music/music-level-01-central-park/music-level-01-central-park-v02.ogg  (commercial_use is "tbd"; it must be "yes")
 
 Still placeholders (no real file yet):
 Still missing — art (33):

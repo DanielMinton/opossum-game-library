@@ -12,7 +12,8 @@
   };
   S.PRESENT_SOUND_FILES = {
     "music-level-01-central-park": [
-      "audio/music/music-level-01-central-park/music-level-01-central-park-v01.mp3"
+      "audio/music/music-level-01-central-park/music-level-01-central-park-v02.mp3",
+      "audio/music/music-level-01-central-park/music-level-01-central-park-v02.ogg"
     ]
   };
 })(globalThis.SAMMY = globalThis.SAMMY || {});

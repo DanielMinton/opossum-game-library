@@ -525,7 +525,11 @@
       else if (f.kind === 'splash') { for (let i = -2; i <= 2; i++) R(ctx, K.waterHi, f.x + i * 6, f.y - 14 * (1 - k) - Math.abs(i) * 2, 2, 4); }
       else if (f.kind === 'sparkle') { R(ctx, K.mustard, f.x - 1, f.y - 8 - k * 8, 2, 2); R(ctx, K.white, f.x + 5, f.y - 4 - k * 8, 2, 2); R(ctx, K.white, f.x - 6, f.y - 3 - k * 8, 2, 2); }
       else if (f.kind === 'bang') S.drawTextCentered(ctx, '!', f.x, f.y, K.heart, 2, K.black);
-      else if (f.kind === 'text') S.drawTextCentered(ctx, f.text, f.x, Math.round(f.y - k * 10), K.white, 1, K.black);
+      else if (f.kind === 'text') {
+        // Keep the whole line on screen (e.g. "OUT OF GAS. SHIT." when Sammy stands at the left fence).
+        const tw = S.textWidth(f.text), tx = Math.max(camNow + tw / 2 + 2, Math.min(camNow + W - tw / 2 - 2, f.x));
+        S.drawTextCentered(ctx, f.text, Math.round(tx), Math.round(f.y - k * 10), K.white, 1, K.black);
+      }
       else if (f.kind === 'blood') drawBits(ctx, f, f.n || 6, f.dir || 1, f.power || 1, [GORE.blood, GORE.bloodHi, GORE.bloodDark]);
       else if (f.kind === 'ichor') drawBits(ctx, f, f.n || 5, f.dir || 0, 0.6, [GORE.ichor, GORE.ichorDark]);
       else if (f.kind === 'chunk') drawChunks(ctx, f);

@@ -116,7 +116,8 @@ function presentSoundCount(onlyCleared) {
   vm.runInNewContext(fs.readFileSync(path.join(gameDir, 'src', 'asset-files.js'), 'utf8'), box);
   const rows = parseCsv(fs.readFileSync(path.join(gameDir, '..', 'design', 'ASSET_SOURCES.csv'), 'utf8'));
   const ok = (f) => !onlyCleared || cleared(rows.find((r) => r.path === 'assets/' + f));
-  return Object.values(box.SAMMY.PRESENT_SOUND_FILES || {}).reduce((n, list) => n + list.filter(ok).length, 0);
+  // The game loads ONE format per sound (and per variation), so .mp3 and .ogg of the same recording count once.
+  return Object.values(box.SAMMY.PRESENT_SOUND_FILES || {}).reduce((n, list) => n + new Set(list.filter(ok).map((f) => f.replace(/\.[a-z0-9]+$/i, ''))).size, 0);
 }
 
 const chrome = findChrome();
