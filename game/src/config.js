@@ -112,7 +112,7 @@
   // Night palette (Zombie Hunter look, design/STYLE_GUIDE.md "Night mood"). Proposed.
   S.PAL = {
     black: '#000000', white: '#fcfcfc', grey: '#909090', dark: '#242424',
-    sky0: '#000024', sky1: '#000048', sky2: '#24246c', sky3: '#48246c', sky4: '#6c486c', // night sky, top to horizon glow
+    sky0: '#000024', sky1: '#000048', sky2: '#24246c', sky3: '#482448', sky4: '#48246c', // night sky; sky3/sky4 = thin horizon haze above the skyline
     skyline: '#242448', trees: '#002424', bushes: '#244824',
     grass: '#246c48', dirt: '#48486c', dirtDark: '#242448',                          // night grass; wet blue-grey earth
     water: '#00246c', waterHi: '#6c90d8',

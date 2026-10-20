@@ -54,10 +54,10 @@
   function drawBackground(ctx, camX) {
     if (!sprite(ctx, 'bg:sky', 0, 0, BG['bg:sky'].y, 1)) {
       // Night sky: flat bands, a checkerboard dither row at each seam, stars, and a dithered full moon (light from the top-left).
-      const bands = [K.sky0, K.sky1, K.sky2, K.sky3, K.sky4];
-      bands.forEach((c, i) => R(ctx, c, 0, i * 28, W, 28));
-      R(ctx, K.sky4, 0, 140, W, 84);
-      for (let i = 1; i < bands.length; i++) dither(ctx, bands[i - 1], 0, i * 28, W, 2);
+      // Bands top to bottom; the last two are a thin haze just above the building tops, not a wide dusk glow.
+      const bands = [[K.sky0, 0], [K.sky1, 32], [K.sky2, 66], [K.sky3, 108], [K.sky4, 120]];
+      bands.forEach(([c, y], i) => R(ctx, c, 0, y, W, (bands[i + 1] ? bands[i + 1][1] : H) - y));
+      for (let i = 1; i < bands.length; i++) dither(ctx, bands[i - 1][0], 0, bands[i][1], W, 2);
       for (let i = 0; i < 46; i++) {
         const sx = Math.floor(rnd(i + 401) * W), sy = 18 + Math.floor(rnd(i + 733) * 70);
         R(ctx, K.star, sx, sy, 1, 1);
@@ -144,6 +144,7 @@
           if (rnd(x + 1) > 0.7) R(ctx, K.dirtDark, x + 3, G + 10 + Math.floor(rnd(x + 2) * 18), 3, 2);
           if (rnd(x + 5) > 0.82) R(ctx, [K.leaf0, K.leaf1, K.leaf2][x % 3], x + 5, G + 1, 2, 1);           // fallen leaves
           if (rnd(x + 9) > 0.8) { R(ctx, K.stoneLight, x + 1, G + 6 + Math.floor(rnd(x + 3) * 8), 1, 2); }  // wet glint
+          if (rnd(x + 13) > 0.6) R(ctx, K.waterHi, x + 6, G + 5 + Math.floor(rnd(x + 4) * 26), 1, 1);       // light-blue puddle glint
         }
       }
       // Bethesda Terrace: rain-slick stone slabs.
@@ -157,13 +158,14 @@
           for (let x = Math.floor(sa / 24) * 24 + (row & 1) * 12; x < sb; x += 24) if (x >= sa) R(ctx, K.stone, x, y, 1, 9);
         }
         for (let x = Math.floor(sa / 8) * 8; x < sb; x += 8) if (rnd(x + 21) > 0.7) dither(ctx, K.stoneLight, x + 2, G + 4, 1, 4 + Math.floor(rnd(x) * 6));
+        for (const lx of terraceLamps(A)) if (lx > sa - 24 && lx < sb + 24) lampPool(ctx, lx);
       }
     }
     // Lamp reflections on the wet ground: short vertical dithered amber streaks under each lamp.
     for (const p of s.level.platforms) if (p.kind === 'lamp') {
       const lx = p.x + p.w / 2;
       if (lx < x0 || lx > x1) continue;
-      for (let i = -1; i <= 1; i++) for (let y = G + 3; y < G + 20 - Math.abs(i) * 8; y += 2) R(ctx, i ? K.lampHalo : K.lampGlow, lx + i * 3 + ((y >> 1) & 1), y, 1, 1);
+      for (let i = -2; i <= 2; i++) for (let y = G + 3; y < G + 30 - Math.abs(i) * 8; y += 2) R(ctx, i ? K.lampHalo : K.lampGlow, lx + i * 3 + ((y >> 1) & 1), y, i ? 1 : 2, 1);
     }
     for (const w of s.level.water) {
       R(ctx, K.water, w.x0, w.y, w.x1 - w.x0, H - w.y);
@@ -174,6 +176,16 @@
 
   // Bethesda Terrace backdrop for the arena (decoration only; nothing here is solid):
   // an arcade wall with arches, a balustrade on top, and the angel fountain in the middle.
+  // Lamp x positions on the terrace balustrade: clear of the fountain in the middle and the EXIT sign.
+  const terraceLamps = (A) => [A.x0 + 48, A.x0 + 112, A.x0 + 208];
+  // Warm dithered pool of lamplight on wet stone, thinning out from the centre, plus a short bright reflection streak.
+  function lampPool(ctx, lx) {
+    for (let y = G + 1; y < G + 13; y++) for (let x = -26; x <= 26; x++) {
+      const d = Math.hypot(x / 26, (y - G - 5) / 7), px = lx + x;
+      if (d < 0.5 ? (px + y) & 1 : d < 1 && ((px + y) & 3) === 0 && (y & 1)) R(ctx, d < 0.5 ? K.lampHalo : K.lampDeep, px, y, 1, 1);
+    }
+    for (let y = G + 2; y < G + 26; y += 2) R(ctx, K.lampGlow, lx + ((y >> 1) & 1), y, 1, 1);
+  }
   function drawTerrace(ctx, A) {
     const x0 = A.x0, x1 = A.x1, wallTop = 140;
     R(ctx, K.stoneMid, x0, wallTop, x1 - x0, G - wallTop);
@@ -187,18 +199,32 @@
     R(ctx, K.stoneLight, x0, 124, x1 - x0, 3);                         // balustrade rail
     for (let bx = x0 + 2; bx < x1; bx += 6) { R(ctx, K.stoneMid, bx, 127, 3, 13); R(ctx, K.stoneLight, bx, 128, 1, 10); }
     R(ctx, K.stone, x0, 138, x1 - x0, 2);
-    // Angel fountain: wide basin, column, upper bowl, angel with spread wings.
+    for (const lx of terraceLamps(A)) {                                // amber lamps on the balustrade
+      lampGlow(ctx, lx, 104);
+      R(ctx, K.pole, lx - 1, 104, 3, 20); R(ctx, K.pole, lx - 4, 100, 9, 4); R(ctx, K.lamp, lx - 2, 104, 5, 3);
+    }
+    // Angel fountain: wide lower basin, column, wide upper bowl, the angel on top with lifted wings and one raised arm.
+    // Moonlit stone (mid + light values) so it reads against the dark skyline.
     const cx = Math.round((x0 + x1) / 2);
-    R(ctx, K.stone, cx - 3, 112, 6, G - 112);                          // column
+    R(ctx, K.stoneMid, cx - 3, 112, 6, G - 112);                       // column
     R(ctx, K.stoneLight, cx - 3, 112, 1, G - 124);
-    R(ctx, K.stone, cx - 16, 132, 32, 4); R(ctx, K.stoneLight, cx - 16, 132, 32, 1); R(ctx, K.stone, cx - 10, 136, 20, 3); // upper bowl
-    for (let y = 137; y < G - 12; y += 2) { R(ctx, K.waterHi, cx - 15 + (y & 2), y, 1, 1); R(ctx, K.waterHi, cx + 14 - (y & 2), y, 1, 1); } // spill
-    R(ctx, K.arch, cx - 4, 92, 8, 20);                                // angel body
-    R(ctx, K.arch, cx - 2, 86, 4, 5);                                 // head
-    R(ctx, K.arch, cx - 18, 90, 14, 4); R(ctx, K.arch, cx - 14, 94, 10, 4); R(ctx, K.arch, cx - 9, 98, 5, 4); // wings
-    R(ctx, K.arch, cx + 4, 90, 14, 4); R(ctx, K.arch, cx + 4, 94, 10, 4); R(ctx, K.arch, cx + 4, 98, 5, 4);
-    R(ctx, K.arch, cx + 3, 80, 2, 12);                                // raised arm
-    R(ctx, K.stoneLight, cx - 18, 90, 14, 1); R(ctx, K.stoneLight, cx - 2, 86, 1, 5); R(ctx, K.stoneLight, cx - 4, 92, 1, 20); R(ctx, K.stoneLight, cx + 3, 80, 1, 10); // moonlit edges
+    R(ctx, K.stoneMid, cx - 24, 130, 48, 4); R(ctx, K.stoneLight, cx - 24, 130, 48, 1); // upper bowl, wide
+    R(ctx, K.stoneMid, cx - 16, 134, 32, 3); R(ctx, K.stoneMid, cx - 8, 137, 16, 3);
+    dither(ctx, K.waterHi, cx - 22, 131, 44, 1);
+    for (let y = 135; y < G - 12; y += 2) { R(ctx, K.waterHi, cx - 23 + (y & 2), y, 1, 1); R(ctx, K.waterHi, cx + 22 - (y & 2), y, 1, 1); } // spill
+    R(ctx, K.stoneMid, cx - 6, 108, 12, 4);                             // plinth
+    R(ctx, K.stoneMid, cx - 3, 94, 6, 14); R(ctx, K.stoneMid, cx - 5, 100, 10, 8); // robe, flaring at the hem
+    R(ctx, K.stoneMid, cx - 2, 89, 4, 5);                               // head
+    for (let i = 0; i < 6; i++) {                                       // wings: solid feathered mass, lifted up and out
+      const top = 93 - i * 2, h = 13 - i * 2 + (i === 5 ? 1 : 0);
+      R(ctx, K.stoneMid, cx + 3 + i * 2, top, 2, h); R(ctx, K.stoneMid, cx - 5 - i * 2, top, 2, h);
+      R(ctx, K.stoneLight, cx + 3 + i * 2, top, 2, 1); R(ctx, K.stoneLight, cx - 5 - i * 2, top, 2, 1);
+      if (i > 1) { R(ctx, K.stone, cx + 3 + i * 2, top + h - 1, 2, 1); R(ctx, K.stone, cx - 5 - i * 2, top + h - 1, 2, 1); } // feather tips
+    }
+    for (let i = 0; i < 6; i++) R(ctx, K.stoneLight, cx + 3 + i, 92 - i * 2, 2, 2); // raised arm, moonlit, in front of the wing
+    R(ctx, K.moonMid, cx + 8, 80, 2, 2);                                 // hand
+    R(ctx, K.stoneLight, cx - 2, 89, 4, 1); R(ctx, K.stoneLight, cx - 3, 94, 1, 14); R(ctx, K.stoneLight, cx - 5, 100, 1, 8); // moonlit edges
+    R(ctx, K.stoneLight, cx - 6, 108, 12, 1);
     R(ctx, K.stoneMid, cx - 48, G - 12, 96, 12);                       // lower basin
     R(ctx, K.stoneLight, cx - 48, G - 12, 96, 2);
     R(ctx, K.water, cx - 44, G - 10, 88, 3);
@@ -300,16 +326,28 @@
     sliced: ['RIIIP.', 'WELL, SHIT.', 'HALVSIES.', 'FUCK ME.'],
     low: ['SHHK.', 'WELL, SHIT.', 'DONE.'],
   };
+  // Gags drawn this frame (reset in S.render), so several kills at once stack instead of printing over each other.
+  let gagsShown = [], camNow = 0;
   function gag(ctx, e, style, y) {
     if (e.t > 0.6) return;
     const list = GAGS[style === 'sliced' && S.gore === 'low' ? 'low' : style] || GAGS.pop;
-    const txt = list[hashId(e.id) % list.length];
-    S.drawTextCentered(ctx, txt, Math.round(e.x), y - Math.round(e.t * 12), style === 'sliced' && S.gore !== 'low' ? K.heart : K.white, 1, K.black);
+    const txt = list[hashId(e.id) % list.length], w = S.textWidth(txt);
+    // Keep the whole word on screen, even for a kill right at the arena wall.
+    const cx = Math.round(Math.max(camNow + w / 2 + 2, Math.min(camNow + W - w / 2 - 2, e.x)));
+    let ty = y - Math.round(e.t * 12);
+    for (let bumped = true; bumped;) {
+      bumped = false;
+      for (const g of gagsShown) if (Math.abs(g.x - cx) < 40 + (g.w + w) / 2 && Math.abs(g.y - ty) < 8) { ty = g.y - 8; bumped = true; }
+    }
+    gagsShown.push({ x: cx, y: ty, w });
+    const red = style === 'sliced' && S.gore !== 'low';
+    if (red) for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]]) S.drawTextCentered(ctx, txt, cx + dx, ty + dy, K.black); // full outline: readable over blood
+    S.drawTextCentered(ctx, txt, cx, ty, red ? K.heart : K.white, 1, red ? null : K.black);
   }
   // Chainsaw kill: the standing pose cut at the waist. Full gore: the top half slides off and falls, red cut faces and
   // drips. Low gore: no split; the whole zombie sinks into the ground in a grey puff.
   function drawSliced(ctx, e, drawPose, height) {
-    const x = Math.round(e.x), y = Math.round(e.y), t = e.t, f = e.face || 1;
+    const x = Math.round(e.x), y = Math.round(e.y), t = e.t, f = -(e.sliceDir || -(e.face || 1));
     const cut = y - Math.round(height * 0.5);
     if (S.gore === 'low') {
       const sink = Math.min(height, Math.round(t * height * 2.2));
@@ -409,6 +447,15 @@
     const anim = p.anim === 'get-up' ? 'play-dead' : p.anim;
     const flash = p.state === 'hurt';
     const sawArt = anim.startsWith('chainsaw-');
+    // Trash lid: held in front normally; with the chainsaw it is slung on his back (drawn first) so it never hides the saw.
+    const lidOn = p.shield > 0 && p.state !== 'playdead' && p.state !== 'ko';
+    const drawLid = () => {
+      const ox = p.x + p.face * (p.saw ? -8 : 12), oy = p.y - 14;
+      if (!sprite(ctx, 'overlay:lid', 0, ox, oy, p.face, false, 3 - p.shield)) {
+        R(ctx, K.lid, ox - 3, oy - 7, 6, 14); R(ctx, K.lidHi, ox - 1, oy - 5, 2, 4 - (3 - p.shield));
+      }
+    };
+    if (lidOn && p.saw) drawLid();
     let real = sprite(ctx, 'sammy:' + anim, p.anim === 'get-up' ? p.animT * 2 : p.animT, p.x, p.y, p.face, p.anim === 'get-up', null, flash);
     // No chainsaw strip yet: plain Sammy (idle or run art, or the placeholder) holding a placeholder saw.
     if (!real && sawArt) real = sprite(ctx, anim === 'chainsaw-run' ? 'sammy:run' : 'sammy:idle', p.animT, p.x, p.y, p.face, false, null, flash);
@@ -418,12 +465,7 @@
     const x = Math.round(p.x), y = Math.round(p.y);
     if (p.state === 'playdead') S.drawTextCentered(ctx, 'Z z', x, y - 26, K.white, 1, K.black);
     if (p.state === 'ko') S.drawTextCentered(ctx, '* * *', x, y - 24 - Math.round(Math.sin(p.t * 8) * 2), K.umbrella, 1, K.black);
-    if (p.shield > 0 && p.state !== 'playdead' && p.state !== 'ko') {
-      const ox = p.x + p.face * 12, oy = p.y - 14;
-      if (!sprite(ctx, 'overlay:lid', 0, ox, oy, p.face, false, 3 - p.shield)) {
-        R(ctx, K.lid, ox - 3, oy - 7, 6, 14); R(ctx, K.lidHi, ox - 1, oy - 5, 2, 4 - (3 - p.shield));
-      }
-    }
+    if (lidOn && !p.saw) drawLid();
   }
 
   // Placeholder chainsaw in Sammy's paws: engine, handle, 16 px bar reaching 28 px in front (the cutting reach).
@@ -471,8 +513,11 @@
     }
   }
 
-  function drawEffects(ctx, s) {
+  // Two passes: layer 'back' (gore, dust, splashes) goes under Sammy so it never hides him; 'front' (sparks, words) on top.
+  const FRONT = new Set(['spark', 'sparkle', 'bang', 'text', 'sparks']);
+  function drawEffects(ctx, s, layer) {
     for (const f of s.effects) {
+      if (layer && FRONT.has(f.kind) !== (layer === 'front')) continue;
       const k = f.t / f.life;
       if (f.kind === 'spark') { R(ctx, K.white, f.x - 1, f.y - 5, 2, 10); R(ctx, K.white, f.x - 5, f.y - 1, 10, 2); }
       else if (f.kind === 'dust') { for (let i = -1; i <= 1; i++) R(ctx, K.grey, f.x + i * (6 + k * 10) - 2, f.y - 4 - k * 4, 4, 4); }
@@ -665,6 +710,7 @@
     }
     drawBackground(ctx, camX);
     ctx.translate(-camX, 0);
+    camNow = camX; gagsShown = [];
     drawGround(ctx, s, camX - 16, camX + W + 16);
     drawStatic(ctx, s);
     for (const c of s.carts) if (c.x + 80 > camX && c.x - 16 < camX + W) drawCart(ctx, c, s.t);
@@ -675,8 +721,9 @@
       if (e.type === 'vendor') drawVendor(ctx, e); else drawJogger(ctx, e);
     }
     for (const pr of s.projectiles) drawProjectile(ctx, pr);
+    drawEffects(ctx, s, 'back');
     drawSammy(ctx, s);
-    drawEffects(ctx, s);
+    drawEffects(ctx, s, 'front');
     ctx.restore();
     drawHud(ctx, s);
     if (s.mode === 'paused') {

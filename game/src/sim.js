@@ -216,16 +216,19 @@
     const dir = sign(e.x - fromX) || 1;
     e.hp -= saw ? C.chainsaw.damage : 1;
     if (!saw) { sfx(s, 'sfx-hit-zombie'); effect(s, 'spark', e.x, e.y - 24, 0.15); }
-    effect(s, 'blood', e.x, e.y - 24, 0.6, { n: saw ? 8 : 4, dir, power: saw ? 2 : 1 });
+    // Chainsaw gore starts past the blade tip and flies away from Sammy, so it never covers him.
+    const gx = saw ? fromX + dir * Math.max(Math.abs(e.x - fromX), C.chainsaw.reach + 12) : e.x;
+    effect(s, 'blood', gx, e.y - 24, 0.6, { n: saw ? 8 : 4, dir, power: saw ? 2 : 1 });
     if (e.hp <= 0) {
       e.state = 'defeat'; e.t = 0; e.vx = 0; e.confused = false;
       e.defeatStyle = saw ? 'sliced' : (e.type === 'vendor' ? 'deflate' : 'pop');
+      e.sliceDir = dir; // the cut top half slides this way (away from Sammy)
       s.stats.defeated += 1;
       sfx(s, 'sfx-zombie-defeat-comedic');
       sfx(s, 'sfx-gore-splat');
-      effect(s, 'ichor', e.x, e.y - (saw ? 22 : 36), 0.8, { n: saw ? 10 : 6 });
+      effect(s, 'ichor', gx, e.y - (saw ? 22 : 36), 0.8, { n: saw ? 10 : 6 });
       if (saw) {
-        for (let i = 0; i < 3; i++) effect(s, 'chunk', e.x, e.y - 30 + i * 8, 0.9, { dir, i });
+        for (let i = 0; i < 3; i++) effect(s, 'chunk', gx, e.y - 30 + i * 8, 0.9, { dir, i });
         s.hitstop = Math.max(s.hitstop || 0, 0.06);
         s.shake = Math.max(s.shake, 0.25);
       }
@@ -643,7 +646,7 @@
     for (let i = 0; i < count; i++) {
       const left = i % 2 === 0;
       const step = (i >> 1) * 14;
-      const x = left ? A.x0 + 16 + step : A.gateX - 16 - step;
+      const x = left ? A.x0 + 64 + step : A.gateX - 16 - step; // left side drops in by the second arch, not at the screen edge
       const e = makeEnemy({ type: 'jogger', x, y: 100 }, 0, { id: 'w' + n + '-' + i, arena: true, state: 'spawn', wave: n });
       e.y = 100; e.grounded = false; e.face = left ? 1 : -1;
       s.enemies.push(e);

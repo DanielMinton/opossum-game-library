@@ -381,3 +381,14 @@ All **Proposed (reversible)**.
 - **Render sweep** now also draws Sammy with the chainsaw (idle, run, rev, low fuel).
 - **Not done yet:** the README pictures still say the chainsaw is "coming next" (they need redrawing); the art brief's 4-frame "cut" strip isn't drawn; the browser tab title is still "Sammy (placeholder prototype)".
 - **Tests after the merge:** 75 game-rule tests and 51 browser checks, all passing.
+
+### Review fixes
+
+All **Proposed (reversible)**.
+
+- **Lid and chainsaw:** while Sammy carries the saw, the trash lid hangs on his back (drawn behind him) so it no longer hides the saw.
+- **Gore never covers Sammy:** chainsaw blood, chunks and ichor start just past the blade tip and fly away from him; the cut top half slides away from him; gore and dust draw under Sammy, while sparks and words draw on top.
+- **Death lines:** they stay fully on screen, stack 8 px apart when several zombies die at once, and the red "RIIIP." has a black outline.
+- **Arena:** left-side zombies now drop in by the second arch (64 px inside the arena), not at the screen edge. The camera and walls are unchanged.
+- **Look:** the angel now has lifted wings and a raised arm in lighter, moonlit stone, with a wider upper bowl. There are three amber lamps on the terrace balustrade, each casting a warm pool on the stone. The park lamp reflections are longer, there are more light-blue puddle glints, and the purple dusk band is now a thin, darker haze above the buildings.
+- **Skipped:** labelling the touch button "SAW" was optional, so it isn't done. Upright-phone text size was reviewed and needs no change for now.
