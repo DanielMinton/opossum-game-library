@@ -252,7 +252,14 @@
     },
 
     gauntlet: {
-      waves: [2, 3, 4], waveDelay: 1.0, waveType: 'jogger', // waveType: the enemy type every wave is made of
+      // Typed waves (2026-10-20, owner answer 2: every type in level 1; Proposed lists): each wave is a list of entries, one body
+      // each, dropping in from alternating sides (first entry from the left). An entry is a type name, or { type, litter } to drop
+      // a litter of that type from one side, litterGap px apart (the baby). The HUD counter reads waves.length.
+      waves: [
+        ['jogger', 'jogger', 'cheerleader'],                     // 1: warm-up with a leaper. 3 bodies, 6 hp
+        [{ type: 'baby', litter: 3 }, 'hippie', 'jogger'],       // 2: the litter from the left, the slow wall and a jogger. 5 bodies, 7 hp
+      ],
+      waveDelay: 1.0,
       // The boss (2026-10-20, owner answer 4): after the last wave, `boss` walks in from the arch `bossArch` px before the gate,
       // `bossDelay` s after the wave dies. The supplies drop in at the same moment (Proposed: a trash lid and a chainsaw, so Sammy
       // always has a saw and a lid for the fight; the chainsaw pickup refuels a saw he already carries), `supplyX` px from the arena's left wall.

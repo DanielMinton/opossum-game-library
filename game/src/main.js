@@ -556,6 +556,17 @@
       const bot = S.makeBot();
       const frames = parseInt(params.get('frames') || '0', 10);
       state.god = params.get('god') !== '0';
+      // ?test=shot&arena=boss&frames=N: skip the park. Sammy starts in the arena with the waves already cleared and the Brute about
+      // to walk in (the supplies drop with him), so the boss fight can be screenshotted without the 50 s walk there.
+      if (name === 'shot' && params.get('arena') === 'boss') {
+        const go = S.makeInput(); go.pressed.start = true; S.update(state, go); // off the title screen
+        const A = state.level.arena, p = state.player;
+        p.x = A.x0 + 60; p.y = C.groundY; p.vx = 0; p.vy = 0; p.grounded = true; p.face = 1;
+        state.cam.x = Math.max(0, Math.min(p.x - 160, state.level.width - C.screenW));
+        state.checkpoint = { id: 'C2', x: 2576 };
+        state.enemies = state.enemies.filter((e) => e.def.x > 9999);
+        state.arena = { state: 'boss', wave: C.gauntlet.waves.length, timer: 0.3, spawnCount: 8 };
+      }
       const seen = new Set();
       let f = 0;
       const limit = frames || 60 * 600;

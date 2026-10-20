@@ -339,29 +339,31 @@ test('KO and checkpoint: losing all hearts restarts at the last checkpoint with 
   assert.equal(s.player.x, 1264);
   assert.equal(s.player.hp, 3);
   assert.equal(s.stats.kos, 1);
-  const after = s.level.enemies.filter((e) => e.x > 1264).length;
+  const after = s.level.enemies.filter((e) => e.x > 1264).reduce((n, d) => n + (d.litter || 1), 0); // a litter entry stands several
   assert.equal(s.enemies.filter((e) => e.def.x > 1264).length, after, 'enemies after the checkpoint come back');
   assert.equal(s.carts[0].state, 'upright', 'cart after the checkpoint resets');
 });
 
 // ---------- gauntlet, victory, restart ----------
-test('gauntlet: arena locks, 3 waves (2, 3, 4 zombies), gate opens, exit clears the level', () => {
+test('gauntlet: arena locks, 2 typed waves (3 and 5 bodies), then the Brute; gate opens on his death, exit clears the level', () => {
   const s = start(); s.god = true;
   s.enemies = s.enemies.filter((e) => e.def.x > 9999);
   place(s, 3500, { cp: 2576 });
   step(s, { held: { right: true } }, sec(1));
   assert.equal(s.arena.state, 'fight');
   const bot = S.makeBot();
-  let spawned = 0, minX = Infinity;
+  let spawned = 0, minX = Infinity, bossDown = false;
   for (let i = 0; i < sec(120) && s.mode !== 'clear'; i++) {
     S.update(s, S.botInput(s, bot));
     s.events.length = 0;
     if (s.arena.state === 'fight') minX = Math.min(minX, s.player.x);
     spawned = Math.max(spawned, s.arena.spawnCount);
+    if (s.enemies.some((e) => e.boss && (e.state === 'defeat' || e.state === 'dead'))) bossDown = true;
   }
-  assert.equal(spawned, 9);
+  assert.equal(spawned, 8, 'wave 1: jogger, jogger, cheerleader; wave 2: three babies, a hippie, a jogger');
   assert.equal(s.mode, 'clear');
   assert.equal(s.arena.state, 'open');
+  assert.ok(bossDown, 'the Brute came and went');
   assert.ok(minX >= s.level.arena.x0 + 8, 'Sammy never left the arena during the fight: ' + minX);
 });
 
@@ -417,6 +419,96 @@ test('full playthrough (autopilot, no damage): title to level clear in under 2 m
   assert.ok(s.carts[0].state === 'empty' || s.carts[0].state === 'tipped');
 });
 
+// ---------- level 1 placement and the typed gauntlet (zombie roster, 2026-10-20) ----------
+test('level 1 places every type where the design says: 17 bodies, 7 joggers, one new idea per screen, the Brute at the end', () => {
+  const L = S.LEVEL1, E = L.enemies, at = (type) => E.filter((d) => d.type === type).map((d) => d.x);
+  const bodies = E.reduce((n, d) => n + (d.litter || 1), 0);
+  assert.equal(bodies, 17);
+  assert.deepEqual(at('jogger'), [540, 780, 1180, 1540, 2080, 2112, 2290], 'the jogger stays, about half as many (owner answer 3)');
+  assert.deepEqual(at('hippie'), [940, 2150, 3440]);
+  assert.deepEqual(at('cheerleader'), [1420, 3160]);
+  assert.deepEqual(at('sweater'), [2720]);
+  assert.deepEqual(E.filter((d) => d.type === 'baby').map((d) => [d.x, d.litter]), [[3010, 3]]);
+  assert.deepEqual(at('vendor'), [1800]);
+  assert.ok(!E.some((d) => d.type === 'brute'), 'the boss is spawned by the arena, never placed');
+  for (const type of ['hippie', 'sweater', 'cheerleader', 'baby']) assert.ok(at(type).length, type + ' is in level 1 (owner answer 2)');
+  // One new idea per screen: the screen-3 hippie is the Play Possum demo, under the moved prompt; the sweater stands on the second lid;
+  // the litter is well past the Play Possum lesson and penned by the rock and the fence; the last hippie is the chainsaw's first victim.
+  const prompt = (re) => L.prompts.find((p) => re.test(p.text));
+  const possum = prompt(/PLAY DEAD/), lad = prompt(/BIG LAD/), saw = prompt(/CHAINSAW/);
+  assert.deepEqual([possum.x0, possum.x1], [680, 760]);
+  assert.ok(possum.x1 < 780 && 940 > possum.x1 && 940 < 960, 'the jogger and the first hippie come right after the Play Possum prompt');
+  assert.ok(possum.touch, 'touch wording kept');
+  assert.deepEqual([lad.x0, lad.x1], [2660, 2760]);
+  const lid2 = L.pickups.find((pk) => pk.type === 'lid' && pk.x > 2000);
+  assert.ok(Math.abs(lid2.x - 2720) <= 32, 'the sweater stands on the second lid');
+  assert.ok(3010 > possum.x1 + 1000, 'the litter is nowhere near the Play Possum lesson');
+  assert.ok(L.solids.some((so) => so.kind === 'rock' && so.x === 2960) && L.solids.some((so) => so.kind === 'fence' && so.x === 3100), 'the litter\'s pen');
+  const sawPick = L.pickups.find((pk) => pk.type === 'chainsaw');
+  assert.ok(sawPick.x === 3300 && 3440 > sawPick.x && saw.x0 <= sawPick.x && saw.x1 >= sawPick.x, 'the hippie at 3440 follows the chainsaw');
+  // Prompts never overlap, and nothing new stands over the pond.
+  const ps = L.prompts.slice().sort((a, b) => a.x0 - b.x0);
+  for (let i = 1; i < ps.length; i++) assert.ok(ps[i].x0 >= ps[i - 1].x1, 'prompts in order: ' + ps[i].text);
+  for (const d of E) assert.ok(!(d.x > 2344 - 40 && d.x < 2424 + 40), 'nothing stands over the pond: ' + d.type + ' ' + d.x);
+  // The gauntlet: two typed waves then the Brute (owner answer 4).
+  assert.deepEqual(C.gauntlet.waves, [['jogger', 'jogger', 'cheerleader'], [{ type: 'baby', litter: 3 }, 'hippie', 'jogger']]);
+  assert.equal(C.gauntlet.boss, 'brute');
+  assert.equal(C.gauntlet.waveType, undefined, 'the single wave type is gone');
+});
+
+test('typed waves: each entry drops one body from alternating sides, a litter entry drops its litter from one side, ids are unique, the counter reads waves.length', () => {
+  const s = start(); s.god = true;
+  s.enemies = s.enemies.filter((e) => e.def.x > 9999);
+  place(s, 3600, { cp: 2576 });
+  step(s, { held: { right: true } }, sec(1.2)); // the arena locks and wave 1 drops
+  assert.equal(s.arena.state, 'fight');
+  const A = s.level.arena;
+  const w0 = s.enemies.filter((e) => e.arena && e.wave === 0);
+  assert.deepEqual(w0.map((e) => [e.type, e.id, e.face]), [['jogger', 'w0-0', 1], ['jogger', 'w0-1', -1], ['cheerleader', 'w0-2', 1]]);
+  assert.ok(w0[0].x === A.x0 + 64 && w0[1].x === A.gateX - 16 && w0[2].x === A.x0 + 64 + 14, 'left, right, left again a little further in');
+  assert.ok(w0.every((e) => e.state === 'spawn' || e.grounded === false || e.y <= G), 'they drop in from above');
+  assert.equal(s.arena.spawnCount, 3);
+  // Wave 2: kill wave 1 by hand, wait out the delay.
+  for (const e of w0) { e.state = 'dead'; }
+  step(s, {}, sec(C.gauntlet.waveDelay) + 2);
+  const w1 = s.enemies.filter((e) => e.arena && e.wave === 1);
+  assert.deepEqual(w1.map((e) => [e.type, e.id]), [['baby', 'w1-0'], ['baby', 'w1-0-1'], ['baby', 'w1-0-2'], ['hippie', 'w1-1'], ['jogger', 'w1-2']]);
+  const babies = w1.filter((e) => e.type === 'baby');
+  assert.deepEqual(babies.map((e) => e.x - A.x0 - 64), [0, C.baby.litterGap, 2 * C.baby.litterGap], 'the litter steps inwards from the left wall');
+  assert.ok(babies.every((e) => e.face === 1) && w1[3].face === -1 && w1[4].face === 1, 'sides alternate per entry, not per body');
+  assert.equal(s.arena.spawnCount, 8);
+  assert.equal(new Set(s.enemies.map((e) => e.id)).size, s.enemies.length, 'every id unique');
+  // After the last wave: the boss, not the gate.
+  for (const e of w1) e.state = 'dead';
+  step(s, {}, 2);
+  assert.equal(s.arena.state, 'boss');
+  assert.equal(C.gauntlet.waves.length, 2, 'the HUD shows WAVE n/2');
+  // Entries are validated like level entries: an unknown type throws when its wave drops.
+  const bad = start(); bad.god = true; bad.enemies = []; place(bad, 3600, { cp: 2576 });
+  const saved = C.gauntlet.waves; C.gauntlet.waves = [['nobody']];
+  try { assert.throws(() => step(bad, { held: { right: true } }, sec(1.2)), /unknown enemy type/); } finally { C.gauntlet.waves = saved; }
+});
+
+test('full playthrough (autopilot): every type in level 1 goes down on the way, the Brute at the end, and the clear is deterministic', () => {
+  const run = () => {
+    const s = S.newGame(); s.god = true;
+    const bot = S.makeBot(), seen = new Set();
+    for (let f = 0; f < sec(120) && s.mode !== 'clear'; f++) {
+      S.update(s, S.botInput(s, bot)); s.events.length = 0;
+      for (const e of s.enemies) if (e.state === 'defeat') seen.add(e.type + ':' + e.defeatStyle);
+    }
+    return [s, seen];
+  };
+  const [s, seen] = run();
+  assert.equal(s.mode, 'clear', 'stuck at x ' + Math.round(s.player.x));
+  // (The vendor stands behind the cart and the autopilot walks past him, as it always has.)
+  for (const type of ['jogger', 'hippie', 'sweater', 'cheerleader', 'baby', 'brute']) assert.ok([...seen].some((k) => k.startsWith(type + ':')), type + ' was beaten: ' + [...seen].join(' '));
+  assert.ok(seen.has('brute:crawl') && [...seen].some((k) => k.endsWith(':sliced')), 'the saw was used');
+  assert.ok(s.stats.defeated >= 16 + 8, 'every park body but the vendor, plus both waves: ' + s.stats.defeated);
+  const [t] = run();
+  assert.equal(JSON.stringify([s.stats, Math.round(s.player.x)]), JSON.stringify([t.stats, Math.round(t.player.x)]));
+});
+
 test('the game is deterministic: two identical runs give identical results', () => {
   const run = () => { const s = S.newGame(); s.god = true; const b = S.makeBot(); for (let i = 0; i < sec(40); i++) { S.update(s, S.botInput(s, b)); s.events.length = 0; } return JSON.stringify([s.stats, Math.round(s.player.x * 100)]); };
   assert.equal(run(), run());
@@ -454,7 +546,8 @@ test('enemy types: every type is one complete row: config block, brain, start st
   }
   assert.equal(S.ENEMY_TYPES.jogger.brain, 'walker'); assert.equal(S.ENEMY_TYPES.vendor.brain, 'turret'); assert.equal(S.ENEMY_TYPES.brute.brain, 'boss');
   for (const d of S.LEVEL1.enemies) assert.ok(S.ENEMY_TYPES[d.type], 'level 1 places a known type: ' + d.type);
-  assert.ok(S.ENEMY_TYPES[C.gauntlet.waveType], 'the gauntlet spawns a known type');
+  for (const w of C.gauntlet.waves) for (const entry of w) assert.ok(S.ENEMY_TYPES[S.waveEntry(entry).type], 'the gauntlet spawns a known type: ' + JSON.stringify(entry));
+  assert.ok(S.ENEMY_TYPES[C.gauntlet.boss] && S.ENEMY_TYPES[C.gauntlet.boss].brain === 'boss', 'the gauntlet boss is a boss type');
   // The table is the only place that knows the types: no "is it a jogger?" checks are left in the game code.
   for (const f of ['sim.js', 'render.js', 'main.js', 'bot.js']) {
     const code = fs.readFileSync(path.join(src, f), 'utf8');
@@ -725,9 +818,8 @@ test('cheerleader and baby: every state draws in their own colours (maroon and c
   for (const k of ['cheer', 'cheerDark', 'cream', 'creamDark', 'hair', 'babyPink', 'babyBlue', 'babyBlueDark', 'babySkin', 'brain', 'rattle']) {
     assert.ok(!gore.has(S.PAL[k].toLowerCase()), k + ' is not a gore colour');
   }
-  // The autopilot (god mode, as the full playthrough) clears level 1 with two cheerleaders and a litter added on the way.
-  const extra = [{ type: 'cheerleader', x: 1420 }, { type: 'baby', x: 3010, litter: 3 }, { type: 'cheerleader', x: 3160 }];
-  const g = S.newGame(Object.assign({}, S.LEVEL1, { enemies: S.LEVEL1.enemies.concat(extra) })); g.god = true;
+  // The autopilot (god mode, as the full playthrough) clears level 1, which places two cheerleaders and the litter (2026-10-20).
+  const g = S.newGame(); g.god = true;
   const bot = S.makeBot();
   let bursts = 0, pops = 0;
   for (let f = 0; f < sec(150) && g.mode !== 'clear'; f++) {
@@ -2344,13 +2436,13 @@ test('hippie and sweater: the new sounds are planned, have beeps and folders, an
   }
 });
 
-test('hippie and sweater: the autopilot still clears a level with them placed where the design puts them, and the run is deterministic', () => {
-  // The design's spots (3.): hippies at 940, 2150 and 3440, the sweater at 2720, next to the joggers and the vendor already there.
-  const placed = S.LEVEL1.enemies.filter((d) => ![940, 2144, 2720].includes(d.x))
-    .concat([{ type: 'hippie', x: 940 }, { type: 'hippie', x: 2150 }, { type: 'sweater', x: 2720 }, { type: 'hippie', x: 3440 }]);
-  const level = Object.assign({}, S.LEVEL1, { enemies: placed });
+test('hippie and sweater: the autopilot clears level 1 with them placed where the design puts them, and the run is deterministic', () => {
+  // The design's spots (3.): hippies at 940, 2150 and 3440, the sweater at 2720, placed in level.js since 2026-10-20.
+  const placed = S.LEVEL1.enemies;
+  assert.deepEqual(placed.filter((d) => d.type === 'hippie').map((d) => d.x), [940, 2150, 3440]);
+  assert.deepEqual(placed.filter((d) => d.type === 'sweater').map((d) => d.x), [2720]);
   const run = () => {
-    const s = S.newGame(level); s.god = true;
+    const s = S.newGame(); s.god = true;
     const bot = S.makeBot();
     let f = 0;
     for (; f < sec(150) && s.mode !== 'clear'; f++) { S.update(s, S.botInput(s, bot)); s.events.length = 0; }

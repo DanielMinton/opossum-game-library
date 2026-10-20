@@ -918,17 +918,24 @@
     }
   }
 
+  // A wave entry (C.gauntlet.waves[n][i]) is a type name or { type, litter }: the same shape as a level entry.
+  function waveEntry(entry) { return typeof entry === 'string' ? { type: entry, litter: 1 } : Object.assign({ litter: 1 }, entry); }
+  S.waveEntry = waveEntry;
   function spawnWave(s, n) {
     const A = s.level.arena;
-    const count = C.gauntlet.waves[n];
-    for (let i = 0; i < count; i++) {
+    let count = 0;
+    C.gauntlet.waves[n].forEach((entry, i) => {
+      const d = waveEntry(entry), gap = typeOf(d).cfg.litterGap || 32;
       const left = i % 2 === 0;
       const step = (i >> 1) * 14;
       const x = left ? A.x0 + 64 + step : A.gateX - 16 - step; // left side drops in by the second arch, not at the screen edge
-      const e = makeEnemy({ type: C.gauntlet.waveType, x, y: 100 }, 0, { id: 'w' + n + '-' + i, arena: true, state: 'spawn', wave: n });
-      e.y = 100; e.grounded = false; e.face = left ? 1 : -1;
-      s.enemies.push(e);
-    }
+      for (let j = 0; j < Math.max(1, d.litter); j++) {       // a litter drops in from the same side, gap px apart, stepping inwards
+        const e = makeEnemy({ type: d.type, x: x + (left ? 1 : -1) * j * gap, y: 100 }, 0, { id: 'w' + n + '-' + i + (j ? '-' + j : ''), arena: true, state: 'spawn', wave: n });
+        e.y = 100; e.grounded = false; e.face = left ? 1 : -1;
+        s.enemies.push(e);
+        count += 1;
+      }
+    });
     s.arena.spawnCount += count;
     effect(s, 'text', (A.x0 + A.x1) / 2, 80, 1.2, { text: 'WAVE ' + (n + 1) });
     sfx(s, 'sfx-zombie-groan');

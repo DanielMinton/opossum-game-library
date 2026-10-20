@@ -35,22 +35,23 @@ With the touch buttons showing, the title screen and the tutorial messages use t
 The level is 12 screens long, about 1 minute for a fast run and 3–5 minutes for a first try.
 
 1. **Start and tutorial:** Sammy starts on the grass. Prompts teach moving, jumping and the tail-whip.
-2. **First zombies:** zombie joggers patrol, spot Sammy within 96 px, chase him, and lunge.
+2. **First zombies (screens 2–3):** zombie joggers patrol, spot Sammy within 96 px, chase him, and lunge.
    - Two whips defeat a jogger. Its head pops off and bounces away.
+   - **Play Possum lesson (screen 3, moved here 2026-10-20):** press **C** to play dead for up to 3 s. Zombies within 96 px get confused. The ability has a 6 s cooldown: the "PP" icon in the top bar turns grey during it, with a bar beside it that fills up, and flashes when it's ready again. The **hippie** by the second rock is the demo: slow, three whips, melts into goo, and forgets a "dead" Sammy for 3 s.
 3. **Trash lid shield (screen 4):** blocks 3 hits.
 4. **Checkpoint C1:** the end of screen 4.
-5. **Lampposts (screen 5):** one hides a hot dog on top.
+5. **Lampposts and the cheerleader (screen 5):** one lamp hides a hot dog on top. The **cheerleader** cheers, then leaps 72 px at Sammy: step back or jump as she launches, and whip her while she's stuck on landing.
 6. **Hot dog cart and vendor (screen 6):**
    - Whip the cart twice to tip it. It spills 3 healing hot dogs and knocks nearby zombies back.
    - The vendor zombie lobs hot dogs at Sammy and deflates when defeated.
-7. **Play Possum lesson (screen 7):** a group of 3 joggers.
-   - Press **C** to play dead for up to 3 s. Zombies within 96 px get confused.
-   - The ability has a 6 s cooldown. The "PP" icon in the top bar turns grey during the cooldown, with a bar beside it that fills up, and flashes when it's ready again.
+7. **The clump (screen 7):** two joggers and a hippie together; play dead if it goes wrong.
 8. **Pond (screen 8):** falling in costs 1 heart and puts Sammy back on safe ground. A bench helps him cross.
-9. **Checkpoint C2:** the start of screen 9, with a second trash lid nearby.
+9. **Checkpoint C2 and the sweater (screen 9):** the start of screen 9. The **sweater** stands on the second trash lid: big, never flinches, three whips, and his shove throws Sammy far and takes the whole lid in one go ("BIG LAD. HE WANTS YOUR LID.").
+    - **Screen 10:** the **baby litter** (three, fast, one whip each, penned by a rock and a fence; playing dead does nothing to them) and a second cheerleader between the fences.
+    - **Screen 11:** the chainsaw lies on the grass, with a hippie right after it to try it on.
 10. **Gauntlet (screen 12):**
-    - The camera locks and 3 waves of joggers arrive (2, then 3, then 4).
-    - Clearing all three opens the park exit.
+    - The camera locks and 2 waves drop in: two joggers and a cheerleader, then the baby litter, a hippie and a jogger (8 bodies).
+    - Then **the Brute** walks out of the arch (boss bar at the top left): swipe (back off), slam (jump the shockwave), spin and acid vomit (lie flat, mind the puddles), a stagger at half health, a rage at the end. A trash lid and a chainsaw drop in by the left wall as he enters; the saw cuts him any time. Three hot dogs fall out of him when he goes flat, and the park exit opens.
     - Walking through the exit shows the level-clear tally: time, zombies, hot dogs, hits and K.O.s.
 
 **Losing:** Sammy has 3 hearts. A K.O. sends him back to the last checkpoint with full health, and there are no lives in this version. **R** restarts the level at any time, including from the pause screen. Enter on the tally screen plays again.
@@ -168,9 +169,9 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | 90 game-rule checks (see the list below) |
-| `node --test tests/import-art.test.mjs` | 22 art-importer checks (`npm test` runs both test files: 112 in all) |
-| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 55 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
+| `node --test tests/sim.test.mjs` | 116 game-rule checks (see the list below) |
+| `node --test tests/import-art.test.mjs` | 23 art-importer checks (`npm test` runs both test files: 139 in all) |
+| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 57 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 | `index.html?test=touch&touch=1` | The touch-button check by hand (it taps the real buttons for you) |
 | `index.html?test=audio&touch=1` | The phone-sound check by hand (result appears as text in the top left) |
@@ -191,6 +192,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - the cheerleader: a harmless 0.45 s cheer, then a 72 px leap that hurts in the air and leaves her stuck on landing; a step back makes her land short and a jump at the launch clears her; no leap into the pond or through a fence; Play Possum fools her for 0.75 s and never freezes her in mid-air
 - the baby: one whip pops it (red, its own cry), the chainsaw slices it, a level entry with `litter: 3` stands three 32 px apart (and brings them back after a K.O.), Play Possum does nothing to it (it bumps a lying Sammy), its rattle has its own sound; both types draw in their own colours in every state, their gag lines fit the font, and the autopilot still clears a level with them in it
 - the Brute (the level 1 boss): the arena brings him in after the last wave with the banner and the supplies (lid and chainsaw) and opens the exit only when he is dead; his entrance; each attack in turn (swipe: tell, step, low swings, big knockback, safe opening; slam: tell, two floor shockwaves that are jumpable, stuck opening, cooldown; spin: high, both sides, dizzy; acid vomit every fourth attack: high stream, puddles that land when it ends and burn standing or lying, ignore the lid, never knock back, dry up); the stagger at half health and the enrage (shorter tells, faster walk, double shockwaves, vomit every third attack); the chainsaw cutting him any time with the most gore; Play Possum (confused until Sammy gets up, an attack already started finishes, then a moment of grace to walk through him); his death (the crawl, the hot dogs, the exit); a K.O. resetting the fight; the chainsaw supply refuelling; the autopilot beating him without god mode in 10 to 30 s; determinism and low gore; his lines and art cells; the boss bar portrait in every state with no gore colour in low gore
+- level 1 placement (2026-10-20): 17 bodies, 7 joggers, every new type where the design puts it (the hippie under the moved Play Possum prompt, the sweater on the second lid, the litter far from the lesson and penned, the last hippie after the chainsaw), prompts in order, nothing over the pond; the typed gauntlet waves (entries drop from alternating sides, a litter from one side, unique ids, an unknown type throws) and then the Brute; the full autopilot run beats every type on the way and is repeatable
 - the background bands (rows match the tileset doc and don't overlap), the tail-whip frame width, and the placeholder font (M, W, H and N look different)
 - the sound list: every sound the game triggers has a planned name and a beep; file names, versions and variations are read correctly
 - the audio converter picks only `.wav` files missing an `.ogg` (or an `.mp3` with `--mp3`), and never overwrites
@@ -234,7 +236,7 @@ The test art and test sounds live in a temporary copy of the library, never your
 - Safari and Firefox (only Chromium was run headless)
 - real phones and tablets (phone sizes and touches are only imitated in Chromium): how the buttons feel under real thumbs, real notches (headless Chromium reports none; Node tests cover typical margins), full screen and screen locking (Android), Add to Home Screen (iPhone), whether blocking zoom works in Safari, whether sound really starts on the first tap and comes back after a call or the lock screen, and the iPhone silent switch. See `design/MOBILE_TEST_CHECKLIST.md`
 
-**Difficulty note:** the autopilot clears the level when it can't take damage. Taking normal damage, it reaches the gauntlet but loses at wave 2, because it never jumps away or plays possum. A human player can do both, but the gauntlet may still be too hard. This needs a playtest.
+**Difficulty note:** the autopilot clears the level when it can't take damage (about 90 s of game time with the full roster and the Brute). Taking normal damage it only proves the Brute fight itself (a scripted chainsaw kill in 10–30 s, never K.O.d); in the park it dies to the first zombies, because it never jumps away or plays possum. A human player can do both, but the gauntlet and the boss may still be too hard. This needs a playtest.
 
 ## Files
 

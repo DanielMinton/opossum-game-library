@@ -296,7 +296,14 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     },
 
     gauntlet: {
-      waves: [2, 3, 4], waveDelay: 1.0, waveType: 'jogger', // waveType: the enemy type every wave is made of
+      // Typed waves (2026-10-20, owner answer 2: every type in level 1; Proposed lists): each wave is a list of entries, one body
+      // each, dropping in from alternating sides (first entry from the left). An entry is a type name, or { type, litter } to drop
+      // a litter of that type from one side, litterGap px apart (the baby). The HUD counter reads waves.length.
+      waves: [
+        ['jogger', 'jogger', 'cheerleader'],                     // 1: warm-up with a leaper. 3 bodies, 6 hp
+        [{ type: 'baby', litter: 3 }, 'hippie', 'jogger'],       // 2: the litter from the left, the slow wall and a jogger. 5 bodies, 7 hp
+      ],
+      waveDelay: 1.0,
       // The boss (2026-10-20, owner answer 4): after the last wave, `boss` walks in from the arch `bossArch` px before the gate,
       // `bossDelay` s after the wave dies. The supplies drop in at the same moment (Proposed: a trash lid and a chainsaw, so Sammy
       // always has a saw and a lid for the fight; the chainsaw pickup refuels a saw he already carries), `supplyX` px from the arena's left wall.
@@ -462,15 +469,20 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 
     checkpoints: [ { id: 'C1', x: 1264 }, { id: 'C2', x: 2576 } ],
 
+    // Zombie roster (2026-10-20, owner answer 2: all four new types in level 1, the jogger kept at 7). One new idea per screen,
+    // each introduced alone, then mixed. 17 bodies: 7 joggers, 3 hippies, 2 cheerleaders, 1 sweater, 3 babies, 1 vendor.
     enemies: [
-      { type: 'jogger', x: 540 },                                         // screen 2: first zombie
-      { type: 'jogger', x: 780 }, { type: 'jogger', x: 940 },             // screen 3
+      { type: 'jogger', x: 540 },                                         // screen 2: first zombie, under the whip prompt
+      { type: 'jogger', x: 780 }, { type: 'hippie', x: 940 },             // screen 3: a jogger under the Play Possum prompt, then the first hippie by the second rock (three whips, or play dead and walk past)
       { type: 'jogger', x: 1180 },                                        // screen 4: guards the lid
-      { type: 'jogger', x: 1420 }, { type: 'jogger', x: 1540 },           // screen 5
+      { type: 'cheerleader', x: 1420 }, { type: 'jogger', x: 1540 },      // screen 5: the first leap, between the two lamps (jump onto one to dodge her)
       { type: 'vendor', x: 1800 },                                        // screen 6: behind the cart
-      { type: 'jogger', x: 2080 }, { type: 'jogger', x: 2112 }, { type: 'jogger', x: 2144 }, // screen 7
-      { type: 'jogger', x: 2290 }, { type: 'jogger', x: 2490 },           // screen 8: pond edges
-      { type: 'jogger', x: 2930 }, { type: 'jogger', x: 3040 }, { type: 'jogger', x: 3160 }, // screen 10
+      { type: 'jogger', x: 2080 }, { type: 'jogger', x: 2112 }, { type: 'hippie', x: 2150 }, // screen 7: the clump (the Ringmaster's spot in level 2)
+      { type: 'jogger', x: 2290 },                                        // screen 8: pond edge (the far-bank jogger is gone; the pond is the hazard)
+      { type: 'sweater', x: 2720 },                                       // screen 9: right after C2, standing on the second lid. He takes it off you in one shove
+      { type: 'baby', x: 3010, litter: 3 },                               // screen 10: the litter, penned between the rock (2960) and the fence (3100). Play Possum does nothing to them
+      { type: 'cheerleader', x: 3160 },                                   // screen 10: penned between the two fences
+      { type: 'hippie', x: 3440 },                                        // screen 11: after the chainsaw (3300): your first saw victim
     ],
 
     carts: [ { x: 1688 } ],                  // screen 6; x = left edge, 64 px wide
@@ -498,9 +510,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     prompts: [
       { x0: 0,    x1: 300,  text: 'ARROWS: MOVE   Z: JUMP   IT\'S NIGHT. IT\'S ZOMBIES. FINE.', touch: 'ARROW PAD: MOVE   JUMP BUTTON: JUMP   FUCK ZOMBIES.' },
       { x0: 340,  x1: 660,  text: 'X: TAIL-WHIP. SMACK THE DEAD BASTARDS.', touch: 'WHIP BUTTON: TAIL-WHIP. SMACK THE DEAD BASTARDS.' },
+      { x0: 680,  x1: 760,  text: 'C: PLAY DEAD. ZOMBIES ARE DUMB AS SHIT.', touch: 'POSSUM BUTTON: PLAY DEAD. ZOMBIES ARE DUMB AS SHIT.' }, // moved from screen 7 (2026-10-20): the screen-3 hippie is the demo
       { x0: 1060, x1: 1160, text: 'TRASH LID: BLOCKS 3 HITS. CLASSY AS SHIT.' },
       { x0: 1620, x1: 1760, text: 'WHIP THE CART TWICE. FREE HOT DOGS. THEY HEAL. DON\'T ASK.' },
-      { x0: 1920, x1: 2080, text: 'C: PLAY DEAD. ZOMBIES ARE DUMB AS SHIT.', touch: 'POSSUM BUTTON: PLAY DEAD. ZOMBIES ARE DUMB AS SHIT.' },
+      { x0: 2660, x1: 2760, text: 'BIG LAD. HE WANTS YOUR LID.' },                                                                      // screen 9: the sweater
       { x0: 3270, x1: 3380, text: "SOMEBODY LEFT A CHAINSAW. HOLD X. FUCK 'EM UP.", touch: "SOMEBODY LEFT A CHAINSAW. HOLD WHIP. FUCK 'EM UP." },
       { x0: 3380, x1: 3520, text: 'BETHESDA TERRACE AHEAD. SHIT GETS REAL.' },
     ],
@@ -1706,17 +1719,24 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     }
   }
 
+  // A wave entry (C.gauntlet.waves[n][i]) is a type name or { type, litter }: the same shape as a level entry.
+  function waveEntry(entry) { return typeof entry === 'string' ? { type: entry, litter: 1 } : Object.assign({ litter: 1 }, entry); }
+  S.waveEntry = waveEntry;
   function spawnWave(s, n) {
     const A = s.level.arena;
-    const count = C.gauntlet.waves[n];
-    for (let i = 0; i < count; i++) {
+    let count = 0;
+    C.gauntlet.waves[n].forEach((entry, i) => {
+      const d = waveEntry(entry), gap = typeOf(d).cfg.litterGap || 32;
       const left = i % 2 === 0;
       const step = (i >> 1) * 14;
       const x = left ? A.x0 + 64 + step : A.gateX - 16 - step; // left side drops in by the second arch, not at the screen edge
-      const e = makeEnemy({ type: C.gauntlet.waveType, x, y: 100 }, 0, { id: 'w' + n + '-' + i, arena: true, state: 'spawn', wave: n });
-      e.y = 100; e.grounded = false; e.face = left ? 1 : -1;
-      s.enemies.push(e);
-    }
+      for (let j = 0; j < Math.max(1, d.litter); j++) {       // a litter drops in from the same side, gap px apart, stepping inwards
+        const e = makeEnemy({ type: d.type, x: x + (left ? 1 : -1) * j * gap, y: 100 }, 0, { id: 'w' + n + '-' + i + (j ? '-' + j : ''), arena: true, state: 'spawn', wave: n });
+        e.y = 100; e.grounded = false; e.face = left ? 1 : -1;
+        s.enemies.push(e);
+        count += 1;
+      }
+    });
     s.arena.spawnCount += count;
     effect(s, 'text', (A.x0 + A.x1) / 2, 80, 1.2, { text: 'WAVE ' + (n + 1) });
     sfx(s, 'sfx-zombie-groan');
@@ -5443,6 +5463,17 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       const bot = S.makeBot();
       const frames = parseInt(params.get('frames') || '0', 10);
       state.god = params.get('god') !== '0';
+      // ?test=shot&arena=boss&frames=N: skip the park. Sammy starts in the arena with the waves already cleared and the Brute about
+      // to walk in (the supplies drop with him), so the boss fight can be screenshotted without the 50 s walk there.
+      if (name === 'shot' && params.get('arena') === 'boss') {
+        const go = S.makeInput(); go.pressed.start = true; S.update(state, go); // off the title screen
+        const A = state.level.arena, p = state.player;
+        p.x = A.x0 + 60; p.y = C.groundY; p.vx = 0; p.vy = 0; p.grounded = true; p.face = 1;
+        state.cam.x = Math.max(0, Math.min(p.x - 160, state.level.width - C.screenW));
+        state.checkpoint = { id: 'C2', x: 2576 };
+        state.enemies = state.enemies.filter((e) => e.def.x > 9999);
+        state.arena = { state: 'boss', wave: C.gauntlet.waves.length, timer: 0.3, spawnCount: 8 };
+      }
       const seen = new Set();
       let f = 0;
       const limit = frames || 60 * 600;

@@ -64,15 +64,20 @@
 
     checkpoints: [ { id: 'C1', x: 1264 }, { id: 'C2', x: 2576 } ],
 
+    // Zombie roster (2026-10-20, owner answer 2: all four new types in level 1, the jogger kept at 7). One new idea per screen,
+    // each introduced alone, then mixed. 17 bodies: 7 joggers, 3 hippies, 2 cheerleaders, 1 sweater, 3 babies, 1 vendor.
     enemies: [
-      { type: 'jogger', x: 540 },                                         // screen 2: first zombie
-      { type: 'jogger', x: 780 }, { type: 'jogger', x: 940 },             // screen 3
+      { type: 'jogger', x: 540 },                                         // screen 2: first zombie, under the whip prompt
+      { type: 'jogger', x: 780 }, { type: 'hippie', x: 940 },             // screen 3: a jogger under the Play Possum prompt, then the first hippie by the second rock (three whips, or play dead and walk past)
       { type: 'jogger', x: 1180 },                                        // screen 4: guards the lid
-      { type: 'jogger', x: 1420 }, { type: 'jogger', x: 1540 },           // screen 5
+      { type: 'cheerleader', x: 1420 }, { type: 'jogger', x: 1540 },      // screen 5: the first leap, between the two lamps (jump onto one to dodge her)
       { type: 'vendor', x: 1800 },                                        // screen 6: behind the cart
-      { type: 'jogger', x: 2080 }, { type: 'jogger', x: 2112 }, { type: 'jogger', x: 2144 }, // screen 7
-      { type: 'jogger', x: 2290 }, { type: 'jogger', x: 2490 },           // screen 8: pond edges
-      { type: 'jogger', x: 2930 }, { type: 'jogger', x: 3040 }, { type: 'jogger', x: 3160 }, // screen 10
+      { type: 'jogger', x: 2080 }, { type: 'jogger', x: 2112 }, { type: 'hippie', x: 2150 }, // screen 7: the clump (the Ringmaster's spot in level 2)
+      { type: 'jogger', x: 2290 },                                        // screen 8: pond edge (the far-bank jogger is gone; the pond is the hazard)
+      { type: 'sweater', x: 2720 },                                       // screen 9: right after C2, standing on the second lid. He takes it off you in one shove
+      { type: 'baby', x: 3010, litter: 3 },                               // screen 10: the litter, penned between the rock (2960) and the fence (3100). Play Possum does nothing to them
+      { type: 'cheerleader', x: 3160 },                                   // screen 10: penned between the two fences
+      { type: 'hippie', x: 3440 },                                        // screen 11: after the chainsaw (3300): your first saw victim
     ],
 
     carts: [ { x: 1688 } ],                  // screen 6; x = left edge, 64 px wide
@@ -100,9 +105,10 @@
     prompts: [
       { x0: 0,    x1: 300,  text: 'ARROWS: MOVE   Z: JUMP   IT\'S NIGHT. IT\'S ZOMBIES. FINE.', touch: 'ARROW PAD: MOVE   JUMP BUTTON: JUMP   FUCK ZOMBIES.' },
       { x0: 340,  x1: 660,  text: 'X: TAIL-WHIP. SMACK THE DEAD BASTARDS.', touch: 'WHIP BUTTON: TAIL-WHIP. SMACK THE DEAD BASTARDS.' },
+      { x0: 680,  x1: 760,  text: 'C: PLAY DEAD. ZOMBIES ARE DUMB AS SHIT.', touch: 'POSSUM BUTTON: PLAY DEAD. ZOMBIES ARE DUMB AS SHIT.' }, // moved from screen 7 (2026-10-20): the screen-3 hippie is the demo
       { x0: 1060, x1: 1160, text: 'TRASH LID: BLOCKS 3 HITS. CLASSY AS SHIT.' },
       { x0: 1620, x1: 1760, text: 'WHIP THE CART TWICE. FREE HOT DOGS. THEY HEAL. DON\'T ASK.' },
-      { x0: 1920, x1: 2080, text: 'C: PLAY DEAD. ZOMBIES ARE DUMB AS SHIT.', touch: 'POSSUM BUTTON: PLAY DEAD. ZOMBIES ARE DUMB AS SHIT.' },
+      { x0: 2660, x1: 2760, text: 'BIG LAD. HE WANTS YOUR LID.' },                                                                      // screen 9: the sweater
       { x0: 3270, x1: 3380, text: "SOMEBODY LEFT A CHAINSAW. HOLD X. FUCK 'EM UP.", touch: "SOMEBODY LEFT A CHAINSAW. HOLD WHIP. FUCK 'EM UP." },
       { x0: 3380, x1: 3520, text: 'BETHESDA TERRACE AHEAD. SHIT GETS REAL.' },
     ],

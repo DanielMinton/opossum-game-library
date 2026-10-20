@@ -127,9 +127,11 @@ To answer, edit this file, or just tell Claude (for example, "go with the sugges
 
 ### 24. Which types go in level 1?
 - **Your answer (Confirmed 2026-10-20): all four**, each in a contrasting colour scheme. The real art is being produced separately; until it lands, the coded placeholders also use contrasting colours (hippie purple and olive, sweater zigzag purple, teal and gold, cheerleader maroon and cream, baby pastel pink and blue with a pink brain, the Brute huge and pale with dark gauntlets).
+- **Placed (2026-10-20, Proposed):** 17 zombies in level 1: a hippie on screen 3 (the Play Possum demo, so that prompt moved from screen 7 to screen 3), a cheerleader on screen 5, the clump on screen 7 (two joggers and a hippie), the sweater on the second lid after checkpoint 2, the baby litter and a second cheerleader on screen 10, a hippie right after the chainsaw. The gauntlet is two mixed waves (two joggers and a cheerleader; then the litter, a hippie and a jogger), then the Brute. Say so if you'd rather the Play Possum lesson stayed on screen 7, or want the sweater in a wave.
 
 ### 25. Keep the jogger?
 - **Your answer (Confirmed 2026-10-20): yes.** He drops from 14 placements to about 7; the other spots become the new types.
+- **Done (2026-10-20):** 7 jogger placements in the park, plus 3 in the gauntlet waves.
 
 ### 26. Where does the Brute go, and what does Sammy get before him?
 - **Your answer (Confirmed 2026-10-20):** the Brute comes **after the final gauntlet wave, before the exit**. Right before him Sammy gets a **power-up** (a trash lid or a hot dog cache: Claude picks one and marks it Proposed) **and the chainsaw**: today's pickup on screen 11 (x 3300) stays, and a second pickup or a refuel appears inside the arena when the boss starts, so he always has a saw for the boss.
