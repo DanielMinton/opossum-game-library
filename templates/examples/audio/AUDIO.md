@@ -60,6 +60,10 @@ How to use this example: real copies go in `assets/audio/music/<asset-id>/` and 
 | sfx-gate-open | Gauntlet cleared, exit gate opens |
 | sfx-level-clear | Level-clear jingle |
 | sfx-start | Start pressed on the title screen |
+| sfx-cheer | Zombie cheerleader stops and cheers: the tell before her leap (2026-10-20) |
+| sfx-leap | Zombie cheerleader launches her leap |
+| sfx-baby-rattle | Zombie baby's rattle smack |
+| sfx-baby-cry | Zombie baby goes down |
 
 Not in the game yet: a UI select/confirm sound (no menus to use it).
 

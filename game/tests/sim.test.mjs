@@ -58,6 +58,7 @@ test('level data: everything sits on solid ground inside the level and platforms
     assert.ok(e.x > 0 && e.x < L.width, 'enemy inside level ' + e.x);
     assert.ok(S.isSupported(s, e.x, G), 'enemy on ground at ' + e.x);
   }
+  for (const e of s.enemies) assert.ok(S.isSupported(s, e.x, G), 'every zombie (litters included) stands on ground: ' + e.id + ' at ' + e.x);
   for (const c of L.checkpoints) assert.ok(S.isSupported(s, c.x, G), 'checkpoint on ground ' + c.id);
   assert.ok(S.isSupported(s, L.start.x, G));
   for (const p of L.platforms) assert.ok(G - p.y <= jumpH - 2, 'platform reachable at ' + p.x);
@@ -436,7 +437,7 @@ function withStubType(fields, fn) {
 
 test('enemy types: every type is one complete row: config block, brain, start state, drawer, and a strip for every animation', () => {
   const names = Object.keys(S.ENEMY_TYPES);
-  assert.deepEqual(names, ['jogger', 'vendor'], 'the two types today, in config order');
+  assert.deepEqual(names, ['jogger', 'vendor', 'cheerleader', 'baby'], 'the types today, in config order');
   const keys = new Set(S.ASSET_MANIFEST.map((m) => m.key));
   for (const [name, T] of Object.entries(S.ENEMY_TYPES)) {
     assert.equal(T.name, name);
@@ -448,7 +449,8 @@ test('enemy types: every type is one complete row: config block, brain, start st
     for (const st of T.states) assert.ok(T.anims[st], name + ': state ' + st + ' has an animation');
     for (const anim of new Set(Object.values(T.anims))) assert.ok(keys.has(T.cfg.art + ':' + anim), name + ': manifest strip ' + T.cfg.art + ':' + anim);
     assert.equal(typeof S.ENEMY_DRAW[name], 'function', name + ' has a drawer in render.js');
-    assert.ok(['pop', 'deflate', 'sliced'].includes(T.cfg.defeatStyle) && ['pop', 'deflate', 'sliced'].includes(T.cfg.sawStyle), name + ' defeat styles are drawn');
+    const styles = ['pop', 'deflate', 'sliced', 'burst'];
+    assert.ok(styles.includes(T.cfg.defeatStyle) && styles.includes(T.cfg.sawStyle), name + ' defeat styles are drawn');
   }
   assert.equal(S.ENEMY_TYPES.jogger.brain, 'walker'); assert.equal(S.ENEMY_TYPES.vendor.brain, 'turret');
   for (const d of S.LEVEL1.enemies) assert.ok(S.ENEMY_TYPES[d.type], 'level 1 places a known type: ' + d.type);
@@ -530,6 +532,211 @@ test('enemy types: flinch false = a hit flashes it white, it keeps coming, and i
     for (let i = 0; i < 2; i++) { e.state = 'confused'; e.x = s.player.x + 20; s.player.face = 1; step(s, { pressed: { attack: true } }, sec(0.3)); }
     assert.equal(e.state, 'defeat'); assert.equal(e.defeatStyle, 'pop');
   });
+});
+
+// ---------- cheerleader and baby (zombie roster, 2026-10-20) ----------
+// A game on level 1's ground with only the given enemies (no carts or pickups), Sammy stood at x.
+function withEnemies(enemies, x, opts = {}) {
+  const s = S.newGame(Object.assign({}, S.LEVEL1, { enemies }));
+  step(s, { pressed: { start: true } });
+  s.carts = []; s.pickups = [];
+  place(s, x, opts); events(s);
+  return s;
+}
+const leapFrames = (s, e, spec, max = sec(1.5)) => { // frames spent airborne; spec(e) gives the input each frame
+  let n = 0, hitsInAir = 0;
+  for (let i = 0; i < max; i++) {
+    step(s, spec ? spec(e) : {});
+    if (e.state === 'leap') { n += 1; hitsInAir = s.stats.hits; }
+    if (e.state === 'land') break;
+  }
+  return { frames: n, hitsInAir };
+};
+
+test('cheerleader: she stops and cheers for 0.45 s (harmless, idle strip), then leaps about 72 px in about 0.42 s; the leap hurts on touch', () => {
+  const s = withEnemies([{ type: 'cheerleader', x: 672 }], 600);
+  const e = s.enemies[0]; e.state = 'chase'; e.face = -1; e.cd = 0;
+  step(s);
+  assert.equal(e.state, 'windup'); assert.equal(e.anim, 'idle', 'the tell shows the idle strip (she cheers)');
+  assert.ok(events(s).includes('sfx-cheer'));
+  // Harmless while she cheers, even with Sammy pressed against her.
+  s.player.x = e.x - 10; step(s, {}, sec(0.2)); assert.equal(s.stats.hits, 0, 'the windup never hurts');
+  s.player.x = 600;
+  const more = runUntil(s, () => e.state === 'leap', sec(0.5));
+  assert.ok(Math.abs(sec(0.2) + more - sec(C.cheerleader.leapWindup)) <= 2, 'the tell lasts 0.45 s: ' + (sec(0.2) + more) + ' frames');
+  assert.equal(e.anim, 'attack');
+  assert.ok(events(s).includes('sfx-leap'));
+  const x0 = e.x;
+  const r = leapFrames(s, e);
+  assert.equal(e.state, 'land');
+  assert.ok(Math.abs(r.frames - sec(2 * C.cheerleader.leapVy / C.gravity)) <= 2, 'about 0.42 s in the air: ' + r.frames + ' frames');
+  assert.ok(Math.abs(x0 - e.x) > 64 && Math.abs(x0 - e.x) < 80, 'about 72 px long: ' + (x0 - e.x));
+  assert.ok(Math.abs(S.leapLength(C.cheerleader) - 72) < 2, 'leapLength says 72');
+  assert.equal(r.hitsInAir, 1, 'a Sammy who just stands there is hit by the leap');
+  assert.equal(s.player.state, 'hurt');
+  // Stuck on landing for 0.2 s, harmless, then back to the chase with the leap on cooldown.
+  s.player.state = 'normal'; s.player.invuln = 0; s.player.x = e.x + 4; s.player.vx = 0; s.player.vy = 0; s.player.y = G; s.player.grounded = true;
+  const hits = s.stats.hits;
+  let stuck = 0;
+  for (; stuck < sec(0.5) && e.state === 'land'; stuck++) { step(s); if (e.state === 'land') assert.equal(s.stats.hits, hits, 'the landing never hurts'); }
+  assert.ok(Math.abs(stuck - sec(C.cheerleader.leapLand)) <= 2, 'stuck about 0.2 s: ' + stuck + ' frames');
+  assert.equal(e.state, 'chase'); assert.ok(e.cd >= C.cheerleader.leapCooldown - 0.05, 'cooldown ' + e.cd);
+});
+
+test('cheerleader: a step back makes her land short, a jump at the launch clears her, and she never leaps where the landing is not ground', () => {
+  // Step back during the cheer: she lands about 46 px short of Sammy.
+  let s = withEnemies([{ type: 'cheerleader', x: 672 }], 600), e = s.enemies[0];
+  e.state = 'chase'; e.face = -1; e.cd = 0;
+  let r = leapFrames(s, e, () => ({ held: { left: true } }));
+  assert.equal(e.state, 'land'); assert.equal(r.hitsInAir, 0, 'missed'); assert.equal(s.stats.hits, 0);
+  assert.ok(e.x - s.player.x > 40, 'she lands well short: ' + (e.x - s.player.x));
+  // Jump as she launches: Sammy sails over her.
+  s = withEnemies([{ type: 'cheerleader', x: 672 }], 600); e = s.enemies[0];
+  e.state = 'chase'; e.face = -1; e.cd = 0;
+  let jumped = false;
+  r = leapFrames(s, e, (q) => { if (q.state !== 'leap') return {}; const first = !jumped; jumped = true; return { pressed: { jump: first }, held: { jump: true } }; });
+  assert.equal(e.state, 'land'); assert.equal(r.hitsInAir, 0, 'cleared');
+  assert.ok(s.player.y < G - 40, 'Sammy is still in the air over her: ' + s.player.y);
+  // The pond: her landing spot would be water, so she waits instead of leaping (chase, standing still).
+  s = withEnemies([{ type: 'cheerleader', x: 2290 }], 2330, { cp: 1264 }); e = s.enemies[0];
+  e.state = 'chase'; e.face = 1; e.cd = 0;
+  step(s, {}, sec(1));
+  assert.notEqual(e.state, 'windup'); assert.notEqual(e.state, 'leap');
+  assert.ok(e.x < 2344 && e.y === G, 'still on the bank: ' + e.x);
+  assert.ok(!S.isSupported(s, e.x + S.leapLength(C.cheerleader), G), 'the landing spot is the pond');
+  // A fence in the lane: she doesn't leap into it (she waits on her side; the bot walks on after half a second).
+  s = withEnemies([{ type: 'cheerleader', x: 1540 }], 1600); e = s.enemies[0]; // fence post at 1580, Sammy just past it
+  e.state = 'chase'; e.face = 1; e.cd = 0;
+  leapFrames(s, e);
+  assert.ok(!events(s).includes('sfx-leap') && e.state === 'chase', 'no leap into the fence: ' + e.state);
+  assert.ok(e.x < 1580, 'never passes the fence: ' + e.x);
+  // A walker that doesn't leap (the jogger) is untouched by any of this: the same spot, it lunges as before.
+  s = withEnemies([{ type: 'jogger', x: 1500 }], 1560); e = s.enemies[0];
+  e.state = 'chase'; e.face = 1; e.cd = 0; s.player.x = 1540;
+  assert.ok(runUntil(s, () => e.state === 'attack', sec(2)) >= 0);
+});
+
+test('cheerleader: Play Possum confuses her, she forgets Sammy after 0.75 s, and a leap already started finishes in the air', () => {
+  const s = withEnemies([{ type: 'cheerleader', x: 660 }], 600), e = s.enemies[0];
+  e.state = 'chase'; e.face = -1; e.cd = 9; s.player.possumCd = 0;
+  step(s, { pressed: { possum: true } });
+  assert.equal(e.state, 'confused'); assert.equal(e.anim, 'idle');
+  step(s, {}, sec(C.possum.maxTime + C.possum.getUpTime + 0.1));
+  assert.equal(s.player.state, 'normal'); assert.equal(e.state, 'patrol');
+  assert.ok(e.ignoreT > 0.6 && e.ignoreT <= 0.75, 'short grace: ' + e.ignoreT);
+  assert.equal(C.jogger.possumIgnore, 1.5, 'the jogger keeps its longer grace');
+  // Playing dead under a leap: she stays airborne, lands, then stands confused (god mode here, so the bump below doesn't wake her).
+  for (const god of [true, false]) {
+    const t = withEnemies([{ type: 'cheerleader', x: 672 }], 600), f = t.enemies[0]; t.god = god;
+    f.state = 'chase'; f.face = -1; f.cd = 0;
+    step(t, {}, sec(C.cheerleader.leapWindup) + 3);
+    assert.equal(f.state, 'leap'); t.player.possumCd = 0;
+    step(t, { pressed: { possum: true } });
+    assert.equal(f.state, 'leap', 'not frozen in mid-air'); assert.ok(f.confused);
+    const r = leapFrames(t, f);
+    assert.equal(f.state, 'land');
+    step(t, {}, sec(C.cheerleader.leapLand) + 1);
+    if (god) assert.equal(f.state, 'confused', 'confused once she lands');
+    else { assert.equal(r.hitsInAir, 1, 'a bump while lying there still hurts'); assert.equal(f.state, 'chase', 'and the hit wakes her, as any hit does'); }
+  }
+});
+
+test('baby: one whip pops it (red blood, its own cry), the chainsaw slices it like anyone, and a level entry with litter 3 stands three 32 px apart', () => {
+  const s = withEnemies([{ type: 'baby', x: 640, litter: 3 }], 600);
+  assert.deepEqual(s.enemies.map((e) => [e.id, e.x, e.home]), [['e0', 640, 640], ['e0-1', 672, 672], ['e0-2', 704, 704]], 'three babies, 32 px apart, each with its own spot');
+  assert.ok(s.enemies.every((e) => e.def === s.level.enemies[0]), 'all three come from the one entry');
+  assert.equal(C.baby.litterGap, 32);
+  s.god = true; // the kills, not the bumps, are under test here
+  const b = s.enemies[0]; b.state = 'chase'; b.x = 622; b.face = -1; b.cd = 9;
+  step(s, { pressed: { attack: true } }, sec(0.2));
+  assert.equal(b.state, 'defeat'); assert.equal(b.defeatStyle, 'pop'); assert.equal(b.hp, 0);
+  const ev = events(s);
+  assert.ok(ev.includes('sfx-baby-cry') && ev.includes('sfx-zombie-defeat-comedic'), 'its own cry plus the shared sound: ' + ev);
+  assert.ok(s.effects.some((f) => f.kind === 'blood'), 'bleeds like anyone (owner answer 8)');
+  // The saw: sliced, chunks, no special case.
+  step(s, {}, sec(0.3)); // let the whip finish
+  const c = s.enemies[1]; c.state = 'chase'; c.x = s.player.x + 20; c.face = -1; c.cd = 9;
+  s.player.saw = { fuel: C.chainsaw.fuel, revving: false, tick: 0, slash: 0 };
+  step(s, { pressed: { attack: true }, held: { attack: true } }, 3);
+  assert.equal(c.state, 'defeat'); assert.equal(c.defeatStyle, 'sliced');
+  assert.ok(s.effects.some((f) => f.kind === 'chunk'));
+  // A plain entry is still one zombie; a litter respawns whole after a K.O.
+  const one = withEnemies([{ type: 'baby', x: 640 }], 600);
+  assert.equal(one.enemies.length, 1);
+  const t = withEnemies([{ type: 'baby', x: 1400, litter: 3 }], 1300, { cp: 1264 });
+  t.enemies.length = 0; t.player.hp = 1; t.player.invuln = 0; t.player.state = 'normal';
+  S.hurtPlayer(t, { hazard: true }); step(t, {}, sec(C.sammy.koTime + C.sammy.koWait) + 2);
+  assert.equal(t.enemies.length, 3, 'the litter is back after the restart');
+  assert.deepEqual(t.enemies.map((e) => e.home), [1400, 1432, 1464]);
+});
+
+test('baby: Play Possum does nothing to it; it notices a lying Sammy, keeps coming, and its rattle reaches him on the ground', () => {
+  const s = withEnemies([{ type: 'baby', x: 680 }, { type: 'jogger', x: 660 }], 600);
+  const b = s.enemies[0], j = s.enemies[1];
+  b.state = 'patrol'; j.state = 'chase'; s.player.possumCd = 0; s.player.face = 1;
+  step(s, { pressed: { possum: true } });
+  assert.equal(j.state, 'confused', 'the jogger beside it is fooled');
+  assert.notEqual(b.state, 'confused'); assert.ok(!b.confused, 'the baby is not');
+  step(s, {}, sec(0.5));
+  assert.equal(b.state, 'chase', 'it noticed the lying Sammy and came for him');
+  const t = runUntil(s, () => s.stats.hits > 0, sec(2));
+  assert.ok(t >= 0, 'it bumps into Sammy while he lies there, and that hurts (owner question 10)');
+  assert.ok(s.player.state === 'hurt' || s.player.state === 'ko');
+  assert.equal(s.player.possumCd, C.possum.cooldown, 'a hit while playing dead costs the cooldown');
+  // Its rattle smack: a standing Sammy just out of reach gets the attack (own sound), and the box starts 16 px up, not the jogger's 26.
+  const u = withEnemies([{ type: 'baby', x: 640 }], 600), d = u.enemies[0];
+  d.state = 'chase'; d.face = -1; d.cd = 0; d.x = 600 + C.baby.attackRange;
+  step(u);
+  assert.equal(d.state, 'attack'); assert.ok(events(u).includes('sfx-baby-rattle'), 'the smack has its own sound');
+  assert.equal(runUntil(u, () => u.stats.hits > 0, sec(C.baby.attackTime)) >= 0, true, 'the rattle lands');
+  assert.deepEqual([C.baby.hitY, C.baby.bodyH, C.baby.hp, C.baby.chaseSpeed, C.baby.possum], [16, 20, 1, 90, 'ignore']);
+  assert.ok(C.baby.chaseSpeed > C.jogger.chaseSpeed && C.baby.chaseSpeed < C.sammy.runSpeed, 'faster than a jogger, slower than Sammy');
+});
+
+test('cheerleader and baby: every state draws in their own colours (maroon and cream, pastel pink and blue), gags fit the font, and the autopilot still clears a level with them in it', () => {
+  const s = withEnemies([{ type: 'cheerleader', x: 640 }, { type: 'baby', x: 660 }], 600);
+  const own = { cheerleader: [S.PAL.cheer, S.PAL.cream], baby: [S.PAL.babyPink, S.PAL.babyBlue, S.PAL.brain] };
+  for (const e of s.enemies) {
+    const T = S.enemyType(e.type);
+    for (const st of T.states.concat(['flash'])) {
+      const ctx = colorCtx();
+      Object.assign(e, { state: st === 'flash' ? 'chase' : st, t: 0.2, anim: T.anims[st === 'flash' ? 'chase' : st], animT: 0.2, flashT: st === 'flash' ? 0.1 : 0, vy: st === 'leap' ? -50 : 0 });
+      S.render(ctx, s);
+      if (st === 'flash') assert.ok(ctx.used.has(S.PAL.white.toLowerCase()), e.type + ' flashes white');
+      else if (!['defeat', 'dead', 'hitreact'].includes(st)) for (const c of own[e.type]) assert.ok(ctx.used.has(c.toLowerCase()), e.type + ' ' + st + ' draws ' + c);
+    }
+    for (const style of [T.cfg.defeatStyle, T.cfg.sawStyle]) {
+      for (const t of [0.05, 0.3, 0.6]) {
+        const ctx = colorCtx();
+        Object.assign(e, { state: 'defeat', t, anim: 'defeat', animT: t, defeatStyle: style, sliceDir: 1 });
+        S.render(ctx, s);
+        assert.ok([S.PAL.blood, S.PAL.bloodHi, S.PAL.blood0].some((c) => ctx.used.has(c.toLowerCase())), e.type + ' ' + style + ' at ' + t + ' bleeds red');
+      }
+    }
+    e.state = 'chase'; e.defeatStyle = T.cfg.defeatStyle;
+  }
+  for (const [type, lists] of Object.entries(S.GAGS_BY_TYPE)) for (const [style, lines] of Object.entries(lists)) for (const line of lines) {
+    assert.ok(line.length <= 16, type + ' ' + style + ': "' + line + '" is 16 characters or fewer');
+    for (const ch of line) assert.ok(S.GLYPHS[ch.toUpperCase()], `"${ch}" in "${line}" is in the font`);
+  }
+  assert.deepEqual(Object.keys(S.GAGS_BY_TYPE.cheerleader), ['burst']); assert.deepEqual(Object.keys(S.GAGS_BY_TYPE.baby), ['pop']);
+  // Palette: the new colours sit on the 9-bit grid and none is a gore colour.
+  const gore = new Set(Object.values(S.GORE_COLORS).map((c) => c.toLowerCase()));
+  for (const k of ['cheer', 'cheerDark', 'cream', 'creamDark', 'hair', 'babyPink', 'babyBlue', 'babyBlueDark', 'babySkin', 'brain', 'rattle']) {
+    assert.ok(!gore.has(S.PAL[k].toLowerCase()), k + ' is not a gore colour');
+  }
+  // The autopilot (god mode, as the full playthrough) clears level 1 with two cheerleaders and a litter added on the way.
+  const extra = [{ type: 'cheerleader', x: 1420 }, { type: 'baby', x: 3010, litter: 3 }, { type: 'cheerleader', x: 3160 }];
+  const g = S.newGame(Object.assign({}, S.LEVEL1, { enemies: S.LEVEL1.enemies.concat(extra) })); g.god = true;
+  const bot = S.makeBot();
+  let bursts = 0, pops = 0;
+  for (let f = 0; f < sec(150) && g.mode !== 'clear'; f++) {
+    S.update(g, S.botInput(g, bot)); g.events.length = 0;
+    bursts = Math.max(bursts, g.enemies.filter((e) => e.type === 'cheerleader' && e.defeatStyle === 'burst' && e.state === 'defeat').length);
+    pops = Math.max(pops, g.enemies.filter((e) => e.type === 'baby' && e.state === 'defeat').length);
+  }
+  assert.equal(g.mode, 'clear', 'the level is still clearable');
+  assert.ok(bursts > 0 && pops > 0, 'it whipped a cheerleader and a baby on the way: ' + bursts + ', ' + pops);
 });
 
 // ---------- chainsaw (Stage B) ----------
@@ -875,12 +1082,17 @@ test('sound manifest: every sound the game triggers has a planned file name and 
   const ids = new Set(S.SOUND_MANIFEST.map((m) => m.id));
   assert.equal(ids.size, S.SOUND_MANIFEST.length, 'no duplicate sound ids');
   // 'sfx-loop' is an event type (start/stop a looping sound), not a sound id.
-  const used = [...new Set([...simSrc.matchAll(/'(sfx-[a-z0-9-]+)'/g)].map((m) => m[1]))].filter((id) => id !== 'sfx-loop');
+  // Sounds named in config.js (a type's attackSfx / defeatSfx) count too: sim.js plays them without naming them.
+  const cfgSrc = fs.readFileSync(path.join(src, 'config.js'), 'utf8');
+  const used = [...new Set([...(simSrc + cfgSrc).matchAll(/'(sfx-[a-z0-9-]+)'/g)].map((m) => m[1]))].filter((id) => id !== 'sfx-loop');
   assert.ok(used.length > 15, 'found the sound calls in sim.js');
   for (const id of used) {
     assert.ok(ids.has(id), id + ' is in SOUND_MANIFEST');
     assert.ok(audioSrc.includes("'" + id + "':"), id + ' has a placeholder beep');
   }
+  for (const id of ['sfx-cheer', 'sfx-leap', 'sfx-baby-rattle', 'sfx-baby-cry']) assert.ok(used.includes(id), id + ' is played');
+  // Every planned sound has its folder in the library, so a real file has a place to land.
+  for (const m of S.SOUND_MANIFEST) assert.ok(fs.existsSync(path.join(here, '..', '..', 'assets', m.dir, '.gitkeep')), m.id + ' has assets/' + m.dir + '.gitkeep');
   for (const m of S.SOUND_MANIFEST) assert.equal(m.dir, 'audio/' + m.kind + '/' + m.id + '/');
   for (const [key, list] of Object.entries(S.MUSIC_TRACKS)) for (const id of list) assert.ok(ids.has(id), key + ' music ' + id + ' is planned');
   const music = [...simSrc.matchAll(/music\(s, ?'([^']+)'\)/g)].map((m) => m[1]).filter((k) => !['stop', 'pause', 'resume', 'clear'].includes(k));
@@ -1097,6 +1309,14 @@ test('animation timings in config.js match frames / fps of their art strips', ()
     [C.vendor.hitReactTime, len('vendor:hit'), 'vendor hitReactTime'],
     [C.vendor.defeatTime, len('vendor:defeat'), 'vendor defeatTime'],
     [C.cart.tipTime, len('cart:tipping'), 'cart tipTime'],
+    // Cheerleader: only her clocked strips (the leap's attack strip is picked by state; windup and landing are not strips).
+    [C.cheerleader.hitReactTime, len('cheerleader:hit'), 'cheerleader hitReactTime'],
+    [C.cheerleader.defeatTime, len('cheerleader:defeat'), 'cheerleader defeatTime'],
+    [C.baby.attackTime, len('baby:attack'), 'baby attackTime'],
+    [C.baby.attackHitStart, at('baby:attack', 'hitFrame'), 'baby attackHitStart'],
+    [C.baby.attackHitEnd, (strip('baby:attack').hitFrame + 1) / strip('baby:attack').fps, 'baby attackHitEnd'],
+    [C.baby.hitReactTime, len('baby:hit'), 'baby hitReactTime'],
+    [C.baby.defeatTime, len('baby:defeat'), 'baby defeatTime'],
   ];
   for (const [value, want, name] of table) {
     assert.ok(Number.isFinite(want), name + ': strip has the frame info');
@@ -1558,7 +1778,7 @@ const listPngs = (dir) => {
 test('art templates: every planned picture has a template of the exact size, outside assets/, and in a contact sheet', async () => {
   const T = await import('../tools/make-art-templates.mjs');
   const { readChunks } = await import('../tools/png.mjs');
-  assert.equal(S.ASSET_MANIFEST.length, 57);
+  assert.equal(S.ASSET_MANIFEST.length, 67);
   for (const m of S.ASSET_MANIFEST) {
     const rel = T.templatePath(m);
     assert.match(rel, /-TEMPLATE\.png$/);

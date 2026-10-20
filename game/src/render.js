@@ -200,7 +200,10 @@
     sliced: ['RIIIP.', 'WELL, SHIT.', 'HALVSIES.', 'FUCK ME.'],
     low: ['SHHK.', 'WELL, SHIT.', 'DONE.'],
   };
-  const GAGS_BY_TYPE = {}; // e.g. hippie: { melt: ['PEACE. OUT.', …] }
+  const GAGS_BY_TYPE = { // e.g. hippie: { melt: ['PEACE. OUT.', …] }
+    cheerleader: { burst: ['GO TEAM. DEAD.', 'RAH RAH. SHIT.', 'SPIRIT: ZERO.'] },
+    baby: { pop: ['NAP TIME.', 'LITTLE SHIT.', 'GOO GOO. GONE.'] },
+  };
   S.GAGS = GAGS; S.GAGS_BY_TYPE = GAGS_BY_TYPE;
   // Gags drawn this frame (reset in S.render), so several kills at once stack instead of printing over each other.
   let gagsShown = [], camNow = 0;
@@ -312,9 +315,124 @@
     if (e.state === 'throw') R(ctx, K.vendor, x + f * 8, y - hgt - 2, 4 * f, 10);
   }
 
+  // A 1 px dark outline round a list of boxes [x, y, w, h], then the boxes themselves: the coded placeholders read as one silhouette.
+  function outlined(ctx, boxes) {
+    for (const [x, y, w, h] of boxes) R(ctx, K.black, x - 1, y - 1, w + 2, h + 2);
+    for (const [x, y, w, h, col] of boxes) R(ctx, col, x, y, w, h);
+  }
+
+  // ---------- cheerleader (maroon and cream; the leap) ----------
+  // Real art: the attack strip is picked by state (1 rising, 2 falling, 3 landing); the windup shows the idle strip (she cheers).
+  function drawCheerleader(ctx, e) {
+    const flash = flashing(e), style = styleOf(e), x = Math.round(e.x), y = Math.round(e.y);
+    if (defeated(e) && style === 'sliced') {
+      drawSliced(ctx, e, () => { if (!sprite(ctx, 'cheerleader:hit', 0, e.x, e.y, e.face, false, 0)) drawCheerleaderPlaceholder(ctx, e, false, true); }, 40);
+    } else {
+      const frame = e.state === 'leap' ? (e.vy < 0 ? 1 : 2) : e.state === 'land' ? 3 : null;
+      if (!sprite(ctx, 'cheerleader:' + e.anim, e.animT, e.x, e.y, e.face, false, frame, flash)) drawCheerleaderPlaceholder(ctx, e, flash);
+    }
+    if (defeated(e)) gag(ctx, e, style, y - 56);
+    if (e.state === 'confused') S.drawTextCentered(ctx, '?', x, y - 50, K.white, 2, K.black);
+    if (e.state === 'spawn') S.drawTextCentered(ctx, '!', x, y - 50, K.heart, 2, K.black);
+  }
+  // Maroon skirt and pom-poms, cream top and legs, blonde hair: nothing like the jogger's green or Sammy's grey-brown.
+  function drawCheerleaderPlaceholder(ctx, e, flash, standing) {
+    const x = Math.round(e.x), y = Math.round(e.y), f = e.face, t = e.t;
+    const body = flash ? K.white : K.cream, skirt = flash ? K.white : K.cheer;
+    if (!standing && defeated(e)) {
+      // Burst: she comes apart. The pom-poms and the bow fly off, the body folds into the skirt and a red splash.
+      const sink = Math.min(1, t / 0.4);
+      outlined(ctx, [[x - 8, y - 20 * (1 - sink) - 6, 16, 20 * (1 - sink) + 6, K.cheer], [x - 6, y - 4, 12, 4, K.cream]]);
+      for (const [d, phase] of [[-1, 0], [1, 0.5]]) {
+        const px = x + d * (8 + t * 60), py = y - 30 - Math.sin(Math.min(1, t + phase * 0.2) * 3) * 30 + t * t * 160;
+        if (py < y - 2) { R(ctx, K.cheer, px - 3, py - 3, 6, 6); R(ctx, K.cream, px - 1, py - 1, 2, 2); } else R(ctx, K.cheer, px - 3, y - 4, 6, 3);
+      }
+      const bx = x - f * t * 40, by = Math.min(y - 2, y - 44 + t * t * 220);
+      R(ctx, K.cheer, bx - 3, by, 6, 2); R(ctx, K.cream, bx - 1, by, 2, 2); // the hair bow
+      const sp = Math.min(28, Math.round(t * 50)); // the splash: a spreading pool, drops flying for the first moment
+      R(ctx, GORE.blood, x - sp / 2, y - 1, sp, 2);
+      if (t < 0.5) for (let i = -2; i <= 2; i++) R(ctx, i & 1 ? GORE.bloodHi : GORE.blood, x + i * (3 + t * 20), y - 14 - Math.abs(i) * 4 + t * 60, 2, 3);
+      return;
+    }
+    const leap = e.state === 'leap', land = e.state === 'land', cheer = e.state === 'windup' || e.state === 'confused' || e.state === 'spawn';
+    const crouch = land ? 6 : 0;                                    // stuck on landing: knees bent
+    const step = Math.floor(e.animT * 10) % 2;
+    const lean = leap ? f * 3 : 0;
+    const legs = leap ? [[x - 5, y - 10, 4, 6, body], [x + 1, y - 7, 4, 5, body]] : [[x - 6 + step * 2, y - 12 + crouch, 4, 12 - crouch, body], [x + 2 - step * 2, y - 12 + crouch, 4, 12 - crouch, body]];
+    const boxes = legs.concat([
+      [x - 8 + lean, y - 20 + crouch, 16, 8, skirt],                  // the pleated skirt, flared
+      [x - 5 + lean, y - 30 + crouch, 10, 10, body],                  // the top
+      [x - 5 + lean, y - 27 + crouch, 10, 3, skirt],                  // its maroon band
+      [x - 4 + lean, y - 40 + crouch, 8, 10, K.creamDark],            // face
+      [x - 5 + lean, y - 43 + crouch, 10, 5, flash ? K.white : K.hair], // hair
+      [x - f * 6 + lean - 2, y - 44 + crouch, 4, 2, K.cheer],         // the bow
+    ]);
+    // Pom-poms: up for the cheer, forward for the leap, down at the hips otherwise.
+    const pom = (px, py) => boxes.push([px - 3, py - 3, 6, 6, skirt], [px - 1, py - 1, 2, 2, body]);
+    if (cheer) { const up = Math.floor(e.animT * 6) % 2 ? 2 : 0; pom(x - 8, y - 46 + up); pom(x + 8, y - 46 - up); }
+    else if (leap) { pom(x + f * 11, y - 30); pom(x + f * 9, y - 22); }
+    else { pom(x - 9, y - 22 + crouch); pom(x + 9, y - 22 + crouch); }
+    outlined(ctx, boxes);
+    R(ctx, K.black, x + f * 2 - 1 + lean, y - 37 + crouch, 2, 2);  // eye
+    R(ctx, K.cheer, x + f * 3 + lean - 1, y - 33 + crouch, 3, 1);  // a maroon mouth
+  }
+
+  // ---------- baby (pastel pink and blue, mint skin, a pink brain; the litter) ----------
+  function drawBaby(ctx, e) {
+    const flash = flashing(e), style = styleOf(e), x = Math.round(e.x), y = Math.round(e.y);
+    if (defeated(e) && style === 'sliced') {
+      drawSliced(ctx, e, () => { if (!sprite(ctx, 'baby:hit', 0, e.x, e.y, e.face, false, 0)) drawBabyPlaceholder(ctx, e, false, true); }, 28);
+    } else if (!sprite(ctx, 'baby:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawBabyPlaceholder(ctx, e, flash);
+    if (defeated(e)) gag(ctx, e, style, y - 40);
+    if (e.state === 'spawn') S.drawTextCentered(ctx, '!', x, y - 38, K.heart, 2, K.black);
+  }
+  // A 30 px toddler: big bonneted head with the brain showing, one eyeball on a stalk, blue romper, white nappy, a yellow rattle.
+  function drawBabyPlaceholder(ctx, e, flash, standing) {
+    const x = Math.round(e.x), y = Math.round(e.y), f = e.face, t = e.t;
+    const skin = flash ? K.white : K.babySkin, romper = flash ? K.white : K.babyBlue, bonnet = flash ? K.white : K.babyPink;
+    const rattle = (rx, ry, ang) => { // a yellow ball on a stick held at (rx, ry); ang = 0 upright, 1 swung forward, 2 lying on its side
+      const [sx, sy, sw, sh] = ang === 2 ? [rx - 3, ry, 6, 1] : ang === 1 ? [Math.min(rx, rx + f * 5), ry - 1, 5, 1] : [rx, ry - 5, 1, 5];
+      R(ctx, K.black, sx, sy, sw, sh);
+      const bx = ang === 2 ? rx + 4 : ang === 1 ? rx + f * 6 : rx, by = ang === 2 ? ry : ang === 1 ? ry - 1 : ry - 7;
+      R(ctx, K.black, bx - 2, by - 2, 5, 5); R(ctx, K.rattle, bx - 1, by - 1, 3, 3);
+    };
+    if (!standing && defeated(e)) {
+      // Pop: the head (bonnet, brain and all) pops off and bounces away, the rattle flies the other way, the romper sinks.
+      const sink = Math.min(1, t / 0.5);
+      outlined(ctx, [[x - 6, y - 10 * (1 - sink) - 4, 12, 10 * (1 - sink) + 4, K.babyBlue], [x - 5, y - 3, 10, 3, K.white]]);
+      const hx = x - f * t * 60, hy = y - 26 - Math.abs(Math.sin(t * 9)) * 18 * (1 - t);
+      outlined(ctx, [[hx - 5, hy - 5, 10, 9, K.babySkin], [hx - 5, hy - 8, 10, 4, K.babyPink], [hx - 2, hy - 10, 4, 3, K.brain]]);
+      rattle(x + f * (6 + t * 70), Math.min(y - 1, y - 20 + t * t * 200), 2);
+      const pool = Math.min(16, Math.round(t * 40)); // a small red pool, like anyone's (owner answer 8)
+      R(ctx, GORE.bloodDark, x - pool / 2, y - 1, pool, 2);
+      if (t < 0.4) { // the neck stump squirts
+        const ny = y - 10 * (1 - sink) - 4;
+        R(ctx, GORE.blood, x - 2, ny - 4 - t * 10, 4, 4); R(ctx, GORE.bloodHi, x - 1, ny - 8 - t * 30, 2, 3);
+      }
+      return;
+    }
+    const attack = e.state === 'attack', swing = attack && e.t >= C.baby.attackHitStart;
+    const step = Math.floor(e.animT * 10) % 2, bob = e.state === 'patrol' || e.state === 'chase' ? step : 0;
+    outlined(ctx, [
+      [x - 4 + step * 2, y - 5, 3, 5, skin], [x + 1 - step * 2, y - 5, 3, 5, skin],  // legs
+      [x - 5, y - 9 - bob, 10, 4, K.white],                                           // nappy
+      [x - 6, y - 17 - bob, 12, 8, romper],                                           // romper
+      [x - 7, y - 28 - bob, 14, 12, skin],                                            // big head
+      [x - 8, y - 31 - bob, 16, 5, bonnet],                                           // bonnet
+      [x - 8, y - 27 - bob, 16, 1, K.white],                                          // its frill
+      [x - 3, y - 34 - bob, 6, 4, flash ? K.white : K.brain],                         // the brain, out the top
+    ]);
+    R(ctx, K.babyBlueDark, x - 2, y - 15 - bob, 4, 2);                                // bib button
+    // One eyeball on a stalk, the other a dot.
+    R(ctx, K.black, x + f * 5, y - 30 - bob, 1, 5); R(ctx, K.white, x + f * 5 - 1, y - 33 - bob, 3, 3); R(ctx, K.black, x + f * 5, y - 32 - bob, 1, 1);
+    R(ctx, K.black, x - f * 2, y - 24 - bob, 2, 2);
+    R(ctx, K.cheerDark, x + f * 2, y - 20 - bob, 3, 1);                               // mouth
+    rattle(x + f * 7, y - 14 - bob, swing ? 1 : 0);
+  }
+
   // One drawer per enemy type (S.ENEMY_TYPES). A type with no drawer is an error, never drawn as a jogger.
   // New types go here with their own drawer (real strip `<art>:<anim>` first, coded placeholder in contrasting colours when missing).
-  const DRAW = { jogger: drawJogger, vendor: drawVendor };
+  const DRAW = { jogger: drawJogger, vendor: drawVendor, cheerleader: drawCheerleader, baby: drawBaby };
   S.ENEMY_DRAW = DRAW;
   function drawEnemy(ctx, e) {
     const draw = DRAW[e.type];

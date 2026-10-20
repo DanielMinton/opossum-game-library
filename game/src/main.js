@@ -480,8 +480,9 @@
     p.shield = 3; draw('shield'); p.shield = 1; draw('shield-cracked'); p.possumCd = 3; draw('possum-cooldown');
     // Every enemy type in every state its brain has (dead is never drawn), plus the no-flinch flash, in its placeholder or real art.
     for (const [type, T] of Object.entries(S.ENEMY_TYPES)) {
-      const e = state.enemies.find((q) => q.type === type && q.state !== 'dead') || state.enemies.find((q) => q.type === type);
-      if (!e) continue;
+      // A type the level doesn't place yet is made on the spot, so every drawer gets drawn.
+      const e = state.enemies.find((q) => q.type === type && q.state !== 'dead') || state.enemies.find((q) => q.type === type) || S.makeEnemy({ type, x: p.x + 40 }, 0, { id: 'sweep-' + type });
+      if (!state.enemies.includes(e)) state.enemies.push(e);
       e.x = p.x + 40;
       for (const st of T.states) {
         if (st === 'dead') continue;
@@ -519,8 +520,7 @@
     for (const [type, T] of Object.entries(S.ENEMY_TYPES)) styles.push([type, T.cfg.defeatStyle], [type, T.cfg.sawStyle]);
     styles.forEach(([type, style], i) => {
       const e = state.enemies.find((q) => q.type === type && !q.goreDemo && q.state !== 'dead') ||
-        Object.assign({}, state.enemies.find((q) => q.type === type), { id: 'demo' + i });
-      if (!e.type) return;
+        Object.assign({}, state.enemies.find((q) => q.type === type) || S.makeEnemy({ type, x }, 0), { id: 'demo' + i });
       Object.assign(e, { goreDemo: true, x: x + i * 36, y: C.groundY, face: -1, state: 'defeat', t, anim: 'defeat', animT: t, defeatStyle: style });
       if (!state.enemies.includes(e)) state.enemies.push(e);
     });

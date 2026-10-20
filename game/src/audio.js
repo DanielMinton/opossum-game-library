@@ -29,6 +29,10 @@
     'sfx-chainsaw-rev': ['sawtooth', 90, 150, 0.06, 0.12], // loop: pitch wobbles between the two Hz, 0.06 s per wobble
     'sfx-chainsaw-cut': ['noise', 2400, 900, 0.08, 0.2],
     'sfx-gore-splat': ['noise', 400, 60, 0.25, 0.35],
+    'sfx-cheer': ['square', 660, 990, 0.3, 0.2],        // cheerleader: the "RAH" tell before her leap
+    'sfx-leap': ['noise', 300, 1200, 0.15, 0.15],       // cheerleader: launch whoosh
+    'sfx-baby-rattle': ['noise', 1800, 1400, 0.1, 0.2], // baby: rattle smack
+    'sfx-baby-cry': ['triangle', 900, 300, 0.4, 0.25],  // baby: its last wail
   };
   const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
   const TRACKS = {

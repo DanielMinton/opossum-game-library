@@ -100,7 +100,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     // art: the manifest prefix (`<art>:walk` …). start / startAnim: the state and animation it is made in.
     // flinch: false = a hit flashes it white and changes nothing else. knockback / sawKnockback: px/s pushed by a whip / a saw cut.
     // cartKnock: px/s pushed by the cart tipping over (0 = none). shieldPush: px it is pushed back when the lid blocks its hit.
-    // hitY: its attack box starts this many px above its feet. possum: 'confused' | 'shrug' (how Play Possum fools it).
+    // hitY: its attack box starts this many px above its feet. possum: 'confused' | 'shrug' | 'ignore' (how Play Possum fools it; 'ignore' = it doesn't).
+    // Optional: leap (the cheerleader's jump instead of a lunge), attackSfx / defeatSfx (a sound of its own), litterGap (level entries with `litter`).
     // possumIgnore: seconds it ignores Sammy after he gets up. defeatStyle / sawStyle: how it goes down from a whip / the saw.
     jogger: {                  // enemy-zombie-jogger ASSET.md
       brain: 'walker', art: 'jogger', start: 'patrol', startAnim: 'walk',
@@ -144,6 +145,50 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       defeatStyle: 'deflate', sawStyle: 'sliced',
     },
     // New enemy types go here (hippie, sweater, cheerleader, baby, brute): one block each, same fields, a `brain`.
+
+    cheerleader: {             // enemy-zombie-cheerleader: pom-poms, leaping lunge. Walker brain + leap (2026-10-20, Proposed)
+      brain: 'walker', art: 'cheerleader', start: 'patrol', startAnim: 'walk',
+      leap: true,              // instead of the lunge: stops and cheers (the tell, idle strip), then jumps at Sammy; hurts while airborne
+      hp: 2,
+      patrolSpeed: 36, chaseSpeed: 70, patrolRange: 64,
+      notice: 112, giveUpDist: 160, giveUpTime: 2.0,
+      leapRange: 72,           // starts the leap from this far
+      leapWindup: 0.45,        // the cheer: her only tell. Harmless
+      leapVx: 170, leapVy: 190, // about 0.42 s in the air, 20 px high, 72 px long
+      leapMaxAir: 0.6,         // safety: lands by then whatever happens
+      leapLand: 0.2,           // stuck on landing: harmless, whip her now
+      leapCooldown: 2.0,
+      attackRange: 72,         // = leapRange (the walker's chase stops this close; the leap replaces the lunge)
+      hitW: 18, hitH: 24,      // (the leap hurts with her body box; no separate attack box)
+      bodyW: 16, bodyH: 40,
+      hitReactTime: 2 / 12,
+      defeatTime: 8 / 12,
+      flinch: true, knockback: 120, sawKnockback: 40, cartKnock: 160, shieldPush: 16, hitY: 0,
+      possum: 'confused', possumIgnore: 0.75, // forgets fast: half a jogger's grace
+      defeatStyle: 'burst', sawStyle: 'sliced',
+    },
+
+    baby: {                    // enemy-zombie-baby: exposed brain, eyeball on a stalk, rattle. Comes in threes. Walker brain (2026-10-20, Proposed)
+      brain: 'walker', art: 'baby', start: 'patrol', startAnim: 'walk',
+      hp: 1,
+      patrolSpeed: 30, chaseSpeed: 90, patrolRange: 40, // faster than a jogger (60), slower than Sammy (110)
+      notice: 128, giveUpDist: 200, giveUpTime: 3.0,    // tenacious
+      attackRange: 18,
+      attackTime: 4 / 12,      // rattle smack: 4 frames @ 12 fps
+      attackHitStart: 2 / 12,  // hit frame = 2
+      attackHitEnd: 3 / 12,
+      attackCooldown: 0.8,
+      attackSfx: 'sfx-baby-rattle',
+      hitW: 12, hitH: 14,
+      bodyW: 12, bodyH: 20,    // 30 px sprite, 20 px body: the whip (10..22 px up) still overlaps the top 10 px
+      hitReactTime: 2 / 12,    // never seen in play (1 hp); kept for the art check
+      defeatTime: 8 / 12,
+      defeatSfx: 'sfx-baby-cry',
+      flinch: true, knockback: 0, sawKnockback: 0, cartKnock: 160, shieldPush: 8, hitY: 16, // the rattle box starts 16 px up (a jogger's is 26: too high for a toddler)
+      possum: 'ignore', possumIgnore: 0, // never fooled: toddlers don't know what dead is
+      defeatStyle: 'pop', sawStyle: 'sliced', // owner answer 8: red gore, sliced like anyone
+      litterGap: 32,           // a level entry { type: 'baby', litter: 3 } stands three of them this far apart
+    },
 
     cart: {                    // prop-hot-dog-cart INTERACTION.md
       w: 64, h: 48,
@@ -193,6 +238,9 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     // Scenery extras (2026-10-19, Proposed): foliage ramp, earth, lit stone, water foam, wood, bins. None of these are gore colours.
     grassHi: '#48906c', grassLo: '#004824', soilWarm: '#6c4848', soilWarmDk: '#482424', slateHi: '#9090b4', stoneMoon: '#b4b4d8',
     leaf3: '#6c2400', woodDk: '#482400', waterMid: '#2448b4', foam: '#b4d8fc', canMid: '#486c48',
+    // Zombie roster placeholders (2026-10-20, Proposed): contrasting schemes per type. None of these are gore colours.
+    cheer: '#902448', cheerDark: '#480024', cream: '#fcfcd8', creamDark: '#d8d890', hair: '#d8b46c',          // cheerleader: maroon and cream, blonde
+    babyPink: '#fc90d8', babyBlue: '#90b4fc', babyBlueDark: '#486cd8', babySkin: '#6cd8b4', brain: '#fc6cb4', rattle: '#fcfc48', // baby: pastel pink and blue, mint skin, pink brain
     // Reserved for gore only (STYLE_GUIDE "Reserved colours")
     blood0: '#480000', blood: '#900000', bloodHi: '#b40024', ichor0: '#486c00', ichor: '#90d800', ichorHi: '#d8fc48',
     bone: '#fcd8b4', meat: '#d86c6c',
@@ -384,6 +432,9 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   const sam = (extra) => Object.assign({ px: 28 }, extra || {});
   const JOG = 'enemies/enemy-zombie-jogger/';
   const VEN = 'enemies/enemy-zombie-hot-dog-vendor/';
+  const CHEER = 'enemies/enemy-zombie-cheerleader/'; // 48x48, feet (24, 47) like the jogger (zombie roster, 2026-10-20)
+  const BABY = 'enemies/enemy-zombie-baby/';         // a toddler: 32x32 cells, feet (16, 31), about 30 px standing
+  const baby = { fw: 32, fh: 32, px: 16, py: 31 };
   const CART = 'props/prop-hot-dog-cart/';
   const LID = 'items/item-powerup-trash-lid-shield/';
   const SAW = 'items/item-powerup-chainsaw/';
@@ -423,6 +474,21 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     strip('vendor:defeat', VEN + 'zombie-vendor-defeat-strip-v01.png', 6, 12, 'once'),
     strip('projectile:hotdog', VEN + 'hot-dog-projectile-strip-v01.png', 4, 12, 'loop', mid),
     strip('effect:splat', VEN + 'hot-dog-splat-strip-v01.png', 4, 15, 'once', mid),
+
+    // Cheerleader (templates/examples/enemy-zombie-cheerleader/ASSET.md). The attack strip is picked by state, not by a clock:
+    // frame 1 rising, 2 falling (the leap), 3 landing; frame 0 is spare (the windup shows the idle strip: she stops and cheers).
+    strip('cheerleader:walk', CHEER + 'zombie-cheerleader-walk-strip-v01.png', 6, 8, 'loop'),
+    strip('cheerleader:attack', CHEER + 'zombie-cheerleader-attack-strip-v01.png', 4, 1, 'frame'),
+    strip('cheerleader:hit', CHEER + 'zombie-cheerleader-hit-strip-v01.png', 2, 12, 'once'),
+    strip('cheerleader:defeat', CHEER + 'zombie-cheerleader-defeat-strip-v01.png', 8, 12, 'once'),
+    strip('cheerleader:idle', CHEER + 'zombie-cheerleader-idle-strip-v01.png', 4, 6, 'loop'),
+
+    // Baby (templates/examples/enemy-zombie-baby/ASSET.md): 32x32 cells, feet (16, 31).
+    strip('baby:walk', BABY + 'zombie-baby-walk-strip-v01.png', 6, 10, 'loop', baby),
+    strip('baby:attack', BABY + 'zombie-baby-attack-strip-v01.png', 4, 12, 'once', Object.assign({ hitFrame: 2 }, baby)),
+    strip('baby:hit', BABY + 'zombie-baby-hit-strip-v01.png', 2, 12, 'once', baby),
+    strip('baby:defeat', BABY + 'zombie-baby-defeat-strip-v01.png', 8, 12, 'once', baby),
+    strip('baby:idle', BABY + 'zombie-baby-idle-strip-v01.png', 4, 6, 'loop', baby),
 
     strip('cart:upright', CART + 'hot-dog-cart-upright-v01.png', 1, 1, 'hold', cart),
     strip('cart:rocking', CART + 'hot-dog-cart-rocking-strip-v01.png', 3, 12, 'loop', cart),
@@ -492,6 +558,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     'sfx-checkpoint', 'sfx-gate-open', 'sfx-level-clear', 'sfx-start',
     // Stage B: chainsaw and gore (sfx-chainsaw-rev loops while the saw revs)
     'sfx-chainsaw-start', 'sfx-chainsaw-rev', 'sfx-chainsaw-cut', 'sfx-gore-splat',
+    // Zombie roster (2026-10-20): the cheerleader's cheer (her tell) and jump, the baby's rattle smack and its last cry
+    'sfx-cheer', 'sfx-leap', 'sfx-baby-rattle', 'sfx-baby-cry',
   ];
   S.SOUND_MANIFEST = SFX_IDS.map((id) => ({ id, kind: 'sfx', dir: 'audio/sfx/' + id + '/' })).concat([
     { id: 'music-level-01-central-park', kind: 'music', dir: 'audio/music/music-level-01-central-park/' },
@@ -632,14 +700,15 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   // config block (see config.js, "enemy types") read through typeOf(e). An enemy whose type has no row is an error, never a jogger.
   const BRAINS = {
     // brain: { update(s, e), states: every state the brain can put an enemy in (the render sweep draws each), anims: state -> animation }
-    walker: { update: (s, e) => updateWalker(s, e), states: ['spawn', 'patrol', 'chase', 'attack', 'hitreact', 'confused', 'defeat', 'dead'],
-      anims: { spawn: 'idle', patrol: 'walk', chase: 'walk', attack: 'attack', hitreact: 'hit', confused: 'idle', defeat: 'defeat', dead: 'defeat' } },
+    // windup / leap / land: the leaping kinds (`leap: true`, the cheerleader) use them instead of attack.
+    walker: { update: (s, e) => updateWalker(s, e), states: ['spawn', 'patrol', 'chase', 'attack', 'windup', 'leap', 'land', 'hitreact', 'confused', 'defeat', 'dead'],
+      anims: { spawn: 'idle', patrol: 'walk', chase: 'walk', attack: 'attack', windup: 'idle', leap: 'attack', land: 'attack', hitreact: 'hit', confused: 'idle', defeat: 'defeat', dead: 'defeat' } },
     turret: { update: (s, e) => updateTurret(s, e), states: ['idle', 'throw', 'hitreact', 'shrug', 'defeat', 'dead'],
       anims: { idle: 'idle', shrug: 'idle', throw: 'throw', hitreact: 'hit', defeat: 'defeat', dead: 'defeat' } },
   };
   const TYPE_FIELDS = ['brain', 'art', 'start', 'startAnim', 'hp', 'bodyW', 'bodyH', 'hitReactTime', 'defeatTime', 'flinch', 'knockback',
     'sawKnockback', 'cartKnock', 'shieldPush', 'hitY', 'possum', 'possumIgnore', 'defeatStyle', 'sawStyle'];
-  const POSSUM_KINDS = ['confused', 'shrug'];
+  const POSSUM_KINDS = ['confused', 'shrug', 'ignore']; // 'ignore' = Play Possum does nothing to it (the baby)
   S.ENEMY_TYPES = {};
   S.ENEMY_TYPE_FIELDS = TYPE_FIELDS;
   // Registers (or replaces) an enemy type from a config block. Throws on a missing field or an unknown brain, so a half-written
@@ -650,7 +719,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     if (!brain) throw new Error('enemy type "' + name + '" has unknown brain "' + cfg.brain + '" (known: ' + Object.keys(BRAINS).join(', ') + ')');
     if (!brain.states.includes(cfg.start)) throw new Error('enemy type "' + name + '" starts in "' + cfg.start + '", which its brain has no state for');
     if (!POSSUM_KINDS.includes(cfg.possum)) throw new Error('enemy type "' + name + '" has unknown possum reaction "' + cfg.possum + '"');
-    if (!brain.states.includes(cfg.possum)) throw new Error('enemy type "' + name + '" reacts to Play Possum with "' + cfg.possum + '", which its brain has no state for');
+    if (cfg.possum !== 'ignore' && !brain.states.includes(cfg.possum)) throw new Error('enemy type "' + name + '" reacts to Play Possum with "' + cfg.possum + '", which its brain has no state for');
     const T = { name, cfg, brain: cfg.brain, update: brain.update, states: brain.states, anims: brain.anims };
     S.ENEMY_TYPES[name] = T;
     return T;
@@ -674,6 +743,20 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       defeatStyle: k.defeatStyle, // how it goes down; k.sawStyle ('sliced') when the chainsaw does it
     }, extra || {});
   }
+  S.makeEnemy = makeEnemy;
+  // One level entry can stand a litter: { type: 'baby', x: 3010, litter: 3 } makes three, litterGap px apart (ids e5, e5-1, e5-2),
+  // each patrolling round its own spot. The default litter is 1, so every other entry is one zombie, as before.
+  function makeEnemies(def, idx) {
+    const n = Math.max(1, def.litter || 1), gap = typeOf(def).cfg.litterGap || 32;
+    const out = [];
+    for (let j = 0; j < n; j++) {
+      const e = makeEnemy(def, idx, j ? { id: 'e' + idx + '-' + j } : null);
+      e.x += j * gap; e.home = e.x;
+      out.push(e);
+    }
+    return out;
+  }
+  S.makeEnemies = makeEnemies;
   function makeCart(def, idx) {
     return { id: 'cart' + idx, def, x: def.x, state: 'upright', t: 0, anim: 'upright', animT: 0, spill: [] };
   }
@@ -691,7 +774,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   function resetLevel(s) {
     const L = s.level;
     s.player = makePlayer(L.start.x, L.start.y);
-    s.enemies = L.enemies.map((d, i) => makeEnemy(d, i));
+    s.enemies = [].concat(...L.enemies.map((d, i) => makeEnemies(d, i)));
     s.carts = L.carts.map((d, i) => makeCart(d, i));
     s.pickups = L.pickups.map((d, i) => makePickup(d, i));
     s.projectiles = [];
@@ -840,6 +923,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       e.sliceDir = dir; // the cut top half slides this way (away from Sammy)
       s.stats.defeated += 1;
       sfx(s, 'sfx-zombie-defeat-comedic');
+      if (k.defeatSfx) sfx(s, k.defeatSfx); // a sound of its own (the baby's cry)
       sfx(s, 'sfx-gore-splat');
       effect(s, 'ichor', gx, e.y - (saw ? 22 : 36), 0.8, { n: saw ? 10 : 6 });
       if (saw) {
@@ -877,10 +961,12 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     sfx(s, 'sfx-play-dead');
     for (const e of s.enemies) {
       if (e.state === 'defeat' || e.state === 'dead') continue;
+      const how = typeOf(e).cfg.possum;
+      if (how === 'ignore') continue; // never fooled (the baby): it keeps coming, and a bump still hurts
       if (Math.abs(e.x - p.x) <= C.possum.radius && Math.abs(e.y - p.y) < 48) {
         e.confused = true;
-        const how = typeOf(e).cfg.possum;
-        if (how === 'confused' && e.state !== 'attack' && e.state !== 'hitreact') { e.state = 'confused'; e.t = 0; e.vx = 0; }
+        // An attack or a leap already started still finishes (a leap frozen in mid-air would look wrong); it goes confused on landing.
+        if (how === 'confused' && !['attack', 'hitreact', 'leap', 'land'].includes(e.state)) { e.state = 'confused'; e.t = 0; e.vx = 0; }
         if (how === 'shrug' && e.state !== 'hitreact') { e.state = 'shrug'; e.t = 0; }
       }
     }
@@ -1046,7 +1132,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     s.player = makePlayer(cp.x, G);
     s.player.invuln = 1.0;
     s.enemies = s.enemies.filter((e) => !e.arena && e.def.x <= cp.x);
-    L.enemies.forEach((d, i) => { if (d.x > cp.x) s.enemies.push(makeEnemy(d, i)); });
+    L.enemies.forEach((d, i) => { if (d.x > cp.x) s.enemies.push(...makeEnemies(d, i)); });
     s.carts = s.carts.map((c, i) => (c.def.x > cp.x ? makeCart(c.def, i) : c));
     s.pickups = s.pickups.filter((pk) => !pk.spilled);
     for (const pk of s.pickups) if (pk.def.x > cp.x) pk.collected = false;
@@ -1068,8 +1154,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     const p = s.player;
     e.t += DT; e.cd = Math.max(0, e.cd - DT); e.ignoreT = Math.max(0, (e.ignoreT || 0) - DT);
     const dx = p.x - e.x, dy = p.y - e.y;
-    const canNotice = p.state !== 'ko' && !playerHidden(p) && e.ignoreT <= 0 && Math.abs(dx) <= J.notice && Math.abs(dy) < 40;
+    // A type that ignores Play Possum notices a lying Sammy like a standing one.
+    const canNotice = p.state !== 'ko' && (J.possum === 'ignore' || !playerHidden(p)) && e.ignoreT <= 0 && Math.abs(dx) <= J.notice && Math.abs(dy) < 40;
     const aheadSupported = () => !e.grounded || isSupported(s, e.x + e.face * (J.bodyW / 2 + 2), e.y);
+    const reach = J.leap ? J.leapRange : J.attackRange; // how close it gets before its attack (or its leap)
 
     switch (e.state) {
       case 'patrol': {
@@ -1084,11 +1172,33 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       case 'chase': {
         if (p.state === 'ko') { e.state = 'patrol'; e.home = e.x; break; }
         if (Math.abs(dx) > 2) e.face = sign(dx);
-        e.vx = Math.abs(dx) > J.attackRange - 6 ? e.face * J.chaseSpeed : 0;
+        e.vx = Math.abs(dx) > reach - 6 ? e.face * J.chaseSpeed : 0;
         if (!aheadSupported()) e.vx = 0;
         if (Math.abs(dx) > J.giveUpDist && !e.arena) { e.lostT += DT; if (e.lostT > J.giveUpTime) { e.state = 'patrol'; e.home = e.x; } }
         else e.lostT = 0;
-        if (Math.abs(dx) <= J.attackRange && Math.abs(dy) < 30 && e.cd <= 0) { e.state = 'attack'; e.t = 0; e.attackHit = false; e.vx = 0; }
+        if (Math.abs(dx) <= reach && Math.abs(dy) < 30 && e.cd <= 0 && e.grounded) {
+          if (J.leap) {
+            // Only where the landing spot is ground (never into the pond or off a ledge) and nothing solid stands in the way.
+            if (leapClear(s, e, J)) { e.state = 'windup'; e.t = 0; e.vx = 0; sfx(s, 'sfx-cheer'); }
+          } else { e.state = 'attack'; e.t = 0; e.attackHit = false; e.vx = 0; if (J.attackSfx) sfx(s, J.attackSfx); }
+        }
+        break;
+      }
+      // The leap (cheerleader): windup = she stops and cheers (harmless tell), leap = airborne and hurts on touch, land = stuck, harmless.
+      case 'windup': {
+        e.vx = 0;
+        if (Math.abs(dx) > 2) e.face = sign(dx);
+        if (e.t >= J.leapWindup) { e.state = 'leap'; e.t = 0; e.vx = e.face * J.leapVx; e.vy = -J.leapVy; e.grounded = false; sfx(s, 'sfx-leap'); }
+        break;
+      }
+      case 'leap': {
+        if (e.blocked) e.vx = 0; // hit a wall: drop straight down
+        if ((e.grounded && e.t > DT * 2) || e.t >= J.leapMaxAir) { e.state = 'land'; e.t = 0; e.vx = 0; }
+        break;
+      }
+      case 'land': {
+        e.vx = 0;
+        if (e.t >= J.leapLand) { e.state = e.confused ? 'confused' : 'chase'; e.t = 0; e.cd = J.leapCooldown; }
         break;
       }
       case 'attack': {
@@ -1109,13 +1219,25 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       case 'confused': e.vx = 0; break;
       case 'defeat': e.vx = 0; if (e.t >= J.defeatTime) e.state = 'dead'; break;
     }
-    // Touching a zombie that is walking or attacking hurts (not while it reels back or is confused).
-    if ((e.state === 'patrol' || e.state === 'chase' || e.state === 'attack') && overlap(footBox(e, J.bodyW, J.bodyH), playerBox(p))) {
+    // Touching a zombie that is walking, attacking or leaping hurts (not while it reels back, is confused, winds up or lands).
+    if ((e.state === 'patrol' || e.state === 'chase' || e.state === 'attack' || e.state === 'leap') && overlap(footBox(e, J.bodyW, J.bodyH), playerBox(p))) {
       hurtPlayer(s, { fromX: e.x, source: e });
     }
     if (e.state !== 'dead') moveBody(s, e, J.bodyW, J.bodyH);
     if (e.y > 260) e.state = 'dead';
     setAnim(e, BRAINS.walker.anims[e.state]);
+  }
+
+  // How far a leap carries on flat ground: leapVx for the time gravity takes to bring leapVy back down (about 72 px for the cheerleader).
+  const leapLength = (J) => J.leapVx * (2 * J.leapVy / C.gravity);
+  S.leapLength = leapLength;
+  // Is the leap worth taking: the landing spot is ground, and no rock, fence, cart or gate stands in the lane she flies through.
+  function leapClear(s, e, J) {
+    const len = leapLength(J), landX = e.x + e.face * len;
+    if (!isSupported(s, landX, e.y)) return false;
+    const lane = { x: Math.min(e.x, landX) - J.bodyW / 2, y: e.y - J.bodyH, w: len + J.bodyW, h: J.bodyH - 2 };
+    for (const b of getSolids(s)) if (b.kind !== 'ground' && overlap(lane, b)) return false;
+    return true;
   }
 
   // The "turret" brain (the hot dog vendor): stands still, faces Sammy, throws when he is in range, shrugs at Play Possum.
@@ -1395,7 +1517,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 // It runs right, jumps over obstacles and gaps, and tail-whips anything in front of it.
 // It proves the level can be finished; it is not a good player.
 (function (S) {
-  S.makeBot = function () { return { frame: 0, lastX: 0, stall: 0, jumpHold: 0 }; };
+  S.makeBot = function () { return { frame: 0, lastX: 0, stall: 0, jumpHold: 0, wait: 0 }; };
 
   S.botInput = function (s, b) {
     const inp = S.makeInput();
@@ -1420,11 +1542,18 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     const front = (x) => (x - p.x) * p.face > -4 && Math.abs(x - p.x) < 34;
     let whip = alive.some((e) => front(e.x) && Math.abs(e.y - p.y) < 30);
     for (const c of s.carts) if ((c.state === 'upright' || c.state === 'rocking') && front(c.x + 8)) whip = true;
-    if (alive.some((e) => Math.abs(e.x - p.x) < 34 && Math.abs(e.y - p.y) < 30 && Math.sign(e.x - p.x) !== p.face && dir === 0)) {
-      dir = -p.face; // turn to face a zombie behind us
-    }
-    // Outside the arena: stop and fight a zombie that is close ahead instead of running into it.
+    // Outside the arena: stop and fight a zombie that is close ahead instead of running into it, and stop for one right behind
+    // that is coming for us (a leaper that just landed, a toddler that caught up). One that keeps its distance (a cheerleader
+    // waiting to leap, or anything behind a fence) is not worth waiting for: after half a second, walk on.
+    const travel = dir;
     if (s.arena.state !== 'fight' && alive.some((e) => (e.x - p.x) * dir > 0 && Math.abs(e.x - p.x) < 40 && Math.abs(e.y - p.y) < 30)) dir = 0;
+    if (s.arena.state !== 'fight' && dir !== 0 && alive.some((e) => (e.x - p.x) * dir < 0 && Math.abs(e.x - p.x) < 28 && Math.abs(e.y - p.y) < 30 && (e.state === 'chase' || e.state === 'attack' || e.state === 'land'))) dir = 0;
+    b.wait = dir === 0 && !whip && s.arena.state !== 'fight' ? b.wait + 1 : 0;
+    if (b.wait > 30) dir = travel;
+    // Standing still with a zombie behind us: turn to face it (one step that way flips the facing; then the whip takes it).
+    if (alive.some((e) => Math.abs(e.x - p.x) < 34 && Math.abs(e.y - p.y) < 30 && Math.sign(e.x - p.x) !== p.face && dir === 0)) {
+      dir = -p.face;
+    }
     inp.held.right = dir > 0;
     inp.held.left = dir < 0;
     inp.pressed.attack = whip;
@@ -2259,7 +2388,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     sliced: ['RIIIP.', 'WELL, SHIT.', 'HALVSIES.', 'FUCK ME.'],
     low: ['SHHK.', 'WELL, SHIT.', 'DONE.'],
   };
-  const GAGS_BY_TYPE = {}; // e.g. hippie: { melt: ['PEACE. OUT.', …] }
+  const GAGS_BY_TYPE = { // e.g. hippie: { melt: ['PEACE. OUT.', …] }
+    cheerleader: { burst: ['GO TEAM. DEAD.', 'RAH RAH. SHIT.', 'SPIRIT: ZERO.'] },
+    baby: { pop: ['NAP TIME.', 'LITTLE SHIT.', 'GOO GOO. GONE.'] },
+  };
   S.GAGS = GAGS; S.GAGS_BY_TYPE = GAGS_BY_TYPE;
   // Gags drawn this frame (reset in S.render), so several kills at once stack instead of printing over each other.
   let gagsShown = [], camNow = 0;
@@ -2371,9 +2503,124 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     if (e.state === 'throw') R(ctx, K.vendor, x + f * 8, y - hgt - 2, 4 * f, 10);
   }
 
+  // A 1 px dark outline round a list of boxes [x, y, w, h], then the boxes themselves: the coded placeholders read as one silhouette.
+  function outlined(ctx, boxes) {
+    for (const [x, y, w, h] of boxes) R(ctx, K.black, x - 1, y - 1, w + 2, h + 2);
+    for (const [x, y, w, h, col] of boxes) R(ctx, col, x, y, w, h);
+  }
+
+  // ---------- cheerleader (maroon and cream; the leap) ----------
+  // Real art: the attack strip is picked by state (1 rising, 2 falling, 3 landing); the windup shows the idle strip (she cheers).
+  function drawCheerleader(ctx, e) {
+    const flash = flashing(e), style = styleOf(e), x = Math.round(e.x), y = Math.round(e.y);
+    if (defeated(e) && style === 'sliced') {
+      drawSliced(ctx, e, () => { if (!sprite(ctx, 'cheerleader:hit', 0, e.x, e.y, e.face, false, 0)) drawCheerleaderPlaceholder(ctx, e, false, true); }, 40);
+    } else {
+      const frame = e.state === 'leap' ? (e.vy < 0 ? 1 : 2) : e.state === 'land' ? 3 : null;
+      if (!sprite(ctx, 'cheerleader:' + e.anim, e.animT, e.x, e.y, e.face, false, frame, flash)) drawCheerleaderPlaceholder(ctx, e, flash);
+    }
+    if (defeated(e)) gag(ctx, e, style, y - 56);
+    if (e.state === 'confused') S.drawTextCentered(ctx, '?', x, y - 50, K.white, 2, K.black);
+    if (e.state === 'spawn') S.drawTextCentered(ctx, '!', x, y - 50, K.heart, 2, K.black);
+  }
+  // Maroon skirt and pom-poms, cream top and legs, blonde hair: nothing like the jogger's green or Sammy's grey-brown.
+  function drawCheerleaderPlaceholder(ctx, e, flash, standing) {
+    const x = Math.round(e.x), y = Math.round(e.y), f = e.face, t = e.t;
+    const body = flash ? K.white : K.cream, skirt = flash ? K.white : K.cheer;
+    if (!standing && defeated(e)) {
+      // Burst: she comes apart. The pom-poms and the bow fly off, the body folds into the skirt and a red splash.
+      const sink = Math.min(1, t / 0.4);
+      outlined(ctx, [[x - 8, y - 20 * (1 - sink) - 6, 16, 20 * (1 - sink) + 6, K.cheer], [x - 6, y - 4, 12, 4, K.cream]]);
+      for (const [d, phase] of [[-1, 0], [1, 0.5]]) {
+        const px = x + d * (8 + t * 60), py = y - 30 - Math.sin(Math.min(1, t + phase * 0.2) * 3) * 30 + t * t * 160;
+        if (py < y - 2) { R(ctx, K.cheer, px - 3, py - 3, 6, 6); R(ctx, K.cream, px - 1, py - 1, 2, 2); } else R(ctx, K.cheer, px - 3, y - 4, 6, 3);
+      }
+      const bx = x - f * t * 40, by = Math.min(y - 2, y - 44 + t * t * 220);
+      R(ctx, K.cheer, bx - 3, by, 6, 2); R(ctx, K.cream, bx - 1, by, 2, 2); // the hair bow
+      const sp = Math.min(28, Math.round(t * 50)); // the splash: a spreading pool, drops flying for the first moment
+      R(ctx, GORE.blood, x - sp / 2, y - 1, sp, 2);
+      if (t < 0.5) for (let i = -2; i <= 2; i++) R(ctx, i & 1 ? GORE.bloodHi : GORE.blood, x + i * (3 + t * 20), y - 14 - Math.abs(i) * 4 + t * 60, 2, 3);
+      return;
+    }
+    const leap = e.state === 'leap', land = e.state === 'land', cheer = e.state === 'windup' || e.state === 'confused' || e.state === 'spawn';
+    const crouch = land ? 6 : 0;                                    // stuck on landing: knees bent
+    const step = Math.floor(e.animT * 10) % 2;
+    const lean = leap ? f * 3 : 0;
+    const legs = leap ? [[x - 5, y - 10, 4, 6, body], [x + 1, y - 7, 4, 5, body]] : [[x - 6 + step * 2, y - 12 + crouch, 4, 12 - crouch, body], [x + 2 - step * 2, y - 12 + crouch, 4, 12 - crouch, body]];
+    const boxes = legs.concat([
+      [x - 8 + lean, y - 20 + crouch, 16, 8, skirt],                  // the pleated skirt, flared
+      [x - 5 + lean, y - 30 + crouch, 10, 10, body],                  // the top
+      [x - 5 + lean, y - 27 + crouch, 10, 3, skirt],                  // its maroon band
+      [x - 4 + lean, y - 40 + crouch, 8, 10, K.creamDark],            // face
+      [x - 5 + lean, y - 43 + crouch, 10, 5, flash ? K.white : K.hair], // hair
+      [x - f * 6 + lean - 2, y - 44 + crouch, 4, 2, K.cheer],         // the bow
+    ]);
+    // Pom-poms: up for the cheer, forward for the leap, down at the hips otherwise.
+    const pom = (px, py) => boxes.push([px - 3, py - 3, 6, 6, skirt], [px - 1, py - 1, 2, 2, body]);
+    if (cheer) { const up = Math.floor(e.animT * 6) % 2 ? 2 : 0; pom(x - 8, y - 46 + up); pom(x + 8, y - 46 - up); }
+    else if (leap) { pom(x + f * 11, y - 30); pom(x + f * 9, y - 22); }
+    else { pom(x - 9, y - 22 + crouch); pom(x + 9, y - 22 + crouch); }
+    outlined(ctx, boxes);
+    R(ctx, K.black, x + f * 2 - 1 + lean, y - 37 + crouch, 2, 2);  // eye
+    R(ctx, K.cheer, x + f * 3 + lean - 1, y - 33 + crouch, 3, 1);  // a maroon mouth
+  }
+
+  // ---------- baby (pastel pink and blue, mint skin, a pink brain; the litter) ----------
+  function drawBaby(ctx, e) {
+    const flash = flashing(e), style = styleOf(e), x = Math.round(e.x), y = Math.round(e.y);
+    if (defeated(e) && style === 'sliced') {
+      drawSliced(ctx, e, () => { if (!sprite(ctx, 'baby:hit', 0, e.x, e.y, e.face, false, 0)) drawBabyPlaceholder(ctx, e, false, true); }, 28);
+    } else if (!sprite(ctx, 'baby:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawBabyPlaceholder(ctx, e, flash);
+    if (defeated(e)) gag(ctx, e, style, y - 40);
+    if (e.state === 'spawn') S.drawTextCentered(ctx, '!', x, y - 38, K.heart, 2, K.black);
+  }
+  // A 30 px toddler: big bonneted head with the brain showing, one eyeball on a stalk, blue romper, white nappy, a yellow rattle.
+  function drawBabyPlaceholder(ctx, e, flash, standing) {
+    const x = Math.round(e.x), y = Math.round(e.y), f = e.face, t = e.t;
+    const skin = flash ? K.white : K.babySkin, romper = flash ? K.white : K.babyBlue, bonnet = flash ? K.white : K.babyPink;
+    const rattle = (rx, ry, ang) => { // a yellow ball on a stick held at (rx, ry); ang = 0 upright, 1 swung forward, 2 lying on its side
+      const [sx, sy, sw, sh] = ang === 2 ? [rx - 3, ry, 6, 1] : ang === 1 ? [Math.min(rx, rx + f * 5), ry - 1, 5, 1] : [rx, ry - 5, 1, 5];
+      R(ctx, K.black, sx, sy, sw, sh);
+      const bx = ang === 2 ? rx + 4 : ang === 1 ? rx + f * 6 : rx, by = ang === 2 ? ry : ang === 1 ? ry - 1 : ry - 7;
+      R(ctx, K.black, bx - 2, by - 2, 5, 5); R(ctx, K.rattle, bx - 1, by - 1, 3, 3);
+    };
+    if (!standing && defeated(e)) {
+      // Pop: the head (bonnet, brain and all) pops off and bounces away, the rattle flies the other way, the romper sinks.
+      const sink = Math.min(1, t / 0.5);
+      outlined(ctx, [[x - 6, y - 10 * (1 - sink) - 4, 12, 10 * (1 - sink) + 4, K.babyBlue], [x - 5, y - 3, 10, 3, K.white]]);
+      const hx = x - f * t * 60, hy = y - 26 - Math.abs(Math.sin(t * 9)) * 18 * (1 - t);
+      outlined(ctx, [[hx - 5, hy - 5, 10, 9, K.babySkin], [hx - 5, hy - 8, 10, 4, K.babyPink], [hx - 2, hy - 10, 4, 3, K.brain]]);
+      rattle(x + f * (6 + t * 70), Math.min(y - 1, y - 20 + t * t * 200), 2);
+      const pool = Math.min(16, Math.round(t * 40)); // a small red pool, like anyone's (owner answer 8)
+      R(ctx, GORE.bloodDark, x - pool / 2, y - 1, pool, 2);
+      if (t < 0.4) { // the neck stump squirts
+        const ny = y - 10 * (1 - sink) - 4;
+        R(ctx, GORE.blood, x - 2, ny - 4 - t * 10, 4, 4); R(ctx, GORE.bloodHi, x - 1, ny - 8 - t * 30, 2, 3);
+      }
+      return;
+    }
+    const attack = e.state === 'attack', swing = attack && e.t >= C.baby.attackHitStart;
+    const step = Math.floor(e.animT * 10) % 2, bob = e.state === 'patrol' || e.state === 'chase' ? step : 0;
+    outlined(ctx, [
+      [x - 4 + step * 2, y - 5, 3, 5, skin], [x + 1 - step * 2, y - 5, 3, 5, skin],  // legs
+      [x - 5, y - 9 - bob, 10, 4, K.white],                                           // nappy
+      [x - 6, y - 17 - bob, 12, 8, romper],                                           // romper
+      [x - 7, y - 28 - bob, 14, 12, skin],                                            // big head
+      [x - 8, y - 31 - bob, 16, 5, bonnet],                                           // bonnet
+      [x - 8, y - 27 - bob, 16, 1, K.white],                                          // its frill
+      [x - 3, y - 34 - bob, 6, 4, flash ? K.white : K.brain],                         // the brain, out the top
+    ]);
+    R(ctx, K.babyBlueDark, x - 2, y - 15 - bob, 4, 2);                                // bib button
+    // One eyeball on a stalk, the other a dot.
+    R(ctx, K.black, x + f * 5, y - 30 - bob, 1, 5); R(ctx, K.white, x + f * 5 - 1, y - 33 - bob, 3, 3); R(ctx, K.black, x + f * 5, y - 32 - bob, 1, 1);
+    R(ctx, K.black, x - f * 2, y - 24 - bob, 2, 2);
+    R(ctx, K.cheerDark, x + f * 2, y - 20 - bob, 3, 1);                               // mouth
+    rattle(x + f * 7, y - 14 - bob, swing ? 1 : 0);
+  }
+
   // One drawer per enemy type (S.ENEMY_TYPES). A type with no drawer is an error, never drawn as a jogger.
   // New types go here with their own drawer (real strip `<art>:<anim>` first, coded placeholder in contrasting colours when missing).
-  const DRAW = { jogger: drawJogger, vendor: drawVendor };
+  const DRAW = { jogger: drawJogger, vendor: drawVendor, cheerleader: drawCheerleader, baby: drawBaby };
   S.ENEMY_DRAW = DRAW;
   function drawEnemy(ctx, e) {
     const draw = DRAW[e.type];
@@ -2728,6 +2975,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     'sfx-chainsaw-rev': ['sawtooth', 90, 150, 0.06, 0.12], // loop: pitch wobbles between the two Hz, 0.06 s per wobble
     'sfx-chainsaw-cut': ['noise', 2400, 900, 0.08, 0.2],
     'sfx-gore-splat': ['noise', 400, 60, 0.25, 0.35],
+    'sfx-cheer': ['square', 660, 990, 0.3, 0.2],        // cheerleader: the "RAH" tell before her leap
+    'sfx-leap': ['noise', 300, 1200, 0.15, 0.15],       // cheerleader: launch whoosh
+    'sfx-baby-rattle': ['noise', 1800, 1400, 0.1, 0.2], // baby: rattle smack
+    'sfx-baby-cry': ['triangle', 900, 300, 0.4, 0.25],  // baby: its last wail
   };
   const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
   const TRACKS = {
@@ -4328,8 +4579,9 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     p.shield = 3; draw('shield'); p.shield = 1; draw('shield-cracked'); p.possumCd = 3; draw('possum-cooldown');
     // Every enemy type in every state its brain has (dead is never drawn), plus the no-flinch flash, in its placeholder or real art.
     for (const [type, T] of Object.entries(S.ENEMY_TYPES)) {
-      const e = state.enemies.find((q) => q.type === type && q.state !== 'dead') || state.enemies.find((q) => q.type === type);
-      if (!e) continue;
+      // A type the level doesn't place yet is made on the spot, so every drawer gets drawn.
+      const e = state.enemies.find((q) => q.type === type && q.state !== 'dead') || state.enemies.find((q) => q.type === type) || S.makeEnemy({ type, x: p.x + 40 }, 0, { id: 'sweep-' + type });
+      if (!state.enemies.includes(e)) state.enemies.push(e);
       e.x = p.x + 40;
       for (const st of T.states) {
         if (st === 'dead') continue;
@@ -4367,8 +4619,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     for (const [type, T] of Object.entries(S.ENEMY_TYPES)) styles.push([type, T.cfg.defeatStyle], [type, T.cfg.sawStyle]);
     styles.forEach(([type, style], i) => {
       const e = state.enemies.find((q) => q.type === type && !q.goreDemo && q.state !== 'dead') ||
-        Object.assign({}, state.enemies.find((q) => q.type === type), { id: 'demo' + i });
-      if (!e.type) return;
+        Object.assign({}, state.enemies.find((q) => q.type === type) || S.makeEnemy({ type, x }, 0), { id: 'demo' + i });
       Object.assign(e, { goreDemo: true, x: x + i * 36, y: C.groundY, face: -1, state: 'defeat', t, anim: 'defeat', animT: t, defeatStyle: style });
       if (!state.enemies.includes(e)) state.enemies.push(e);
     });

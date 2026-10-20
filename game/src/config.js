@@ -56,7 +56,8 @@
     // art: the manifest prefix (`<art>:walk` …). start / startAnim: the state and animation it is made in.
     // flinch: false = a hit flashes it white and changes nothing else. knockback / sawKnockback: px/s pushed by a whip / a saw cut.
     // cartKnock: px/s pushed by the cart tipping over (0 = none). shieldPush: px it is pushed back when the lid blocks its hit.
-    // hitY: its attack box starts this many px above its feet. possum: 'confused' | 'shrug' (how Play Possum fools it).
+    // hitY: its attack box starts this many px above its feet. possum: 'confused' | 'shrug' | 'ignore' (how Play Possum fools it; 'ignore' = it doesn't).
+    // Optional: leap (the cheerleader's jump instead of a lunge), attackSfx / defeatSfx (a sound of its own), litterGap (level entries with `litter`).
     // possumIgnore: seconds it ignores Sammy after he gets up. defeatStyle / sawStyle: how it goes down from a whip / the saw.
     jogger: {                  // enemy-zombie-jogger ASSET.md
       brain: 'walker', art: 'jogger', start: 'patrol', startAnim: 'walk',
@@ -100,6 +101,50 @@
       defeatStyle: 'deflate', sawStyle: 'sliced',
     },
     // New enemy types go here (hippie, sweater, cheerleader, baby, brute): one block each, same fields, a `brain`.
+
+    cheerleader: {             // enemy-zombie-cheerleader: pom-poms, leaping lunge. Walker brain + leap (2026-10-20, Proposed)
+      brain: 'walker', art: 'cheerleader', start: 'patrol', startAnim: 'walk',
+      leap: true,              // instead of the lunge: stops and cheers (the tell, idle strip), then jumps at Sammy; hurts while airborne
+      hp: 2,
+      patrolSpeed: 36, chaseSpeed: 70, patrolRange: 64,
+      notice: 112, giveUpDist: 160, giveUpTime: 2.0,
+      leapRange: 72,           // starts the leap from this far
+      leapWindup: 0.45,        // the cheer: her only tell. Harmless
+      leapVx: 170, leapVy: 190, // about 0.42 s in the air, 20 px high, 72 px long
+      leapMaxAir: 0.6,         // safety: lands by then whatever happens
+      leapLand: 0.2,           // stuck on landing: harmless, whip her now
+      leapCooldown: 2.0,
+      attackRange: 72,         // = leapRange (the walker's chase stops this close; the leap replaces the lunge)
+      hitW: 18, hitH: 24,      // (the leap hurts with her body box; no separate attack box)
+      bodyW: 16, bodyH: 40,
+      hitReactTime: 2 / 12,
+      defeatTime: 8 / 12,
+      flinch: true, knockback: 120, sawKnockback: 40, cartKnock: 160, shieldPush: 16, hitY: 0,
+      possum: 'confused', possumIgnore: 0.75, // forgets fast: half a jogger's grace
+      defeatStyle: 'burst', sawStyle: 'sliced',
+    },
+
+    baby: {                    // enemy-zombie-baby: exposed brain, eyeball on a stalk, rattle. Comes in threes. Walker brain (2026-10-20, Proposed)
+      brain: 'walker', art: 'baby', start: 'patrol', startAnim: 'walk',
+      hp: 1,
+      patrolSpeed: 30, chaseSpeed: 90, patrolRange: 40, // faster than a jogger (60), slower than Sammy (110)
+      notice: 128, giveUpDist: 200, giveUpTime: 3.0,    // tenacious
+      attackRange: 18,
+      attackTime: 4 / 12,      // rattle smack: 4 frames @ 12 fps
+      attackHitStart: 2 / 12,  // hit frame = 2
+      attackHitEnd: 3 / 12,
+      attackCooldown: 0.8,
+      attackSfx: 'sfx-baby-rattle',
+      hitW: 12, hitH: 14,
+      bodyW: 12, bodyH: 20,    // 30 px sprite, 20 px body: the whip (10..22 px up) still overlaps the top 10 px
+      hitReactTime: 2 / 12,    // never seen in play (1 hp); kept for the art check
+      defeatTime: 8 / 12,
+      defeatSfx: 'sfx-baby-cry',
+      flinch: true, knockback: 0, sawKnockback: 0, cartKnock: 160, shieldPush: 8, hitY: 16, // the rattle box starts 16 px up (a jogger's is 26: too high for a toddler)
+      possum: 'ignore', possumIgnore: 0, // never fooled: toddlers don't know what dead is
+      defeatStyle: 'pop', sawStyle: 'sliced', // owner answer 8: red gore, sliced like anyone
+      litterGap: 32,           // a level entry { type: 'baby', litter: 3 } stands three of them this far apart
+    },
 
     cart: {                    // prop-hot-dog-cart INTERACTION.md
       w: 64, h: 48,
@@ -149,6 +194,9 @@
     // Scenery extras (2026-10-19, Proposed): foliage ramp, earth, lit stone, water foam, wood, bins. None of these are gore colours.
     grassHi: '#48906c', grassLo: '#004824', soilWarm: '#6c4848', soilWarmDk: '#482424', slateHi: '#9090b4', stoneMoon: '#b4b4d8',
     leaf3: '#6c2400', woodDk: '#482400', waterMid: '#2448b4', foam: '#b4d8fc', canMid: '#486c48',
+    // Zombie roster placeholders (2026-10-20, Proposed): contrasting schemes per type. None of these are gore colours.
+    cheer: '#902448', cheerDark: '#480024', cream: '#fcfcd8', creamDark: '#d8d890', hair: '#d8b46c',          // cheerleader: maroon and cream, blonde
+    babyPink: '#fc90d8', babyBlue: '#90b4fc', babyBlueDark: '#486cd8', babySkin: '#6cd8b4', brain: '#fc6cb4', rattle: '#fcfc48', // baby: pastel pink and blue, mint skin, pink brain
     // Reserved for gore only (STYLE_GUIDE "Reserved colours")
     blood0: '#480000', blood: '#900000', bloodHi: '#b40024', ichor0: '#486c00', ichor: '#90d800', ichorHi: '#d8fc48',
     bone: '#fcd8b4', meat: '#d86c6c',
