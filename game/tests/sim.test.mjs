@@ -436,7 +436,7 @@ function withStubType(fields, fn) {
 
 test('enemy types: every type is one complete row: config block, brain, start state, drawer, and a strip for every animation', () => {
   const names = Object.keys(S.ENEMY_TYPES);
-  assert.deepEqual(names, ['jogger', 'vendor'], 'the two types today, in config order');
+  assert.deepEqual(names, ['jogger', 'vendor', 'hippie', 'sweater'], 'the types today, in config order');
   const keys = new Set(S.ASSET_MANIFEST.map((m) => m.key));
   for (const [name, T] of Object.entries(S.ENEMY_TYPES)) {
     assert.equal(T.name, name);
@@ -448,7 +448,8 @@ test('enemy types: every type is one complete row: config block, brain, start st
     for (const st of T.states) assert.ok(T.anims[st], name + ': state ' + st + ' has an animation');
     for (const anim of new Set(Object.values(T.anims))) assert.ok(keys.has(T.cfg.art + ':' + anim), name + ': manifest strip ' + T.cfg.art + ':' + anim);
     assert.equal(typeof S.ENEMY_DRAW[name], 'function', name + ' has a drawer in render.js');
-    assert.ok(['pop', 'deflate', 'sliced'].includes(T.cfg.defeatStyle) && ['pop', 'deflate', 'sliced'].includes(T.cfg.sawStyle), name + ' defeat styles are drawn');
+    const STYLES = ['pop', 'deflate', 'sliced', 'melt', 'flop'];
+    assert.ok(STYLES.includes(T.cfg.defeatStyle) && STYLES.includes(T.cfg.sawStyle), name + ' defeat styles are drawn');
   }
   assert.equal(S.ENEMY_TYPES.jogger.brain, 'walker'); assert.equal(S.ENEMY_TYPES.vendor.brain, 'turret');
   for (const d of S.LEVEL1.enemies) assert.ok(S.ENEMY_TYPES[d.type], 'level 1 places a known type: ' + d.type);
@@ -1589,7 +1590,7 @@ const listPngs = (dir) => {
 test('art templates: every planned picture has a template of the exact size, outside assets/, and in a contact sheet', async () => {
   const T = await import('../tools/make-art-templates.mjs');
   const { readChunks } = await import('../tools/png.mjs');
-  assert.equal(S.ASSET_MANIFEST.length, 57);
+  assert.equal(S.ASSET_MANIFEST.length, 67); // 57 + the hippie's and the sweater's five strips each (2026-10-20)
   for (const m of S.ASSET_MANIFEST) {
     const rel = T.templatePath(m);
     assert.match(rel, /-TEMPLATE\.png$/);
@@ -1828,4 +1829,316 @@ test('gore setting: the rules never read it, G is not a game button, and the gam
   };
   assert.equal(run('full'), run('low'));
   S.setGore('full');
+});
+
+// ---------- zombie roster, builder 1: the hippie and the sweater (2026-10-20) ----------
+// A level with only the given enemies (plus the usual ground, platforms and arena), started, with the cart and pickups removed.
+function withEnemies(defs, fn) {
+  const level = Object.assign({}, S.LEVEL1, { enemies: defs });
+  const s = S.newGame(level); step(s, { pressed: { start: true } }); s.carts = []; s.pickups = []; events(s);
+  return fn(s, s.enemies[0]);
+}
+const bodyOf = (e) => S.footBox(e, C[e.type].bodyW, C[e.type].bodyH);
+
+test('hippie and sweater: their rows, cells and timings match the design (ZOMBIE-ROSTER-AND-BOSSES.md 2.3 and 2.4)', () => {
+  const H = C.hippie, W = C.sweater;
+  assert.deepEqual([H.brain, H.hp, H.patrolSpeed, H.chaseSpeed, H.knockback, H.sawKnockback, H.cartKnock, H.hitY, H.possum, H.possumIgnore, H.defeatStyle, H.sawStyle, H.flinch],
+    ['walker', 3, 18, 36, 60, 20, 80, 26, 'confused', 3.0, 'melt', 'sliced', true]);
+  assert.deepEqual([W.brain, W.hp, W.patrolSpeed, W.chaseSpeed, W.knockback, W.sawKnockback, W.cartKnock, W.hitY, W.possum, W.sniffStop, W.possumIgnore, W.defeatStyle, W.sawStyle, W.flinch],
+    ['walker', 3, 22, 50, 0, 0, 0, 36, 'sniff', 32, 1.5, 'flop', 'sliced', false]);
+  assert.deepEqual([W.shoveKnockX, W.shoveKnockY, W.stripsLid], [240, 150, true]);
+  assert.ok(W.shoveKnockX === 2 * C.sammy.hurtKnockX, 'the shove throws twice as far as a bump');
+  assert.ok(W.sniffStop > W.bodyW / 2 + C.sammy.deadW / 2, 'the sniff stop keeps his body off the lying Sammy');
+  assert.ok(H.pool > H.defeatTime, 'the goo pool outlives the melt');
+  // Cells: the hippie in the usual 48x48, feet (24, 47); the sweater in 64x56, feet (32, 55).
+  const anims = ['walk', 'attack', 'hit', 'defeat', 'idle'];
+  for (const a of anims) {
+    const h = S.ASSET_MANIFEST.find((m) => m.key === 'hippie:' + a), w = S.ASSET_MANIFEST.find((m) => m.key === 'sweater:' + a);
+    assert.deepEqual([h.fw, h.fh, h.px, h.py, h.feet], [48, 48, 24, 47, true], 'hippie:' + a);
+    assert.deepEqual([w.fw, w.fh, w.px, w.py, w.feet], [64, 56, 32, 55, true], 'sweater:' + a);
+    assert.equal(h.path, 'enemies/enemy-zombie-hippie/zombie-hippie-' + a + '-strip-v01.png');
+    assert.equal(w.path, 'enemies/enemy-zombie-sweater/zombie-sweater-' + a + '-strip-v01.png');
+    assert.ok(fs.existsSync(path.join(libRoot, 'assets', path.posix.dirname(h.path), '.gitkeep')) && fs.existsSync(path.join(libRoot, 'assets', path.posix.dirname(w.path), '.gitkeep')), 'asset folders exist');
+  }
+  const frames = (k) => { const m = S.ASSET_MANIFEST.find((x) => x.key === k); return [m.frames, m.fps, m.loop, m.hitFrame]; };
+  assert.deepEqual([frames('hippie:walk'), frames('hippie:attack'), frames('hippie:hit'), frames('hippie:defeat'), frames('hippie:idle')],
+    [[6, 6, 'loop', undefined], [4, 10, 'once', 2], [2, 12, 'once', undefined], [8, 12, 'once', undefined], [4, 6, 'loop', undefined]]);
+  assert.deepEqual([frames('sweater:walk'), frames('sweater:attack'), frames('sweater:hit'), frames('sweater:defeat'), frames('sweater:idle')],
+    [[6, 6, 'loop', undefined], [4, 8, 'once', 2], [2, 12, 'once', undefined], [8, 10, 'once', undefined], [4, 6, 'loop', undefined]]);
+  // Timings = frames / fps, like the jogger's.
+  const strip = (key) => S.ASSET_MANIFEST.find((m) => m.key === key);
+  for (const [type, art] of [['hippie', 'hippie'], ['sweater', 'sweater']]) {
+    const k = C[type], at = strip(art + ':attack');
+    assert.ok(Math.abs(k.attackTime - at.frames / at.fps) < 1e-9, type + ' attackTime');
+    assert.ok(Math.abs(k.attackHitStart - at.hitFrame / at.fps) < 1e-9, type + ' attackHitStart');
+    assert.ok(Math.abs(k.attackHitEnd - (at.hitFrame + 1) / at.fps) < 1e-9, type + ' attackHitEnd');
+    assert.ok(Math.abs(k.hitReactTime - strip(art + ':hit').frames / strip(art + ':hit').fps) < 1e-9, type + ' hitReactTime');
+    assert.ok(Math.abs(k.defeatTime - strip(art + ':defeat').frames / strip(art + ':defeat').fps) < 1e-9, type + ' defeatTime');
+  }
+  // The walker brain has the sniff state and draws it with the walk strip; sniff is a known Play Possum reaction.
+  assert.ok(S.ENEMY_TYPES.sweater.states.includes('sniff')); assert.equal(S.ENEMY_TYPES.sweater.anims.sniff, 'walk');
+  assert.throws(() => S.defineEnemyType('odd', Object.assign({}, C.vendor, { possum: 'sniff' })), /Play Possum with "sniff"/, 'a turret cannot sniff');
+  assert.ok(!S.ENEMY_TYPES.odd);
+});
+
+test('hippie: three whips, half a jogger knockback, melts into a goo pool that outlives him; 3 s of Play Possum grace', () => {
+  withEnemies([{ type: 'hippie', x: 600 }], (s, e) => {
+    assert.equal(e.hp, 3); assert.equal(e.defeatStyle, 'melt');
+    e.state = 'confused'; place(s, e.x - 22);
+    step(s, { pressed: { attack: true } });
+    assert.ok(runUntil(s, () => e.state === 'hitreact', sec(0.3)) >= 0, 'whipped');
+    assert.equal(e.hp, 2);
+    assert.equal(Math.abs(e.vx), C.hippie.knockback * 0.85, 'pushed at 60 (one frame of slowing): ' + e.vx);
+    assert.ok(Math.abs(e.vx) < C.jogger.knockback * 0.85, 'less than a jogger');
+    step(s, {}, sec(0.3));
+    for (let i = 0; i < 2; i++) { e.state = 'confused'; e.x = s.player.x + 20; s.player.face = 1; events(s); step(s, { pressed: { attack: true } }, sec(0.3)); }
+    assert.equal(e.state, 'defeat'); assert.equal(e.defeatStyle, 'melt'); assert.equal(s.stats.defeated, 1);
+    const ids = events(s);
+    assert.ok(ids.includes('sfx-zombie-melt') && ids.includes('sfx-zombie-defeat-comedic') && ids.includes('sfx-gore-splat'));
+    const pool = s.effects.find((f) => f.kind === 'melt-pool');
+    assert.ok(pool, 'a goo pool under him');
+    assert.deepEqual([pool.x, pool.y, pool.life, pool.melt, pool.type], [e.x, G, C.hippie.pool, C.hippie.defeatTime, 'hippie']);
+    assert.equal(s.effects.filter((f) => f.kind === 'chunk').length, 0, 'a whip kill throws no chunks');
+    // The body goes, the pool stays about a second longer, then it is gone.
+    step(s, {}, sec(C.hippie.defeatTime) + 2);
+    assert.equal(e.state, 'dead');
+    assert.ok(s.effects.includes(pool), 'pool still there after the body');
+    step(s, {}, sec(C.hippie.pool - C.hippie.defeatTime) + 2);
+    assert.ok(!s.effects.includes(pool), 'pool gone');
+  });
+  // Play Possum: confused, then he ignores Sammy for 3.0 s (a jogger: 1.5).
+  withEnemies([{ type: 'hippie', x: 600 }, { type: 'jogger', x: 640 }], (s, e) => {
+    const j = s.enemies[1];
+    place(s, 560); step(s, {}, 2);
+    assert.equal(e.state, 'chase');
+    step(s, { pressed: { possum: true } });
+    assert.equal(e.state, 'confused'); assert.equal(j.state, 'confused');
+    step(s, {}, sec(C.possum.maxTime + C.possum.getUpTime + 0.1));
+    assert.equal(s.player.state, 'normal');
+    assert.ok(e.ignoreT > 2.8 && e.ignoreT <= 3.0, 'hippie grace ' + e.ignoreT);
+    assert.ok(j.ignoreT > 1.3 && j.ignoreT <= 1.5, 'jogger grace ' + j.ignoreT);
+    assert.equal(s.player.hp, C.sammy.maxHp);
+  });
+});
+
+test('hippie: the chainsaw slices him like anyone, with no goo pool', () => {
+  withEnemies([{ type: 'hippie', x: 600 }], (s, e) => {
+    place(s, 582); s.player.saw = { fuel: C.chainsaw.fuel, revving: false, tick: 0, slash: 0 };
+    e.state = 'confused'; e.confused = true; e.cd = 9; events(s);
+    step(s, { pressed: { attack: true }, held: { attack: true } });
+    assert.equal(e.hp, 2);
+    const n = runUntil(s, () => e.state === 'defeat', sec(1), { held: { attack: true } });
+    assert.ok(n >= 0 && n <= 2 * sec(C.chainsaw.tick) + 2, 'two more cuts: ' + n);
+    assert.equal(e.defeatStyle, 'sliced');
+    assert.ok(!s.effects.some((f) => f.kind === 'melt-pool'), 'no pool from the saw');
+    assert.ok(!events(s).includes('sfx-zombie-melt'));
+    assert.ok(s.effects.some((f) => f.kind === 'chunk') && s.hitstop > 0);
+  });
+});
+
+test('sweater: never flinches (a whip flashes him white and he keeps coming), three whips flop him', () => {
+  withEnemies([{ type: 'sweater', x: 600 }], (s, e) => {
+    assert.equal(e.defeatStyle, 'flop');
+    e.state = 'chase'; e.vx = 30; e.cd = 9; place(s, e.x - 26);
+    step(s, { pressed: { attack: true } }, sec(0.2));
+    assert.equal(e.hp, 2, 'took the hit');
+    assert.ok(e.state === 'chase' || e.state === 'attack', 'never reeled: ' + e.state);
+    assert.ok(e.flashT > 0 && e.flashT <= C.sweater.hitReactTime, 'flashing: ' + e.flashT);
+    assert.ok(events(s).includes('sfx-hit-zombie'));
+    step(s, {}, sec(0.3)); assert.equal(e.flashT, 0);
+    for (let i = 0; i < 2; i++) { e.state = 'chase'; e.cd = 9; e.x = s.player.x + 24; s.player.face = 1; step(s, { pressed: { attack: true } }, sec(0.3)); }
+    assert.equal(e.state, 'defeat'); assert.equal(e.defeatStyle, 'flop'); assert.equal(s.stats.defeated, 1);
+    assert.ok(!s.effects.some((f) => f.kind === 'melt-pool' || f.kind === 'chunk'));
+    step(s, {}, sec(C.sweater.defeatTime) + 2);
+    assert.equal(e.state, 'dead');
+  });
+  // The cart's spill puts him in hitreact without moving him (cartKnock 0), like the stub test for the table.
+  withEnemies([{ type: 'sweater', x: 620 }], (s, e) => {
+    s.carts = [{ id: 'cart0', def: { x: 560 }, x: 560, state: 'tipping', t: 0, tipDir: 1, anim: 'tipping', animT: 0, spill: [] }];
+    e.state = 'confused'; place(s, 400);
+    step(s, {}, sec(C.cart.tipTime) + 1);
+    assert.equal(e.state, 'hitreact'); assert.equal(e.vx, 0);
+  });
+});
+
+test('sweater: the shove throws Sammy 240 and strips the whole lid (no heart lost); unblocked it costs a heart; a plain bump is an ordinary hit', () => {
+  const shoveAt = (s, e) => { e.state = 'attack'; e.t = 0; e.attackHit = false; e.cd = 0; e.face = -1; e.x = s.player.x + 26; e.y = G; }; // 26: his body clear of Sammy's, his shove box over it
+  withEnemies([{ type: 'sweater', x: 600 }], (s, e) => {
+    const p = s.player;
+    place(s, 580); p.shield = 3; p.invuln = 0;
+    shoveAt(s, e);
+    const n = runUntil(s, () => p.shield !== 3, sec(1));
+    assert.ok(n >= 0, 'the shove landed');
+    assert.equal(p.shield, 0, 'every lid charge gone in one shove');
+    assert.equal(p.hp, C.sammy.maxHp, 'no heart lost');
+    assert.equal(p.state, 'hurt', 'still thrown');
+    assert.deepEqual([p.vx, p.vy, p.grounded], [-C.sweater.shoveKnockX, -C.sweater.shoveKnockY, false]);
+    const ids = events(s);
+    assert.ok(ids.includes('sfx-shield-break') && ids.includes('sfx-zombie-shove'), ids.join(','));
+    assert.ok(!ids.includes('sfx-hurt'));
+    assert.ok(p.invuln > 0 && p.invuln <= 0.3);
+    assert.ok(e.x > p.x, 'he is not pushed back by the lid (shieldPush 0)');
+    // Unblocked: a heart and the big throw.
+    runUntil(s, () => p.state === 'normal' && p.grounded, sec(2));
+    place(s, 580); p.invuln = 0; p.shield = 0; events(s);
+    shoveAt(s, e);
+    assert.ok(runUntil(s, () => p.hp < C.sammy.maxHp, sec(1)) >= 0, 'hurt');
+    assert.equal(p.hp, C.sammy.maxHp - 1);
+    assert.deepEqual([p.vx, p.vy], [-C.sweater.shoveKnockX, -C.sweater.shoveKnockY]);
+    assert.ok(events(s).includes('sfx-zombie-shove'));
+    assert.ok(p.invuln > 0.9);
+    // Touching him (a bump, not the shove) is a jogger-style hit: one lid charge, no throw, no shove sound.
+    runUntil(s, () => p.state === 'normal' && p.grounded, sec(2));
+    place(s, 580); p.invuln = 0; p.shield = 3; events(s);
+    e.state = 'chase'; e.cd = 9; e.x = p.x + 8; e.y = G; e.vx = 0;
+    step(s);
+    assert.equal(p.shield, 2, 'one charge');
+    assert.equal(p.state, 'normal'); assert.equal(p.vx, 0);
+    assert.ok(!events(s).includes('sfx-zombie-shove'));
+    // A jogger's attack still knocks at the usual 120.
+    const j = S.makeEnemy({ type: 'jogger', x: 700 }, 9);
+    s.enemies.push(j);
+    runUntil(s, () => p.state === 'normal' && p.grounded, sec(2));
+    place(s, 680); p.invuln = 0; p.shield = 0; e.x = 900;
+    j.state = 'attack'; j.t = 0; j.attackHit = false; j.face = -1; j.x = p.x + 22; j.y = G;
+    assert.ok(runUntil(s, () => p.state === 'hurt', sec(1)) >= 0);
+    assert.deepEqual([p.vx, p.vy], [-C.sammy.hurtKnockX, -C.sammy.hurtKnockY]);
+  });
+});
+
+test('sweater: Play Possum makes him sniff: he walks up at patrol speed, stops 32 px away facing Sammy, never touches him, and gives 1.5 s of grace', () => {
+  withEnemies([{ type: 'sweater', x: 600 }], (s, e) => {
+    const p = s.player;
+    place(s, 530); step(s, {}, 2);
+    assert.equal(e.state, 'chase');
+    step(s, { pressed: { possum: true } });
+    assert.equal(p.state, 'playdead'); assert.equal(e.state, 'sniff'); assert.ok(e.confused);
+    step(s);
+    assert.equal(e.anim, 'walk'); assert.equal(e.face, -1);
+    assert.equal(e.vx, -C.sweater.patrolSpeed, 'walks over at patrol speed');
+    let minGap = Infinity, touched = false, stopped = -1;
+    for (let i = 0; i < sec(2.5); i++) {
+      step(s);
+      minGap = Math.min(minGap, Math.abs(e.x - p.x));
+      if (S.overlap(bodyOf(e), S.playerBox(p))) touched = true;
+      if (stopped < 0 && e.state === 'confused') stopped = i;
+    }
+    assert.ok(stopped > 0, 'stopped to sniff');
+    assert.equal(e.state, 'confused'); assert.equal(e.vx, 0); assert.equal(e.anim, 'idle'); assert.equal(e.face, -1);
+    assert.ok(minGap <= C.sweater.sniffStop + 1 && minGap >= C.sweater.sniffStop - 2, 'stands sniffStop away: ' + minGap);
+    assert.ok(!touched, 'his body never touches the lying Sammy');
+    assert.equal(p.hp, C.sammy.maxHp); assert.equal(p.state, 'playdead');
+    assert.ok(events(s).includes('sfx-zombie-sniff'));
+    // Sammy gets up: the usual grace, and he goes back to patrolling from where he stands.
+    runUntil(s, () => p.state === 'normal', sec(2));
+    assert.equal(e.state, 'patrol'); assert.ok(!e.confused);
+    assert.ok(e.ignoreT > 1.3 && e.ignoreT <= 1.5, 'grace ' + e.ignoreT);
+    assert.ok(Math.abs(e.home - e.x) < 1, 'patrols from where he stood');
+  });
+  // Getting up while he is still walking over releases him too (no stuck sniff).
+  withEnemies([{ type: 'sweater', x: 600 }], (s, e) => {
+    const p = s.player;
+    place(s, 510); step(s, {}, 2);
+    step(s, { pressed: { possum: true } });
+    assert.equal(e.state, 'sniff');
+    step(s, {}, sec(0.6));
+    assert.equal(e.state, 'sniff', 'still on his way');
+    step(s, { pressed: { jump: true } });
+    runUntil(s, () => p.state === 'normal', sec(1));
+    assert.equal(e.state, 'patrol'); assert.ok(!e.confused && e.ignoreT > 1.3);
+  });
+  // Fooled in the middle of a shove: the shove finishes, then he sniffs (never 'confused' straight from the attack).
+  withEnemies([{ type: 'sweater', x: 600 }], (s, e) => {
+    place(s, 560);
+    e.state = 'attack'; e.t = 0; e.attackHit = true; e.face = -1;
+    step(s, { pressed: { possum: true } });
+    assert.equal(e.state, 'attack'); assert.ok(e.confused);
+    step(s, {}, sec(C.sweater.attackTime) + 1);
+    assert.equal(e.state, 'sniff');
+  });
+  // A ledge stops the sniff walk: he never shambles into the pond after a "dead" Sammy on the far bank.
+  withEnemies([{ type: 'sweater', x: 2336 }], (s, e) => {
+    place(s, 2430); e.state = 'chase'; e.face = 1; // 94 px apart across the pond (2344-2424): inside the Play Possum radius
+    step(s, { pressed: { possum: true } });
+    assert.ok(e.state === 'sniff' || e.state === 'confused', e.state); // the ledge is right ahead: he may stop at once
+    step(s, {}, sec(2));
+    assert.ok(e.x < 2344 && e.y === G && e.state === 'confused', 'stopped at the pond edge: x ' + e.x + ' ' + e.state);
+  });
+});
+
+test('hippie and sweater: gag lines are their own, short, and in the font; the placeholders draw every state in their colours, with and without gore', () => {
+  for (const [type, style] of [['hippie', 'melt'], ['sweater', 'flop']]) {
+    const lines = S.GAGS_BY_TYPE[type][style];
+    assert.ok(lines && lines.length >= 3, type + ' has its own ' + style + ' lines');
+    for (const t of lines) {
+      assert.ok(t.length <= 16, t);
+      for (const ch of t) assert.ok(S.GLYPHS[ch.toUpperCase()], `"${ch}" in "${t}" is in the font`);
+      assert.ok(S.textWidth(t) < 80, t + ' fits over a zombie');
+    }
+  }
+  assert.deepEqual(S.GAGS_BY_TYPE.hippie.melt, ['PEACE. OUT.', 'FAR OUT, MAN.', 'BUMMER.']);
+  assert.deepEqual(S.GAGS_BY_TYPE.sweater.flop, ['BUNNY DOWN.', 'FASHION VICTIM.', 'NICE SWEATER.']);
+  const gore = new Set(Object.values(S.GORE_COLORS).map((c) => c.toLowerCase()));
+  const was = S.gore;
+  const own = { hippie: [S.PAL.hippie, S.PAL.hippieSkin], sweater: [S.PAL.sweaterGold, S.PAL.sweaterTeal] };
+  for (const type of ['hippie', 'sweater']) {
+    withEnemies([{ type, x: 600 }], (s, e) => {
+      place(s, 560); e.x = 600;
+      const T = S.ENEMY_TYPES[type];
+      for (const g of ['full', 'low']) {
+        S.setGore(g);
+        for (const st of T.states) {
+          if (st === 'dead') continue;
+          Object.assign(e, { state: st, t: 0.2, anim: T.anims[st], animT: 0.2, flashT: 0, defeatStyle: T.cfg.defeatStyle });
+          const ctx = colorCtx(); S.render(ctx, s);
+          if (st !== 'hitreact') for (const c of own[type]) assert.ok(ctx.used.has(c.toLowerCase()), `${type} ${st} drawn in its own colour ${c}`); // hitreact = the white flash
+          if (st === 'attack') { e.t = T.cfg.attackHitStart + 0.01; S.render(colorCtx(), s); }
+        }
+        // The flash is white; the saw death and the whip death both draw; the goo pool shows in both modes without a gore colour.
+        Object.assign(e, { state: T.cfg.start, anim: T.cfg.startAnim, flashT: 0.1 });
+        const fl = colorCtx(); S.render(fl, s); assert.ok(fl.used.has(S.PAL.white.toLowerCase())); e.flashT = 0;
+        for (const style of [T.cfg.defeatStyle, 'sliced']) for (const t of [0.05, 0.4, 0.7]) {
+          Object.assign(e, { state: 'defeat', t, anim: 'defeat', animT: t, defeatStyle: style, sliceDir: 1 });
+          s.effects = style === 'melt' ? [{ kind: 'melt-pool', x: e.x, y: G, t, life: C.hippie.pool, melt: C.hippie.defeatTime, type }] : [];
+          const ctx = colorCtx(); S.render(ctx, s);
+          const red = [...ctx.used].filter((c) => gore.has(c));
+          if (g === 'low') assert.deepEqual(red, [], `${type} ${style} low gore drew ${red}`);
+          else if (style === 'sliced') assert.ok(red.length >= 1, type + ' sliced bleeds');
+          if (style === 'melt') assert.ok(ctx.used.has(S.PAL.hippieGoo.toLowerCase()), 'the pool is purple goo');
+          if (style === 'flop') assert.ok(ctx.used.has(S.PAL.slipper.toLowerCase()) && ctx.used.has(S.PAL.mustard.toLowerCase()), 'slippers and the duck fly');
+        }
+      }
+    });
+  }
+  S.setGore(was);
+});
+
+test('hippie and sweater: the new sounds are planned, have beeps and folders, and the rules call them', () => {
+  const simSrc = fs.readFileSync(path.join(src, 'sim.js'), 'utf8'), audioSrc = fs.readFileSync(path.join(src, 'audio.js'), 'utf8');
+  const ids = new Set(S.SOUND_MANIFEST.map((m) => m.id));
+  for (const id of ['sfx-zombie-melt', 'sfx-zombie-shove', 'sfx-zombie-sniff']) {
+    assert.ok(ids.has(id), id + ' planned');
+    assert.ok(audioSrc.includes("'" + id + "':"), id + ' beep');
+    assert.ok(simSrc.includes("'" + id + "'"), id + ' called by the rules');
+    assert.ok(fs.existsSync(path.join(libRoot, 'assets', 'audio', 'sfx', id, '.gitkeep')), id + ' folder');
+  }
+});
+
+test('hippie and sweater: the autopilot still clears a level with them placed where the design puts them, and the run is deterministic', () => {
+  // The design's spots (3.): hippies at 940, 2150 and 3440, the sweater at 2720, next to the joggers and the vendor already there.
+  const placed = S.LEVEL1.enemies.filter((d) => ![940, 2144, 2720].includes(d.x))
+    .concat([{ type: 'hippie', x: 940 }, { type: 'hippie', x: 2150 }, { type: 'sweater', x: 2720 }, { type: 'hippie', x: 3440 }]);
+  const level = Object.assign({}, S.LEVEL1, { enemies: placed });
+  const run = () => {
+    const s = S.newGame(level); s.god = true;
+    const bot = S.makeBot();
+    let f = 0;
+    for (; f < sec(150) && s.mode !== 'clear'; f++) { S.update(s, S.botInput(s, bot)); s.events.length = 0; }
+    return s;
+  };
+  const s = run();
+  assert.equal(s.mode, 'clear', 'stuck at x ' + Math.round(s.player.x));
+  assert.ok(s.stats.defeated >= placed.length - 2, 'fought its way through: ' + s.stats.defeated);
+  const a = run(), b = run();
+  assert.equal(JSON.stringify([a.stats, Math.round(a.player.x * 100)]), JSON.stringify([b.stats, Math.round(b.player.x * 100)]));
 });

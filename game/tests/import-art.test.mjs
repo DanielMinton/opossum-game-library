@@ -616,7 +616,9 @@ test('slot names can be remapped, and mistakes in the map are explained', () => 
   const sh = theSheet();
   const { res } = buildFrom(sh, { prefix: 'hippie' });
   assert.deepEqual(res.strips.map((s) => s.key), ['hippie:walk', 'hippie:attack', 'hippie:hit']);
-  assert.equal(res.strips[0].fileName, 'hippie-walk-strip-v01.png');
+  // hippie:* has slots in the game since 2026-10-20, so the file takes the manifest's name; a prefix with no slot keeps <prefix>-<anim>.
+  assert.equal(res.strips[0].fileName, 'zombie-hippie-walk-strip-v01.png');
+  assert.equal(buildFrom(sh, { prefix: 'ghoul' }).res.strips[0].fileName, 'ghoul-walk-strip-v01.png');
   const mapped = buildFrom(sh, {}, (map) => { map.slotMap = { 'jogger:hit': 'cheer:hit' }; }).res;
   assert.ok(mapped.strips.some((s) => s.key === 'cheer:hit'));
   const wrongCount = buildFrom(sh, {}, (map) => { map.slots['jogger:walk'].frames.pop(); }).res;

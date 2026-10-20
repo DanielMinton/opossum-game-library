@@ -144,6 +144,50 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       defeatStyle: 'deflate', sawStyle: 'sliced',
     },
     // New enemy types go here (hippie, sweater, cheerleader, baby, brute): one block each, same fields, a `brain`.
+    // Optional hooks a block may add (read by the walker brain and the damage code only when present):
+    //   pool: seconds the goo pool it melts into stays on the ground after a whip kill (an effect, drawing only; no slow).
+    //   shoveKnockX / shoveKnockY: how far its ATTACK throws Sammy (a plain bump still uses sammy.hurtKnockX/Y).
+    //   stripsLid: true = its attack takes every charge of the trash lid in one go (Sammy is still thrown, loses no heart).
+    //   sniffStop: with possum 'sniff', how close (px) it walks to a playing-dead Sammy before it stops to sniff.
+    hippie: {                  // enemy-zombie-hippie (design 2.3): stoned, rotting, the "slow wall": 3 whips, half knockback. Brain: walker
+      brain: 'walker', art: 'hippie', start: 'patrol', startAnim: 'walk',
+      hp: 3,
+      patrolSpeed: 18, chaseSpeed: 36, patrolRange: 48,
+      notice: 80, giveUpDist: 128, giveUpTime: 2.0,
+      attackRange: 26,
+      attackTime: 0.4,         // claw lunge: 4 frames @ 10 fps
+      attackHitStart: 0.2,     // hit frame = 2
+      attackHitEnd: 0.3,
+      attackCooldown: 1.6,
+      hitW: 18, hitH: 20,
+      bodyW: 20, bodyH: 40,
+      hitReactTime: 2 / 12,
+      defeatTime: 8 / 12,      // the melt
+      flinch: true, knockback: 60, sawKnockback: 20, cartKnock: 80, shieldPush: 16, hitY: 26,
+      possum: 'confused', possumIgnore: 3.0, // too stoned to notice Sammy for twice a jogger's grace
+      defeatStyle: 'melt', sawStyle: 'sliced',
+      pool: 1.6,               // the goo pool under him: grows while he melts (0.67 s), lingers about a second, then gone
+    },
+
+    sweater: {                 // enemy-zombie-sweater (design 2.4): loud zigzag sweater, bunny slippers, rubber duck. The brawler. Brain: walker, no flinch
+      brain: 'walker', art: 'sweater', start: 'patrol', startAnim: 'walk',
+      hp: 3,
+      patrolSpeed: 22, chaseSpeed: 50, patrolRange: 48,
+      notice: 100, giveUpDist: 144, giveUpTime: 2.5,
+      attackRange: 32,
+      attackTime: 4 / 8,       // two-handed shove: 4 frames @ 8 fps (both arms up on frames 0-1 = the tell)
+      attackHitStart: 2 / 8,   // hit frame = 2
+      attackHitEnd: 3 / 8,
+      attackCooldown: 1.5,
+      hitW: 24, hitH: 26,
+      bodyW: 24, bodyH: 48,
+      hitReactTime: 2 / 12,    // how long the white flash lasts (he never reels)
+      defeatTime: 8 / 10,      // the flop
+      flinch: false, knockback: 0, sawKnockback: 0, cartKnock: 0, shieldPush: 0, hitY: 36, // a hit flashes him white and changes nothing else
+      shoveKnockX: 240, shoveKnockY: 150, stripsLid: true, // twice a jogger's bump (sammy.hurtKnockX 120); the lid comes off whole
+      possum: 'sniff', sniffStop: 32, possumIgnore: 1.5,   // fooled, but walks up and stands over Sammy (32 px: his body never touches the lying one)
+      defeatStyle: 'flop', sawStyle: 'sliced',
+    },
 
     cart: {                    // prop-hot-dog-cart INTERACTION.md
       w: 64, h: 48,
@@ -193,6 +237,11 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     // Scenery extras (2026-10-19, Proposed): foliage ramp, earth, lit stone, water foam, wood, bins. None of these are gore colours.
     grassHi: '#48906c', grassLo: '#004824', soilWarm: '#6c4848', soilWarmDk: '#482424', slateHi: '#9090b4', stoneMoon: '#b4b4d8',
     leaf3: '#6c2400', woodDk: '#482400', waterMid: '#2448b4', foam: '#b4d8fc', canMid: '#486c48',
+    // Zombie roster placeholders (2026-10-20, Proposed): each type in its own contrasting scheme, from the importer palettes.
+    // Hippie = purple vest and goo over olive skin; sweater = gold knit with purple and teal zigzags over dark brown skin.
+    hippie: '#904890', hippieDark: '#6c2448', hippieSkin: '#90b490', hippieGoo: '#9048d8', hippieJeans: '#48486c',
+    sweaterGold: '#fcb448', sweaterPurple: '#900048', sweaterTeal: '#24d8d8', sweaterTealDk: '#489090', sweaterSkin: '#904824',
+    slipper: '#fcd890', slipperEar: '#d89090', brainPink: '#fc90b4',
     // Reserved for gore only (STYLE_GUIDE "Reserved colours")
     blood0: '#480000', blood: '#900000', bloodHi: '#b40024', ichor0: '#486c00', ichor: '#90d800', ichorHi: '#d8fc48',
     bone: '#fcd8b4', meat: '#d86c6c',
@@ -385,6 +434,9 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   const sam = (extra) => Object.assign({ px: 28 }, extra || {});
   const JOG = 'enemies/enemy-zombie-jogger/';
   const VEN = 'enemies/enemy-zombie-hot-dog-vendor/';
+  const HIP = 'enemies/enemy-zombie-hippie/';
+  const SWE = 'enemies/enemy-zombie-sweater/';
+  const big = { fw: 64, fh: 56, px: 32, py: 55 }; // the sweater's cells: he stands about 52 px, wider than a 48 px cell
   const CART = 'props/prop-hot-dog-cart/';
   const LID = 'items/item-powerup-trash-lid-shield/';
   const SAW = 'items/item-powerup-chainsaw/';
@@ -418,6 +470,19 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     strip('jogger:hit', JOG + 'zombie-jogger-hit-strip-v01.png', 2, 12, 'once'),
     strip('jogger:defeat', JOG + 'zombie-jogger-defeat-strip-v01.png', 8, 12, 'once'),
     strip('jogger:idle', JOG + 'zombie-jogger-idle-strip-v01.png', 4, 6, 'loop'),
+
+    // Zombie roster (2026-10-20, Proposed; design/ZOMBIE-ROSTER-AND-BOSSES.md 2.3-2.4). The art is made separately and drops
+    // into these paths: the hippie in the usual 48x48 cells, feet (24, 47); the sweater is the big one, 64x56 cells, feet (32, 55).
+    strip('hippie:walk', HIP + 'zombie-hippie-walk-strip-v01.png', 6, 6, 'loop'),          // a shamble
+    strip('hippie:attack', HIP + 'zombie-hippie-attack-strip-v01.png', 4, 10, 'once', { hitFrame: 2 }), // claw lunge
+    strip('hippie:hit', HIP + 'zombie-hippie-hit-strip-v01.png', 2, 12, 'once'),
+    strip('hippie:defeat', HIP + 'zombie-hippie-defeat-strip-v01.png', 8, 12, 'once'),     // the melt
+    strip('hippie:idle', HIP + 'zombie-hippie-idle-strip-v01.png', 4, 6, 'loop'),
+    strip('sweater:walk', SWE + 'zombie-sweater-walk-strip-v01.png', 6, 6, 'loop', big),    // a plod
+    strip('sweater:attack', SWE + 'zombie-sweater-attack-strip-v01.png', 4, 8, 'once', Object.assign({ hitFrame: 2 }, big)), // two-handed shove
+    strip('sweater:hit', SWE + 'zombie-sweater-hit-strip-v01.png', 2, 12, 'once', big),    // the white-flash pose (he never reels)
+    strip('sweater:defeat', SWE + 'zombie-sweater-defeat-strip-v01.png', 8, 10, 'once', big), // the flop
+    strip('sweater:idle', SWE + 'zombie-sweater-idle-strip-v01.png', 4, 6, 'loop', big),
 
     strip('vendor:idle', VEN + 'zombie-vendor-idle-strip-v01.png', 4, 6, 'loop'),
     strip('vendor:throw', VEN + 'zombie-vendor-throw-strip-v01.png', 4, 10, 'once', { releaseFrame: 2 }),
@@ -494,6 +559,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     'sfx-checkpoint', 'sfx-gate-open', 'sfx-level-clear', 'sfx-start',
     // Stage B: chainsaw and gore (sfx-chainsaw-rev loops while the saw revs)
     'sfx-chainsaw-start', 'sfx-chainsaw-rev', 'sfx-chainsaw-cut', 'sfx-gore-splat',
+    // Zombie roster (2026-10-20): the hippie melting into goo, the sweater's two-handed shove landing, the sweater sniffing a "dead" Sammy
+    'sfx-zombie-melt', 'sfx-zombie-shove', 'sfx-zombie-sniff',
   ];
   S.SOUND_MANIFEST = SFX_IDS.map((id) => ({ id, kind: 'sfx', dir: 'audio/sfx/' + id + '/' })).concat([
     { id: 'music-level-01-central-park', kind: 'music', dir: 'audio/music/music-level-01-central-park/' },
@@ -634,14 +701,15 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   // config block (see config.js, "enemy types") read through typeOf(e). An enemy whose type has no row is an error, never a jogger.
   const BRAINS = {
     // brain: { update(s, e), states: every state the brain can put an enemy in (the render sweep draws each), anims: state -> animation }
-    walker: { update: (s, e) => updateWalker(s, e), states: ['spawn', 'patrol', 'chase', 'attack', 'hitreact', 'confused', 'defeat', 'dead'],
-      anims: { spawn: 'idle', patrol: 'walk', chase: 'walk', attack: 'attack', hitreact: 'hit', confused: 'idle', defeat: 'defeat', dead: 'defeat' } },
+    // sniff (possum 'sniff', the sweater): fooled by Play Possum, but walks over to Sammy first; once close it stands in 'confused'.
+    walker: { update: (s, e) => updateWalker(s, e), states: ['spawn', 'patrol', 'chase', 'attack', 'hitreact', 'confused', 'sniff', 'defeat', 'dead'],
+      anims: { spawn: 'idle', patrol: 'walk', chase: 'walk', attack: 'attack', hitreact: 'hit', confused: 'idle', sniff: 'walk', defeat: 'defeat', dead: 'defeat' } },
     turret: { update: (s, e) => updateTurret(s, e), states: ['idle', 'throw', 'hitreact', 'shrug', 'defeat', 'dead'],
       anims: { idle: 'idle', shrug: 'idle', throw: 'throw', hitreact: 'hit', defeat: 'defeat', dead: 'defeat' } },
   };
   const TYPE_FIELDS = ['brain', 'art', 'start', 'startAnim', 'hp', 'bodyW', 'bodyH', 'hitReactTime', 'defeatTime', 'flinch', 'knockback',
     'sawKnockback', 'cartKnock', 'shieldPush', 'hitY', 'possum', 'possumIgnore', 'defeatStyle', 'sawStyle'];
-  const POSSUM_KINDS = ['confused', 'shrug'];
+  const POSSUM_KINDS = ['confused', 'shrug', 'sniff'];
   S.ENEMY_TYPES = {};
   S.ENEMY_TYPE_FIELDS = TYPE_FIELDS;
   // Registers (or replaces) an enemy type from a config block. Throws on a missing field or an unknown brain, so a half-written
@@ -795,12 +863,24 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     if (p.state === 'ko' || s.mode !== 'playing') return false;
     if (s.god) return false;
     if (p.invuln > 0) return false;
+    // opts.attack: the source's own attack landed (not a bump). A type with shoveKnockX/Y throws Sammy that far instead of
+    // the usual hurtKnockX/Y; one with stripsLid takes the whole lid and still throws him (the sweater's shove).
+    const src = opts.attack && opts.source ? typeOf(opts.source).cfg : null;
+    const knockX = src && src.shoveKnockX != null ? src.shoveKnockX : P.hurtKnockX;
+    const knockY = src && src.shoveKnockY != null ? src.shoveKnockY : P.hurtKnockY;
+    const dir = opts.fromX != null ? (sign(p.x - opts.fromX) || -p.face) : -p.face;
+    if (src && src.shoveKnockX != null) sfx(s, 'sfx-zombie-shove');
     if (!opts.hazard && p.shield > 0) {
-      p.shield -= 1;
+      p.shield = src && src.stripsLid ? 0 : p.shield - 1;
       p.invuln = 0.3;
       sfx(s, p.shield > 0 ? 'sfx-shield-block' : 'sfx-shield-break');
       effect(s, 'spark', p.x + p.face * 10, p.y - 18, 0.2);
       if (opts.source) { const push = typeOf(opts.source).cfg.shieldPush; if (push) opts.source.x += sign(opts.source.x - p.x) * push; }
+      if (src && src.stripsLid) { // the lid is gone and Sammy still flies: the hurt reel, no heart lost
+        if (p.state === 'playdead' || p.state === 'getup') p.possumCd = C.possum.cooldown;
+        releaseConfused(s);
+        p.state = 'hurt'; p.t = 0; p.vx = dir * knockX; p.vy = -knockY; p.grounded = false;
+      }
       return 'blocked';
     }
     if (p.state === 'playdead' || p.state === 'getup') p.possumCd = C.possum.cooldown;
@@ -817,10 +897,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       return 'ko';
     }
     p.state = 'hurt'; p.t = 0; p.invuln = P.invulnTime;
-    if (!opts.hazard) {
-      const dir = opts.fromX != null ? (sign(p.x - opts.fromX) || -p.face) : -p.face;
-      p.vx = dir * P.hurtKnockX; p.vy = -P.hurtKnockY; p.grounded = false;
-    }
+    if (!opts.hazard) { p.vx = dir * knockX; p.vy = -knockY; p.grounded = false; }
     return 'hurt';
   }
   S.hurtPlayer = hurtPlayer;
@@ -848,6 +925,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         for (let i = 0; i < 3; i++) effect(s, 'chunk', gx, e.y - 30 + i * 8, 0.9, { dir, i });
         s.hitstop = Math.max(s.hitstop || 0, 0.06);
         s.shake = Math.max(s.shake, 0.25);
+      } else if (k.pool) {
+        // Melts into a goo pool (the hippie): a drawing-only effect under him that outlives the body; never from the saw.
+        effect(s, 'melt-pool', e.x, e.y, k.pool, { type: e.type, melt: k.defeatTime });
+        sfx(s, 'sfx-zombie-melt');
       }
       return;
     }
@@ -861,7 +942,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     for (const e of s.enemies) {
       if (!e.confused) continue;
       e.confused = false;
-      if (e.state === 'confused') { e.state = 'patrol'; e.home = e.x; e.t = 0; }
+      if (e.state === 'confused' || e.state === 'sniff') { e.state = 'patrol'; e.home = e.x; e.t = 0; }
       e.ignoreT = typeOf(e).cfg.possumIgnore; // lost interest: won't re-notice Sammy straight away
       if (e.state === 'shrug') { e.state = 'idle'; e.t = 0; }
     }
@@ -883,6 +964,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         e.confused = true;
         const how = typeOf(e).cfg.possum;
         if (how === 'confused' && e.state !== 'attack' && e.state !== 'hitreact') { e.state = 'confused'; e.t = 0; e.vx = 0; }
+        if (how === 'sniff' && e.state !== 'attack' && e.state !== 'hitreact') { e.state = 'sniff'; e.t = 0; }
         if (how === 'shrug' && e.state !== 'hitreact') { e.state = 'shrug'; e.t = 0; }
       }
     }
@@ -1072,6 +1154,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     const dx = p.x - e.x, dy = p.y - e.y;
     const canNotice = p.state !== 'ko' && !playerHidden(p) && e.ignoreT <= 0 && Math.abs(dx) <= J.notice && Math.abs(dy) < 40;
     const aheadSupported = () => !e.grounded || isSupported(s, e.x + e.face * (J.bodyW / 2 + 2), e.y);
+    const fooled = J.possum === 'sniff' ? 'sniff' : 'confused'; // where it settles when Play Possum has it and an attack or reel ends
 
     switch (e.state) {
       case 'patrol': {
@@ -1097,18 +1180,26 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         e.vx = 0;
         if (e.t >= J.attackHitStart && e.t < J.attackHitEnd && !e.attackHit) {
           const r = { x: e.face > 0 ? e.x + 4 : e.x - 4 - J.hitW, y: e.y - J.hitY, w: J.hitW, h: J.hitH };
-          if (overlap(r, playerBox(p))) { e.attackHit = true; hurtPlayer(s, { fromX: e.x, source: e }); }
+          if (overlap(r, playerBox(p))) { e.attackHit = true; hurtPlayer(s, { fromX: e.x, source: e, attack: true }); }
         }
-        if (e.t >= J.attackTime) { e.state = e.confused ? 'confused' : 'chase'; e.t = 0; e.cd = J.attackCooldown; }
+        if (e.t >= J.attackTime) { e.state = e.confused ? fooled : 'chase'; e.t = 0; e.cd = J.attackCooldown; }
         break;
       }
       case 'hitreact': {
         e.vx *= 0.85;
-        if (e.t >= J.hitReactTime) { e.state = e.confused ? 'confused' : 'chase'; e.t = 0; e.cd = Math.max(e.cd, 0.4); }
+        if (e.t >= J.hitReactTime) { e.state = e.confused ? fooled : 'chase'; e.t = 0; e.cd = Math.max(e.cd, 0.4); }
         break;
       }
       case 'spawn': e.vx = 0; if (e.grounded && e.t > 0.6) { e.state = 'chase'; e.t = 0; } break;
       case 'confused': e.vx = 0; break;
+      case 'sniff': {
+        // Fooled, but curious: shambles toward the lying Sammy at patrol speed, stops sniffStop px short (or at a ledge or a
+        // wall), faces him and stands there (confused) until he gets up. Touching him never hurts in this state.
+        if (Math.abs(dx) > 2) e.face = sign(dx);
+        if (Math.abs(dx) <= J.sniffStop || !aheadSupported() || e.blocked) { e.state = 'confused'; e.t = 0; e.vx = 0; sfx(s, 'sfx-zombie-sniff'); }
+        else e.vx = e.face * J.patrolSpeed;
+        break;
+      }
       case 'defeat': e.vx = 0; if (e.t >= J.defeatTime) e.state = 'dead'; break;
     }
     // Touching a zombie that is walking or attacking hurts (not while it reels back or is confused).
@@ -1384,6 +1475,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   };
 
   // Exposed for tests and the renderer.
+  S.makeEnemy = makeEnemy; // (def, idx, extra): a fresh enemy of def.type at def.x; the render sweep uses it for types the level lacks
   S.overlap = overlap;
   S.footBox = footBox;
   S.playerBox = playerBox;
@@ -2262,7 +2354,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     sliced: ['RIIIP.', 'WELL, SHIT.', 'HALVSIES.', 'FUCK ME.'],
     low: ['SHHK.', 'WELL, SHIT.', 'DONE.'],
   };
-  const GAGS_BY_TYPE = {}; // e.g. hippie: { melt: ['PEACE. OUT.', …] }
+  const GAGS_BY_TYPE = { // a type's own lines by style; anything not listed here falls back to GAGS by style
+    hippie: { melt: ['PEACE. OUT.', 'FAR OUT, MAN.', 'BUMMER.'] },
+    sweater: { flop: ['BUNNY DOWN.', 'FASHION VICTIM.', 'NICE SWEATER.'] },
+  };
   S.GAGS = GAGS; S.GAGS_BY_TYPE = GAGS_BY_TYPE;
   // Gags drawn this frame (reset in S.render), so several kills at once stack instead of printing over each other.
   let gagsShown = [], camNow = 0;
@@ -2374,9 +2469,123 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     if (e.state === 'throw') R(ctx, K.vendor, x + f * 8, y - hgt - 2, 4 * f, 10);
   }
 
+  // Coded placeholder figures with one clean 1 px outline round the whole silhouette: every block is first drawn in black one
+  // pixel bigger, then in its colour (flash = every colour block white, the outline stays). blocks: [colour, x, y, w, h].
+  function figure(ctx, blocks, flash) {
+    for (const b of blocks) R(ctx, K.black, b[1] - 1, b[2] - 1, b[3] + 2, b[4] + 2);
+    for (const b of blocks) R(ctx, flash ? K.white : b[0], b[1], b[2], b[3], b[4]);
+  }
+  // Marks over a walker: ? while Play Possum has it (confused, or the sweater's sniff walk-up), ! while it drops into the arena.
+  function walkerMarks(ctx, e, x, y) {
+    if (e.state === 'confused' || e.state === 'sniff') S.drawTextCentered(ctx, '?', x, y, K.white, 2, K.black);
+    if (e.state === 'spawn') S.drawTextCentered(ctx, '!', x, y, K.heart, 2, K.black);
+  }
+
+  // ---------- hippie: purple and olive, 45 px, melts into goo ----------
+  function drawHippie(ctx, e) {
+    const flash = flashing(e), style = styleOf(e), x = Math.round(e.x), y = Math.round(e.y);
+    if (defeated(e) && style === 'sliced') {
+      drawSliced(ctx, e, () => { if (!sprite(ctx, 'hippie:hit', 0, e.x, e.y, e.face, false, 0)) drawHippiePlaceholder(ctx, e, false, true); }, 40);
+    } else if (!sprite(ctx, 'hippie:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawHippiePlaceholder(ctx, e, flash);
+    if (defeated(e)) gag(ctx, e, style, y - 56);
+    walkerMarks(ctx, e, x, y - 52);
+  }
+  // standing: the upright pose even while defeated (the chainsaw cut uses it). The melt sinks the pose into the ground; the
+  // goo pool under him is a separate 'melt-pool' effect from the rules, so it is there with real art too.
+  function drawHippiePlaceholder(ctx, e, flash, standing) {
+    const x = Math.round(e.x), y = Math.round(e.y), f = e.face;
+    const melting = !standing && defeated(e);
+    const sink = melting ? Math.min(1, e.t / C.hippie.defeatTime) : 0;
+    const attack = e.state === 'attack', lunge = attack && e.t >= C.hippie.attackHitStart && e.t < C.hippie.attackHitEnd;
+    const lean = lunge ? f * 3 : 0;
+    const step = melting || e.state === 'confused' || e.state === 'spawn' ? 0 : Math.floor(e.animT * 6) % 2;
+    const bob = Math.floor(e.animT * 3) % 2;
+    const armLen = lunge ? 12 : attack ? 8 : 6;
+    const armX = f > 0 ? x + 8 + lean : x - 8 - armLen + lean;
+    const blocks = [
+      [K.hippieJeans, x - 7 + step * 2, y - 14, 5, 14], [K.hippieJeans, x + 2 - step * 2, y - 14, 5, 14],  // ripped jeans
+      [K.cart, x - 8 + step * 2, y - 3, 7, 3], [K.cart, x + 1 - step * 2, y - 3, 7, 3],                      // red sneakers
+      [K.moon, x - 8 + lean, y - 32, 16, 18],                                                               // peace-sign shirt
+      [K.hippie, x - 9 + lean, y - 32, 5, 18], [K.hippie, x + 4 + lean, y - 32, 5, 18],                      // torn purple vest
+      [K.hippieSkin, armX, y - 28, armLen, 3],                                                              // claw arm
+      [K.stoneLight, x - 8 + lean, y - 44, 3, 15], [K.stoneLight, x + 5 + lean, y - 44, 3, 15], [K.stoneLight, x - 7 + lean, y - 46, 14, 3], // grey dreads
+      [K.hippieSkin, x - 5 + lean, y - 44, 10, 11],                                                         // olive face
+      [K.band, x - 6 + lean, y - 43, 12, 2],                                                                // tie-dye headband
+    ];
+    ctx.save();
+    if (melting) { ctx.beginPath(); ctx.rect(x - 32, y - 60, 64, 60); ctx.clip(); ctx.translate(0, Math.round(sink * 46)); }
+    figure(ctx, blocks, flash);
+    const detail = (c) => (flash ? K.white : c);
+    for (let i = 0; i < 4; i++) R(ctx, detail(K.mustard), x - 5 + lean + i * 3, y - 43 + (i & 1), 1, 1);      // the dye
+    R(ctx, K.dark, x - 1 + lean, y - 29, 2, 7); R(ctx, K.dark, x - 3 + lean, y - 25, 2, 2); R(ctx, K.dark, x + 1 + lean, y - 25, 2, 2); // peace sign
+    R(ctx, detail(K.moon), x + f * 2 - 1 + lean, y - 41, 2, 2);                                              // glowing pale eye
+    R(ctx, detail(K.hippieGoo), x + f * 3 + lean, y - 35, 2, 3 + bob);                                        // slime from the mouth
+    if (lunge) { R(ctx, K.white, f > 0 ? armX + armLen - 1 : armX, y - 29, 1, 1); R(ctx, K.white, f > 0 ? armX + armLen - 1 : armX, y - 26, 1, 1); } // claws
+    ctx.restore();
+  }
+
+  // ---------- sweater: gold zigzag knit, purple and teal, 52 px; never flinches, flops over ----------
+  function drawSweater(ctx, e) {
+    const flash = flashing(e), style = styleOf(e), x = Math.round(e.x), y = Math.round(e.y);
+    if (defeated(e) && style === 'sliced') {
+      drawSliced(ctx, e, () => { if (!sprite(ctx, 'sweater:hit', 0, e.x, e.y, e.face, false, 0)) drawSweaterPlaceholder(ctx, e, false, true); }, 48);
+    } else if (!sprite(ctx, 'sweater:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawSweaterPlaceholder(ctx, e, flash);
+    if (defeated(e) && style === 'flop') drawFlopBits(ctx, e); // slippers and the duck fly off, with real art or without
+    if (defeated(e)) gag(ctx, e, style, y - 72);
+    walkerMarks(ctx, e, x, y - 70); // he is 60 px tall with the brain: the marks sit above it
+  }
+  function drawSweaterPlaceholder(ctx, e, flash, standing) {
+    const x = Math.round(e.x), y = Math.round(e.y), f = e.face;
+    const flopping = !standing && defeated(e);
+    const attack = e.state === 'attack', tell = attack && e.t < C.sweater.attackHitStart, shove = attack && !tell;
+    const step = flopping || e.state === 'confused' || e.state === 'spawn' ? 0 : Math.floor(e.animT * 6) % 2;
+    const blocks = [
+      [K.slipper, x - 11 + step * 2, y - 5, 10, 5], [K.slipper, x + 1 - step * 2, y - 5, 10, 5],              // bunny slippers
+      [K.slipperEar, f > 0 ? x - 3 + step * 2 : x - 11 + step * 2, y - 8, 2, 3], [K.slipperEar, f > 0 ? x + 9 - step * 2 : x + 1 - step * 2, y - 8, 2, 3], // ears
+      [K.sweaterTealDk, x - 8 + step * 2, y - 22, 7, 17], [K.sweaterTealDk, x + 1 - step * 2, y - 22, 7, 17], // torn trousers
+      [K.sweaterGold, x - 12, y - 44, 24, 23],                                                              // the knit
+      [K.sweaterSkin, x - 7, y - 56, 14, 12],                                                               // head
+      [K.brainPink, x - 5, y - 59, 10, 4],                                                                  // exposed brain
+    ];
+    if (tell) { blocks.push([K.sweaterSkin, x - 16, y - 54, 5, 14], [K.sweaterSkin, x + 11, y - 54, 5, 14]); }           // both arms up
+    else if (shove) { blocks.push([K.sweaterSkin, f > 0 ? x + 12 : x - 26, y - 40, 14, 5], [K.sweaterSkin, f > 0 ? x + 12 : x - 26, y - 33, 14, 5]); } // both arms out
+    else blocks.push([K.sweaterSkin, f > 0 ? x + 11 : x - 16, y - 42, 5, 14]);                                           // one arm hanging
+    ctx.save();
+    if (flopping) {
+      // Topples backwards (away from where he faces) over half a second, then lies there sinking a little.
+      const k = Math.min(1, e.t / 0.5);
+      ctx.translate(x, y); ctx.rotate(-f * k * Math.PI / 2); ctx.translate(-x, -y + Math.round(Math.max(0, e.t - 0.5) * 10));
+    }
+    figure(ctx, blocks, flash);
+    const detail = (c) => (flash ? K.white : c);
+    for (const [row, col] of [[y - 41, K.sweaterPurple], [y - 33, K.sweaterTeal], [y - 25, K.sweaterPurple]]) {     // zigzags
+      for (let i = 0; i < 6; i++) R(ctx, detail(col), x - 12 + i * 4, row + (i & 1) * 2, 4, 2);
+    }
+    R(ctx, detail(K.grey), x - 4, y - 44, 8, 1);                                                           // the duck's chain
+    R(ctx, detail(K.mustard), x + f * 2 - 2, y - 42, 4, 3); R(ctx, detail(K.hotdog), x + f * 4 - (f < 0 ? 1 : 0), y - 41, 1, 1); // rubber duck
+    R(ctx, detail(K.slipperEar), x - 3, y - 58, 6, 1);                                                      // brain ridge
+    R(ctx, detail(K.moon), x + f * 3 - 1, y - 53, 2, 2);                                                    // the eye that stayed in
+    R(ctx, detail(K.slipperEar), x + f * 6, y - 51, 1, 4); R(ctx, detail(K.white), x + f * 6 - 1, y - 48, 3, 3); R(ctx, K.black, x + f * 6, y - 47, 1, 1); // the one hanging out
+    R(ctx, detail(K.white), x - 3 - f, y - 46, 6, 1);                                                       // wide grin
+    ctx.restore();
+  }
+  // Flop: both slippers and the duck fly off him in arcs (from his age alone, no stored state), bouncing once on the path.
+  function drawFlopBits(ctx, e) {
+    const x = Math.round(e.x), y = Math.round(e.y), f = e.face, t = e.t;
+    const bits = [[-f * 50, -120, 0, 'slipper'], [-f * 90, -90, 0, 'slipper'], [f * 40, -150, -40, 'duck']];
+    for (const [vx, vy, y0, kind] of bits) {
+      const bx = Math.round(x + vx * t);
+      let by = y + y0 + vy * t + gravity * t * t;
+      if (by > y - 2) by = y - 2 - Math.abs(Math.sin(t * 10)) * 5 * Math.max(0, 1 - t);
+      by = Math.round(by);
+      if (kind === 'slipper') { R(ctx, K.black, bx - 5, by - 5, 10, 6); R(ctx, K.slipper, bx - 4, by - 4, 8, 4); R(ctx, K.slipperEar, bx + (vx > 0 ? 2 : -4), by - 6, 2, 2); }
+      else { R(ctx, K.black, bx - 3, by - 4, 6, 5); R(ctx, K.mustard, bx - 2, by - 3, 4, 3); R(ctx, K.hotdog, bx + (f > 0 ? 2 : -3), by - 2, 1, 1); }
+    }
+  }
+
   // One drawer per enemy type (S.ENEMY_TYPES). A type with no drawer is an error, never drawn as a jogger.
   // New types go here with their own drawer (real strip `<art>:<anim>` first, coded placeholder in contrasting colours when missing).
-  const DRAW = { jogger: drawJogger, vendor: drawVendor };
+  const DRAW = { jogger: drawJogger, vendor: drawVendor, hippie: drawHippie, sweater: drawSweater };
   S.ENEMY_DRAW = DRAW;
   function drawEnemy(ctx, e) {
     const draw = DRAW[e.type];
@@ -2491,6 +2700,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       else if (f.kind === 'ichor') drawBits(ctx, f, f.n || 5, f.dir || 0, 0.6, [GORE.ichor, GORE.ichorDark]);
       else if (f.kind === 'chunk') drawChunks(ctx, f);
       else if (f.kind === 'sparks') drawSparks(ctx, f);
+      else if (f.kind === 'melt-pool') drawMeltPool(ctx, f);
     }
   }
   // Droplets thrown from a hit, worked out from the effect's age alone (no stored state), landing as flat smears.
@@ -2526,6 +2736,19 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       R(ctx, GORE.bloodDark, x - 2, y + 1, 2, 1);
       R(ctx, GORE.blood, x - dir * 4, y, 2, 1); // trail
     }
+  }
+  // The hippie's goo pool: spreads under him while he melts (f.melt seconds), lies there, then soaks away in the last third of
+  // a second. Purple from his own palette, never a gore colour, so it looks the same in both gore settings. Drawing only.
+  function drawMeltPool(ctx, f) {
+    const x = Math.round(f.x), y = Math.round(f.y), t = f.t;
+    const grow = Math.min(1, t / (f.melt || 0.5)), fade = Math.max(0, Math.min(1, (f.life - t) / 0.3));
+    const w = Math.round((8 + 28 * grow) * fade);
+    if (w < 2) return;
+    R(ctx, K.black, x - w / 2 - 1, y - 3, w + 2, 4);
+    R(ctx, K.hippieGoo, x - w / 2, y - 2, w, 2);
+    R(ctx, K.hippie, x - w / 2 + 1, y, w - 2, 1);
+    R(ctx, K.hippie, x - w / 2, y - 2, 2, 2); R(ctx, K.hippie, x + w / 2 - 2, y - 2, 2, 2);
+    if (w > 14 && Math.floor(t * 6) % 2 === 0) { R(ctx, K.white, x - w / 4, y - 2, 1, 1); R(ctx, K.white, x + w / 5, y - 1, 1, 1); } // bubbles
   }
   // The saw biting: hot sparks spraying from the blade (same in both gore settings).
   function drawSparks(ctx, f) {
@@ -2737,6 +2960,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     'sfx-chainsaw-rev': ['sawtooth', 90, 150, 0.06, 0.12], // loop: pitch wobbles between the two Hz, 0.06 s per wobble
     'sfx-chainsaw-cut': ['noise', 2400, 900, 0.08, 0.2],
     'sfx-gore-splat': ['noise', 400, 60, 0.25, 0.35],
+    // Zombie roster (2026-10-20)
+    'sfx-zombie-melt': ['sawtooth', 260, 40, 0.6, 0.25],   // a wet, sinking gloop: the hippie dissolving
+    'sfx-zombie-shove': ['noise', 300, 40, 0.3, 0.4],      // a heavy thud: the sweater's shove connecting
+    'sfx-zombie-sniff': ['noise', 900, 1400, 0.12, 0.12],  // two short snuffles when the sweater reaches a "dead" Sammy
   };
   const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
   const TRACKS = {
@@ -4337,8 +4564,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     p.shield = 3; draw('shield'); p.shield = 1; draw('shield-cracked'); p.possumCd = 3; draw('possum-cooldown');
     // Every enemy type in every state its brain has (dead is never drawn), plus the no-flinch flash, in its placeholder or real art.
     for (const [type, T] of Object.entries(S.ENEMY_TYPES)) {
-      const e = state.enemies.find((q) => q.type === type && q.state !== 'dead') || state.enemies.find((q) => q.type === type);
-      if (!e) continue;
+      // A type the level doesn't place yet still gets drawn: a stand-in is made for the sweep (resetLevel clears it after).
+      const e = state.enemies.find((q) => q.type === type && q.state !== 'dead') || state.enemies.find((q) => q.type === type) || standIn(type, p.x + 40, 'sweep');
       e.x = p.x + 40;
       for (const st of T.states) {
         if (st === 'dead') continue;
@@ -4368,6 +4595,17 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     return drawn;
   }
 
+  // A fresh enemy of a type at x, added to the state (for the sweep, the gore demo and ?lineup=1 when the level has none of that type).
+  function standIn(type, x, tag) {
+    const e = S.makeEnemy({ type, x }, 0, { id: tag + '-' + type });
+    state.enemies.push(e);
+    return e;
+  }
+  // ?lineup=1 (with ?test=shot): one of every enemy type standing in a row to Sammy's right, facing him (placeholder or real art).
+  function lineup(x) {
+    Object.keys(S.ENEMY_TYPES).forEach((type, i) => { const e = standIn(type, x + i * 48, 'lineup'); e.face = -1; e.state = 'confused'; e.anim = 'idle'; });
+  }
+
   // Puts zombies going down in every defeat style, plus every gore effect, near x (render sweep and ?goredemo=T shots).
   function goreDemo(x, t) {
     t = t || 0.2;
@@ -4375,11 +4613,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     const styles = [];
     for (const [type, T] of Object.entries(S.ENEMY_TYPES)) styles.push([type, T.cfg.defeatStyle], [type, T.cfg.sawStyle]);
     styles.forEach(([type, style], i) => {
-      const e = state.enemies.find((q) => q.type === type && !q.goreDemo && q.state !== 'dead') ||
-        Object.assign({}, state.enemies.find((q) => q.type === type), { id: 'demo' + i });
-      if (!e.type) return;
+      const e = state.enemies.find((q) => q.type === type && !q.goreDemo && q.state !== 'dead') || standIn(type, x + i * 36, 'demo' + i);
       Object.assign(e, { goreDemo: true, x: x + i * 36, y: C.groundY, face: -1, state: 'defeat', t, anim: 'defeat', animT: t, defeatStyle: style });
-      if (!state.enemies.includes(e)) state.enemies.push(e);
+      const k = S.ENEMY_TYPES[type].cfg;
+      if (k.pool) state.effects.push({ kind: 'melt-pool', x: x + i * 36, y: C.groundY, t, life: k.pool, melt: k.defeatTime, type });
     });
     const y = C.groundY - 20;
     state.effects.push({ kind: 'blood', x: x + 36, y, t, life: 0.8, n: 10, dir: 1, power: 1 },
@@ -4440,6 +4677,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         result.ok = errors.length === 0;
       }
       if (params.has('goredemo')) goreDemo(state.player.x + 30, parseFloat(params.get('goredemo')) || 0.2);
+      if (params.has('lineup')) lineup(state.player.x + 40);
       if (params.has('title')) state.mode = 'title';
       if (params.has('paused')) state.mode = 'paused';
       touch.update(state, state.muted);

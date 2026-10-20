@@ -1,4 +1,4 @@
-Sammy placeholder prototype — code bddd411b10b0 (changes only when index.html changes)
+Sammy placeholder prototype — code 3b6e3fd6f01a (changes only when index.html changes)
 Open index.html in a browser. Everything is in this folder; nothing is fetched from the internet.
 
 Art included (15):
@@ -24,13 +24,25 @@ Sound files left out (2):
   audio/music/music-level-01-central-park/music-level-01-central-park-v02.ogg  (commercial_use is "tbd"; it must be "yes")
 
 Still placeholders (no real file yet):
-Still missing — art (42):
+Still missing — art (52):
   assets/enemies/enemy-zombie-jogger/
     zombie-jogger-walk-strip-v01.png  288×48
     zombie-jogger-attack-strip-v01.png  192×48
     zombie-jogger-hit-strip-v01.png  96×48
     zombie-jogger-defeat-strip-v01.png  384×48
     zombie-jogger-idle-strip-v01.png  192×48
+  assets/enemies/enemy-zombie-hippie/
+    zombie-hippie-walk-strip-v01.png  288×48
+    zombie-hippie-attack-strip-v01.png  192×48
+    zombie-hippie-hit-strip-v01.png  96×48
+    zombie-hippie-defeat-strip-v01.png  384×48
+    zombie-hippie-idle-strip-v01.png  192×48
+  assets/enemies/enemy-zombie-sweater/
+    zombie-sweater-walk-strip-v01.png  384×56
+    zombie-sweater-attack-strip-v01.png  256×56
+    zombie-sweater-hit-strip-v01.png  128×56
+    zombie-sweater-defeat-strip-v01.png  512×56
+    zombie-sweater-idle-strip-v01.png  256×56
   assets/enemies/enemy-zombie-hot-dog-vendor/
     zombie-vendor-idle-strip-v01.png  192×48
     zombie-vendor-throw-strip-v01.png  192×48
@@ -73,7 +85,7 @@ Still missing — art (42):
     bethesda-balustrade-v01.png  32×24
     bethesda-arch-v01.png  64×80
     bethesda-stairs-v01.png  64×32
-Still missing — sounds (26):
+Still missing — sounds (29):
   assets/audio/sfx/sfx-jump/sfx-jump-v01.ogg
   assets/audio/sfx/sfx-land/sfx-land-v01.ogg
   assets/audio/sfx/sfx-tail-whip/sfx-tail-whip-v01.ogg
@@ -99,6 +111,9 @@ Still missing — sounds (26):
   assets/audio/sfx/sfx-chainsaw-rev/sfx-chainsaw-rev-v01.ogg
   assets/audio/sfx/sfx-chainsaw-cut/sfx-chainsaw-cut-v01.ogg
   assets/audio/sfx/sfx-gore-splat/sfx-gore-splat-v01.ogg
+  assets/audio/sfx/sfx-zombie-melt/sfx-zombie-melt-v01.ogg
+  assets/audio/sfx/sfx-zombie-shove/sfx-zombie-shove-v01.ogg
+  assets/audio/sfx/sfx-zombie-sniff/sfx-zombie-sniff-v01.ogg
   assets/audio/music/music-level-01-gauntlet/music-level-01-gauntlet-v01.ogg
   (.mp3 or .wav also fine instead of .ogg)
 

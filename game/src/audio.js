@@ -29,6 +29,10 @@
     'sfx-chainsaw-rev': ['sawtooth', 90, 150, 0.06, 0.12], // loop: pitch wobbles between the two Hz, 0.06 s per wobble
     'sfx-chainsaw-cut': ['noise', 2400, 900, 0.08, 0.2],
     'sfx-gore-splat': ['noise', 400, 60, 0.25, 0.35],
+    // Zombie roster (2026-10-20)
+    'sfx-zombie-melt': ['sawtooth', 260, 40, 0.6, 0.25],   // a wet, sinking gloop: the hippie dissolving
+    'sfx-zombie-shove': ['noise', 300, 40, 0.3, 0.4],      // a heavy thud: the sweater's shove connecting
+    'sfx-zombie-sniff': ['noise', 900, 1400, 0.12, 0.12],  // two short snuffles when the sweater reaches a "dead" Sammy
   };
   const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
   const TRACKS = {

@@ -35,6 +35,8 @@ export const GROUPS = [
   { id: 'sammy', folder: 'characters/character-sammy', title: 'SAMMY' },
   { id: 'jogger', folder: 'enemies/enemy-zombie-jogger', title: 'ZOMBIE JOGGER' },
   { id: 'vendor', folder: 'enemies/enemy-zombie-hot-dog-vendor', title: 'ZOMBIE HOT DOG VENDOR AND HIS HOT DOGS' },
+  { id: 'hippie', folder: 'enemies/enemy-zombie-hippie', title: 'ZOMBIE HIPPIE (PURPLE AND OLIVE, MELTS)' },
+  { id: 'sweater', folder: 'enemies/enemy-zombie-sweater', title: 'ZOMBIE SWEATER (THE BRAWLER, 64 X 56 CELLS)' },
   { id: 'cart', folder: 'props/prop-hot-dog-cart', title: 'HOT DOG CART AND HOT DOG PICKUP' },
   { id: 'lid', folder: 'items/item-powerup-trash-lid-shield', title: 'TRASH LID SHIELD' },
   { id: 'chainsaw', folder: 'items/item-powerup-chainsaw', title: 'CHAINSAW' },
