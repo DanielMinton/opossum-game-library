@@ -15,6 +15,19 @@ Record date, decision, supporting asset or requirement, and unresolved questions
 - **Decisions only the owner can make:** `design/OWNER_DECISIONS.md`. *(Added 2026-10-19:)* the short list of everything waiting on the owner is `design/OPEN_TASKS.md`.
 - **Confirmed major priority, being built:** the game must look beautiful and play well on desktop **and** on phones and tablets. Steps 1 (sharper, bigger scaling), 2 (on-screen touch buttons), 3 (phone layout) and 4 (reliable sound on phones) are done; nothing has been tried on a real phone yet. The checklist for that is `design/MOBILE_TEST_CHECKLIST.md`. See "Desktop and mobile confirmed" below.
 
+## 2026-10-19: Art import tool
+
+**What was added:** `game/tools/import-art.mjs` (plus `decodeAnyPng` in `game/tools/png.mjs`, tests in `game/tests/import-art.test.mjs`, and the prompt kit `design/ART_PROMPTS.md`). The owner makes art in other tools (ChatGPT, Codex and so on) and brings it here; those pictures are blurry, have hundreds of colours, a solid or checkerboard background and the wrong size. The importer turns one into an exact game strip, a 4x preview and a plain-language report with a verdict (READY, READY WITH WARNINGS, REDO). It never writes into `assets/` unless asked with `--install`, and never overwrites without `--force`. The game itself is unchanged.
+
+**Proposed choices (not approved, all reversible):**
+- **PNG only as input.** JPG and WebP would need a decoder with real code behind it (no packages allowed), and JPG's blocky noise is bad for pixel art anyway. The tool says how to convert on a Mac: `sips -s format png "in.jpg" --out out.png`. It does read 1/2/4/8/16-bit greyscale, RGB, palette (with transparency), grey+alpha and RGBA PNGs, including interlaced ones.
+- **Median-cut colour reduction** (not k-means): it needs no starting guesses, gives the same answer every run, and is easy to explain. Colours are first snapped to the 9-bit grid; if more than 15 remain, the darkest common colour is reserved as the outline, and the rest are cut into 14 groups by popularity-weighted median.
+- **Default scale rule:** a character slot is 48 px tall, so the tallest frame is scaled to **40 px** (ears included); smaller cells (16 px) get the cell height minus 2. The tool **never enlarges** unless asked (`--height`), and a poor-quality tiny picture gets a warning. If the picture is crisp pixel art that was enlarged by a whole number, the real pixel size is found first and used as is when it already fits. All frames of a strip share one scale; `--scale K` copies the scale of another strip so a character's animations match.
+- **Placement rule:** feet on the bottom row (47 for 48-high cells), horizontally centred on the slot's feet column using the lower 12% of the figure; frames whose feet are within about 1 px of the others are snapped to the same ground line, higher ones (jumps, falls) are kept. Things that float (pickups) are centred.
+- **Never clips:** a pose too wide for its cell stops the import with advice; `--shrink` scales everything down to fit instead.
+- **Already-correct strips** (right size, see-through) keep their layout and are only tidied; Sammy's approved run strip comes out pixel for pixel the same (a test checks this).
+- **Not covered yet:** background bands (sky, skyline, treeline) that repeat sideways; JPG/WebP; telling which way a figure faces (the prompt kit asks for "facing right"; the preview is for checking it).
+
 ## 2026-10-19: Desktop and mobile confirmed as a major priority
 
 **Decision (Confirmed by the owner):** the game must render beautifully and be fully playable on desktop and on mobile devices (phones and tablets). The owner says this was intended from the start; earlier docs had wrongly proposed "touch later, if at all" and listed touch controls as excluded. Those lines are corrected in `design/GAME_BRIEF.md`.

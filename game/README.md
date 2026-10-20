@@ -61,6 +61,22 @@ The level is 12 screens long, about 1 minute for a fast run and 3–5 minutes fo
 
 **Blank drawing templates:** `templates/art-templates/` has a see-through PNG for every planned picture, at its exact size, with guide marks to erase before saving. What each picture should show, and what the guide colours mean, is in [design/ART_BRIEFS.md](../design/ART_BRIEFS.md). To make the templates again, run `node tools/make-art-templates.mjs` from the `game/` folder.
 
+### Got art from an image tool? Use the importer
+
+Pictures from ChatGPT, Codex and similar tools are almost never game-ready: blurry edges, hundreds of colours, a solid or checkerboard background, the wrong size. `tools/import-art.mjs` fixes that in one command. It needs no packages. From the `game/` folder:
+
+```sh
+node tools/import-art.mjs ~/Downloads/jogger-walk.png --slot jogger:walk
+```
+
+- **What it does:** reads the slot's size, frame count and feet point from `src/assets.js`; removes the background (solid colour or checkerboard, found automatically, or `--bg "#ff00ff"`); finds the frames (a strip, a sheet with `--cols 4 --rows 2`, or one picture); recovers the real pixel size and shrinks the picture to game size; snaps colours to the 9-bit palette and keeps 15 or fewer (the darkest becomes the outline); puts the feet on the baseline row and the feet point on the slot's column; writes a PNG; and runs the same check as the scanner.
+- **What you get** (in `import-out/`): the strip under its manifest name, `...-preview-4x.png` (4x enlargement with frame edges) and `...-report.txt`. The report says in plain words what was changed and ends with **READY**, **READY WITH WARNINGS** or **REDO** (with what to ask the art tool for).
+- **PNG only.** For a JPG or WebP, convert first. On a Mac: `sips -s format png "in.jpg" --out out.png`.
+- **Nothing touches `assets/` until you add `--install`.** `--install` never overwrites (use `--force`, or `--version 2` for a `-v02` file) and prints a ready-to-paste `ASSET_SOURCES.csv` row. `--dry-run` prints the report and writes nothing.
+- **Other options:** `--list` (every slot), `--frames N`, `--src-pixel N`, `--height H`, `--scale K` (match a strip you already made), `--anchor-x X`, `--shrink` (if a pose is too wide for the cell), `--relayout`, `--tolerance N`. Art with no slot yet: `--size 32x32 --frames 4 --pivot 16,31` (add `--no-feet` for things that float). `--help` lists everything.
+- **A picture that is already the right size and see-through** keeps its layout; only the colours are tidied. Sammy's run strip comes out unchanged.
+- Prompts to paste into the image tool, and a checklist of what to regenerate: [design/ART_PROMPTS.md](../design/ART_PROMPTS.md). The reasons for the choices are in `design/DECISIONS.md` ("Art import tool").
+
 **What the scanner warns about** (a warning never stops a file from being listed):
 - **Wrong size**, for example "expected 384x48 px, got 100x48". The game does **not** use a wrong-size file, because it would be cut into frames wrongly. The placeholder stays, the browser console says why, and the title screen shows "ART WARNINGS".
 - **Colour-profile or gamma data** in the PNG. Colours may shift. Export without a profile.
@@ -147,6 +163,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 | Command | What it checks |
 |---|---|
 | `node --test tests/sim.test.mjs` | 75 game-rule checks (see the list below) |
+| `node --test tests/import-art.test.mjs` | 12 art-importer checks (`npm test` runs both test files: 87 in all) |
 | `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 51 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 | `index.html?test=touch&touch=1` | The touch-button check by hand (it taps the real buttons for you) |

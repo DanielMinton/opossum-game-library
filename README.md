@@ -197,6 +197,7 @@ The game uses no game engine and no add-on packages. It is plain web-page code (
    Under **"Still missing — art"** it lists every planned picture that has no real file yet, by folder, with its exact file name and size in pixels. For example, under `assets/characters/character-sammy/` you'll see `sammy-idle-strip-v01.png  192×48`.
 2. **Optional: start from a template.** `templates/art-templates/` has a see-through PNG for each planned picture, at the exact size, with faint guide marks (frame edges, feet point, ground line). Draw over it, **erase every guide mark**, and save it under the real name. [design/ART_BRIEFS.md](design/ART_BRIEFS.md) says what each picture should show and what the guide colours mean. To make the templates again: `node tools/make-art-templates.mjs` (from the `game` folder).
 3. Save the PNG in that folder, with that exact name and size.
+   **Got the picture from an image tool (ChatGPT, Codex ...)?** Don't resize it by hand. From `game/` run `node tools/import-art.mjs your-picture.png --slot jogger:walk`: it removes the background, shrinks it to real pixels, fixes the colours and writes a game-ready strip, a 4x preview and a plain-language report. Prompts to paste into the tool are in [design/ART_PROMPTS.md](design/ART_PROMPTS.md). Nothing is added to the game until you add `--install`.
 4. Add a row for it to `design/ASSET_SOURCES.csv` (who made it and its license; see [Art and licensing rules](#art-and-licensing-rules)). You can leave this until you want to share the game: the build then prints a ready-to-paste row for any file that has none (see [Building a shareable copy](#building-a-shareable-copy)).
 5. Run the scanner again (same command). It lists what it found and warns about problems.
 6. Reload the game. Every picture with a real file uses it. Everything else stays a placeholder.
@@ -276,13 +277,14 @@ The tests need Node 18 or newer (a free program for running JavaScript). Nothing
 
 ```sh
 cd game
-node --test tests/sim.test.mjs
+node --test tests/sim.test.mjs tests/import-art.test.mjs
 node tests/browser-smoke.mjs
 ```
 
 | Command | What it checks |
 |---|---|
 | `node --test tests/sim.test.mjs` | **75 game-rule tests:** every move, enemy and item in level 1, a full autopilot run, the screen-size, notch, touch-button and "turn sideways" message maths, starting sound on phones, the art, sound and license checks, the "still missing" lists, the suggested license rows, the drawing templates, the theme song (found, used as the level music, kept out of the build until its license is confirmed), the concept picture (reference only), the README pictures, the night palette (every colour on the 9-bit grid, gore colours kept for gore), that every game message fits on screen, the chainsaw (pickup, revving, cuts, fuel, losing it), the gore effects the rules send, and the gore setting (low never draws blood; the game plays the same either way). |
+| `node --test tests/import-art.test.mjs` | **12 art-importer tests:** a blurry picture on a flat or checkerboard background, a contact sheet, a 500-colour picture, an already-correct strip and Sammy's run strip (these must come out exact, the same every time), the unusual PNG layouts it can read, and the plain-language problem reports. |
 | `node tests/browser-smoke.mjs` | **51 browser checks:** opens the game in a hidden Chromium browser, plays the whole level in both the normal and the shareable copy, presses real keys, taps the real touch buttons at phone sizes, draws every screen, loads the theme song (and, in the shareable copy, no sound until it's cleared), loads test art and sound, checks the picture is big and sharp at a phone size and a laptop size, checks the "turn your phone sideways" message (upright phones only, not tablets), auto-pause and starting sound on phones, and checks the touch buttons and the message stay hidden on a computer. Needs Chrome, Edge or another Chromium browser. |
 | `?test=full` | Open `game/index.html`, click the address bar, type `?test=full` at the very end and press Enter. The game then plays itself ("autopilot") so you can watch a full run. |
 

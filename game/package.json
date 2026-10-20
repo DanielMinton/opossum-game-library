@@ -4,7 +4,7 @@
   "private": true,
   "description": "Placeholder prototype of level 1 (Sheep Meadow) for the Sammy the opossum game. No dependencies.",
   "scripts": {
-    "test": "node --test tests/sim.test.mjs",
+    "test": "node --test tests/sim.test.mjs tests/import-art.test.mjs",
     "scan": "node tools/scan-assets.mjs",
     "convert": "node tools/convert-audio.mjs",
     "build": "node tools/build.mjs",

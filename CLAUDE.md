@@ -12,11 +12,11 @@ A 16-bit Genesis-style 2D platformer prototype, "Sammy the Opossum: Zombie Hunte
 - `game/`: the game. Plain HTML5 canvas + classic `<script>` JS, no engine, no npm packages. Native 320×224, scaled by whole numbers of *device* pixels (`src/layout.js` `S.computeFit`, positioned on whole device pixels; don't reintroduce flex centring or CSS-point scaling). Runs by double-clicking `game/index.html` (file://).
   - `src/config.js` tuning numbers · `src/level.js` level 1 layout · `src/sim.js` game rules · `src/render.js` + `src/font.js` drawing · `src/audio.js` sound · `src/layout.js` screen-fit and touch-button layout maths (pure, Node-tested) · `src/touch.js` on-screen touch buttons (DOM, pixel-art canvases; feed `input.js` via `press`/`setHeld`; shown only on coarse pointers, first touch, or `?touch=1`) · `src/phone.js` "turn your phone sideways" message, full screen, zoom/long-press guards (`?upright=1` starts with the message put away) · `src/input.js`, `src/main.js` loop, fitting and `?test=` self-checks (results include `fit`) · `src/bot.js` test autopilot.
   - `src/assets.js`: planned art and sound names, plus frame data. `src/asset-files.js` is **generated** by `tools/scan-assets.mjs`.
-  - `tools/`: `build.mjs` (makes `dist/`), `scan-assets.mjs` (+ `png.mjs` checks), `licenses.mjs` (ship rules), `convert-audio.mjs` (WAV → OGG/MP3 via ffmpeg).
-  - `tests/`: `sim.test.mjs` (Node rule tests), `browser-smoke.mjs` (headless Chromium).
+  - `tools/`: `build.mjs` (makes `dist/`), `scan-assets.mjs` (+ `png.mjs` checks), `licenses.mjs` (ship rules), `convert-audio.mjs` (WAV → OGG/MP3 via ffmpeg), `import-art.mjs` (turns image-tool pictures into game-ready strips; reads slots from `assets.js`; `png.mjs` also holds its full PNG decoder `decodeAnyPng`).
+  - `tests/`: `sim.test.mjs` (Node rule tests), `import-art.test.mjs` (art importer), `browser-smoke.mjs` (headless Chromium).
   - `dist/`: single-file build, **tracked in git** (until the owner decides otherwise).
 - `assets/`: real art and sound go here (mostly empty `.gitkeep` folders; real so far: Sammy's run and chainsaw strips, the chainsaw pickup and HUD icon, the theme song). `assets/references/` is reference-only.
-- `design/`: `GAME_BRIEF.md`, `DECISIONS.md` (dated log; "Current state" at top), `OWNER_DECISIONS.md` (open owner questions), `STYLE_GUIDE.md` (draft, all Proposed), `ASSET_REQUEST_CHECKLIST.md`, `ASSET_SOURCES.csv` (license rows).
+- `design/`: `GAME_BRIEF.md`, `DECISIONS.md` (dated log; "Current state" at top), `OWNER_DECISIONS.md` (open owner questions), `STYLE_GUIDE.md` (draft, all Proposed), `ASSET_REQUEST_CHECKLIST.md`, `ART_PROMPTS.md` (copy-paste prompts for image tools + importer commands), `ASSET_SOURCES.csv` (license rows).
 - `templates/`: blank templates; `templates/examples/*/` are **proposed** example specs, not real assets. Never copy an unfinished example into `assets/`.
 
 ## Hard conventions
@@ -32,7 +32,7 @@ A 16-bit Genesis-style 2D platformer prototype, "Sammy the Opossum: Zombie Hunte
 
 ## How to…
 
-**Add art:** put the PNG at the path named in `S.ASSET_MANIFEST` (`game/src/assets.js`), e.g. `assets/characters/character-sammy/sammy-run-strip-v01.png`. Highest `-vNN` wins. Add an `ASSET_SOURCES.csv` row, then run `node tools/build.mjs`. Wrong-size art is not used: the placeholder stays, the console says why, and the title screen shows "ART WARNINGS". Other PNG problems are warnings only. A new kind of art needs a manifest entry plus a `sprite(...)` call in `render.js`.
+**Add art:** if the picture comes from an image tool, run it through the importer first: `node tools/import-art.mjs <picture.png> --slot <manifest key>` (from `game/`; writes to `./import-out/`, only touches `assets/` with `--install`, never overwrites without `--force`; prompts in `design/ART_PROMPTS.md`). Otherwise put the PNG at the path named in `S.ASSET_MANIFEST` (`game/src/assets.js`), e.g. `assets/characters/character-sammy/sammy-run-strip-v01.png`. Highest `-vNN` wins. Add an `ASSET_SOURCES.csv` row, then run `node tools/build.mjs`. Wrong-size art is not used: the placeholder stays, the console says why, and the title screen shows "ART WARNINGS". Other PNG problems are warnings only. A new kind of art needs a manifest entry plus a `sprite(...)` call in `render.js`.
 
 **Add a sound:** `assets/audio/<sfx|music>/<id>/<id>-v01.ogg` (or `.mp3`/`.wav`; variations `-v01-a`). The id must be in `S.SOUND_MANIFEST`. A new id also needs a placeholder beep in `audio.js` and a `sfx(s, id)` call in `sim.js` (tests check every triggered id has both). Music loops whole; there are no loop points.
 
@@ -57,7 +57,7 @@ When a **third type** starts, do the planned refactor first: an `ENEMY_TYPES` ta
 ## Test and build
 From `game/` (Node 18+, a Chromium-based browser for the smoke test; set `CHROME_PATH` if needed):
 ```
-node --test tests/sim.test.mjs                       # game rules (Node only)
+node --test tests/sim.test.mjs tests/import-art.test.mjs   # game rules + art importer (Node only)
 node tools/build.mjs && node tests/browser-smoke.mjs  # rebuild dist/, then browser checks
 ```
 - The smoke test first checks that `dist/index.html` contains the current code of every `src/*.js` file (except `asset-files.js`) and that `dist/BUILD_INFO.txt` carries its hash. After any `src/` edit, rebuild before running it.
