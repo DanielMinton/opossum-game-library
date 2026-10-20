@@ -1,11 +1,11 @@
-<p align="center"><img src=".github/readme/banner.svg" alt="Pixel-art banner: &quot;Sammy the Opossum — ZOMBIE HUNTER · 16-bit action platformer · prototype · working title&quot;. At night on a rain-slick Central Park terrace, Sammy the opossum, snarling in a red bandana, rips a rusty orange chainsaw (coming next in the game) through a zombie jogger in a spray of sparks and blood, while a zombie hot dog vendor and a horde of zombies close in past lamps, the bronze angel fountain, a full moon and the city skyline." width="100%"></p>
+<p align="center"><img src=".github/readme/banner.svg" alt="Pixel-art banner: &quot;Sammy the Opossum — ZOMBIE HUNTER · 16-bit action platformer · working title&quot;. At night on a rain-slick Central Park terrace, Sammy the opossum, snarling in a red bandana, rips a rusty orange chainsaw (coming next in the game) through a zombie jogger in a spray of sparks and blood, while a zombie hot dog vendor and a horde of zombies close in past lamps, the bronze angel fountain, a full moon and the city skyline." width="100%"></p>
 
 # Sammy the Opossum: Zombie Hunter
 
 **Sammy the Opossum: Zombie Hunter** (working title) is a small 2D action platformer in the style of a 16-bit home console game. You play Sammy, an opossum who wakes up in Central Park with no memory of how he got there. Everyone in the city has turned into a zombie, and Sammy doesn't mess around with zombies. He fights his way through Central Park (heading for a night-time look inspired by Bethesda Terrace) with a vicious tail-whip, a trash-can lid, a tipped-over hot dog cart and his secret move: playing dead, then getting back up swinging. **Coming next: a chainsaw.** It's badass action-horror with dark humour, with stylized 16-bit pixel gore planned (plus a low-gore option).
 
 > [!NOTE]
-> **Status: playable placeholder prototype.** One level (level 1, Sheep Meadow) can be played from start to finish today. Almost all art is placeholder boxes (still the old daytime look) and the sound effects are computer-made beeps. Real so far: **Sammy's run animation** and the level music (your theme song, "Sammy the Opossum : Zombie Hunter", which plays in your own copy; see [Credits](#credits)). The chainsaw, the night-time park and the gore are the new direction (2026-10-19) and aren't in the game yet: the chainsaw comes next. "Sammy the Opossum: Zombie Hunter" is a working title.
+> **Status: playable placeholder prototype.** One level (level 1, Sheep Meadow) can be played from start to finish today. Almost all art is placeholder boxes (still the old daytime look) and the sound effects are computer-made beeps. Real so far: **Sammy's run animation** and the level music (the owner's theme song, "Sammy the Opossum : Zombie Hunter", which plays in your own copy; see [Credits](#credits)). The chainsaw, the night-time park and the gore are the new direction (2026-10-19) and aren't in the game yet: the chainsaw comes next. "Sammy the Opossum: Zombie Hunter" is a working title.
 
 Every gameplay number and rule in the game is a **proposal**, not an approved decision. They can all be changed.
 
@@ -118,7 +118,7 @@ For the full screen-by-screen guide, see **[game/README.md](game/README.md)**.
 
 ## Meet the cast
 
-<p align="center"><img src=".github/readme/cast.svg" alt="Pixel-art cast lineup at night, left to right, each with a caption: Sammy with a bloody chainsaw, which is coming next (&quot;the opossum hero, does not mess around&quot;), a rotting Zombie Jogger (&quot;never skips leg day, still dead&quot;), a zombie Hot Dog Vendor in a bloody apron (&quot;zombie, lobs hot dogs from afar&quot;), the Chainsaw (&quot;coming next, cuts them in half&quot;), the Hot Dog Cart (&quot;two whips tip it, 3 healing hot dogs&quot;) and the Trash Lid Shield (&quot;power-up, blocks 3 hits&quot;). The Chainsaw isn't in the game yet." width="100%"></p>
+<p align="center"><img src=".github/readme/cast.svg" alt="Pixel-art cast lineup at night, left to right, each with a caption: Sammy with a bloody chainsaw, which is coming next (&quot;does not mess around&quot;), a rotting Zombie Jogger (&quot;still dead&quot;), a zombie Hot Dog Vendor in a bloody apron who lobs hot dogs from afar (&quot;lobs hot dogs&quot;), the Chainsaw (&quot;coming next&quot;; it cuts zombies in half), the Hot Dog Cart (&quot;2 whips: 3 hot dogs&quot;; two whips tip it and it spills 3 healing hot dogs) and the Trash Lid Shield power-up (&quot;blocks 3 hits&quot;). The Chainsaw isn't in the game yet." width="100%"></p>
 
 | Who or what | What it does in the game |
 |---|---|
@@ -135,7 +135,7 @@ These drawings were made for this page only. They are not the game's art, and th
 
 **Done:**
 - A complete, playable level 1 with placeholder art and sound.
-- **New direction (2026-10-19): Zombie Hunter.** Badass action-horror with dark humour, a chainsaw, Central Park at night. The design docs, art briefs and style guide follow it; your theme song is the level music; the concept picture is saved as a reference (`assets/references/`).
+- **New direction (2026-10-19): Zombie Hunter.** Badass action-horror with dark humour, a chainsaw, Central Park at night. The design docs, art briefs and style guide follow it; the owner's theme song is the level music; the concept picture is saved as a reference (`assets/references/`).
 - The first real art: **Sammy's run animation**.
 - Bigger, sharper scaling on phones and tablets, and **on-screen touch buttons** (shown only on touch screens).
 - The phone layout: a "turn your phone sideways" message, a full-screen button (Android), room for notches, no accidental zoom, and auto-pause when you leave the page.
@@ -263,7 +263,7 @@ This refreshes `game/dist/`. You only need it for the shareable copy; your own c
 
 Anything else is left out, and `BUILD_INFO.txt` says why. Files in `assets/references/` are never included. Your own copy of the game still uses every file.
 
-Today the only real art is Sammy's run animation (licensed in `design/ASSET_SOURCES.csv`, so it goes into the build). The theme song is real too, but its row says `commercial_use` is "tbd" until you confirm your Suno plan (owner question 21), so the build leaves it out and plays the placeholder tune. Everything else is a placeholder. The `dist/` folder is saved in the project history for now (this is open question 9 in [design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)).
+Today the only real art is Sammy's run animation (licensed in `design/ASSET_SOURCES.csv`, so it goes into the build). The theme song is real too, but its row says `commercial_use` is "tbd" until the owner confirms which Suno plan it was made on (owner question 21), so the build leaves it out and plays the placeholder tune. Everything else is a placeholder. The `dist/` folder is saved in the project history for now (this is open question 9 in [design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)).
 
 ## Tests
 
