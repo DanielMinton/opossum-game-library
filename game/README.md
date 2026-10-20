@@ -1,6 +1,6 @@
 # Sammy: placeholder prototype (level 1, Sheep Meadow)
 
-This is a playable first level that uses **placeholder art and sound**. The first real art is in: Sammy's run animation. The level music is real too: the owner's theme song "Sammy the Opossum : Zombie Hunter" (made with Suno; it plays here but is left out of `dist/` until its license is confirmed, owner question 21). Otherwise Sammy is a grey box with ears and a pink nose, zombies are green boxes, and every sound effect is a code-generated beep. The look is now the "Zombie Hunter" night park (placeholder boxes: night sky, full moon, stars, lit skyline windows, amber lamp glow, wet ground) with a placeholder Bethesda Terrace (stone floor, arches, balustrade, angel fountain) for the final fight. The game's text is deadpan and swears on purpose (owner rule). The chainsaw and gore come next (see `design/DECISIONS.md`). The on-screen label "PLACEHOLDER ART – NOT FINAL" stays visible the whole time. Your real art and sound replace the placeholders automatically, one file at a time, as you add them (see **Adding art** and **Adding sound** below).
+This is a playable first level that uses **placeholder art and sound**. Real art so far: Sammy's run animation, Sammy with the chainsaw (idle, run, rev) and the chainsaw pickup and top-bar icon. The level music is real too: the owner's theme song "Sammy the Opossum : Zombie Hunter" (made with Suno; it plays here but is left out of `dist/` until its license is confirmed, owner question 21). Otherwise Sammy is a grey box with ears and a pink nose, zombies are green boxes, and every sound effect is a code-generated beep. The look is now the "Zombie Hunter" night park (placeholder boxes: night sky, full moon, stars, lit skyline windows, amber lamp glow, wet ground) with a placeholder Bethesda Terrace (stone floor, arches, balustrade, angel fountain) for the final fight. The game's text is deadpan and swears on purpose (owner rule). The chainsaw is in: it lies on the grass just before the final fight; hold WHIP (X) to rip, and the orange top-bar gauge shows its fuel. Gore is stylized placeholder drawing (blood, chunks, zombies cut in half) with a low-gore setting: G, `?gore=low` or the GORE button while paused; the browser remembers it. The gore setting changes drawing only, never the rules (see `design/DECISIONS.md`, Stage B). The on-screen label "PLACEHOLDER ART – NOT FINAL" stays visible the whole time. Your real art and sound replace the placeholders automatically, one file at a time, as you add them (see **Adding art** and **Adding sound** below).
 
 Every gameplay value comes from the examples in `templates/examples/`, which are **proposals, not approved design**. Changes the prototype made are listed in `design/DECISIONS.md`. The questions only you can answer (title, art style, how gory, and more) are in `design/OWNER_DECISIONS.md`, each with a suggested answer.
 
@@ -21,10 +21,12 @@ Every gameplay value comes from the examples in `templates/examples/`, which are
 | Move | ← → or A D | D-pad / left stick | Arrow pad (slide across to turn) |
 | Jump (hold for higher) | Z, Space, ↑ or W | A / Cross | JUMP (hold for higher) |
 | Tail-whip | X or J | X / Square | WHIP |
+| Chainsaw (after pickup): hold to rip | Hold X or J | Hold X / Square | Hold WHIP |
 | Play Possum | C or L | B / Circle or Y / Triangle | POSSUM |
 | Pause / start | Enter, Esc or P | Start | Pause button; JUMP or a tap on the picture starts |
 | Restart level | R | Select / Back | RESTART (while paused) |
 | Mute | M | — | MUTE (while paused) |
+| Gore full / low | G (or `?gore=low`) | — | GORE (while paused) |
 
 With the touch buttons showing, the title screen and the tutorial messages use touch wording ("TAP JUMP TO START", "WHIP BUTTON: TAIL-WHIP"), and the "PLACEHOLDER ART" label moves to the bottom middle so a button never hides it. Sound starts on the first tap (phones don't allow sound before that). MUTE silences everything, including a sound already playing.
 
@@ -144,7 +146,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | 67 game-rule checks (see the list below) |
+| `node --test tests/sim.test.mjs` | 75 game-rule checks (see the list below) |
 | `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 51 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 | `index.html?test=touch&touch=1` | The touch-button check by hand (it taps the real buttons for you) |
@@ -174,12 +176,13 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - the drawing templates: one for every planned picture at its exact size, kept outside `assets/`; their guide marks are part see-through, so the scanner warns about a guide left in; making them again gives the same files
 - the "Zombie Hunter" files: the theme song is found by the scanner, is the level track (and the gauntlet's fallback), starts with the first press on the title screen, and its license row keeps it out of the build with a clear reason; the concept picture stays reference-only; the three README pictures are self-contained and the cast's numbers (3 lid hits, 3 hot dogs) match the game
 - the night look: every palette colour is on the 9-bit grid, the gore colours are used for nothing else, the HUD stands out from the sky; the title, quips, prompts (keyboard and touch) and arena banners fit their boxes and use only letters the font has
+- the gore setting: low gore never draws a gore colour and full does; it's picked from `?gore=`, then the remembered choice, then full, and blocked storage is fine; the rules never read it, G is not a game button, and the game plays the same in full and low
 
 **Browser checks** cover:
 - the shareable copy is up to date: `dist/index.html` has the current code from `src/`, and `BUILD_INFO.txt` has the matching code. If not, it says "run node tools/build.mjs". (So after changing anything in `src/`, build before running this test.)
 - the source game and the built game each play title → level → gauntlet → clear → restart with no errors
 - real key presses through the normal game loop start the game and move Sammy
-- every screen the autopilot never reaches draws without errors: hurt, K.O., play-dead, shield, confused zombies, pause and mute
+- every screen the autopilot never reaches draws without errors: hurt, K.O., play-dead, shield, confused zombies, Sammy with the chainsaw (idle, run, rev, low fuel), every defeat style and gore effect in full and low gore, pause and mute
 - art scanning: the newest version of a strip is picked, and a wrong-size file is warned about
 - art loading: correct test images load and are drawn, the hit flash works on real art, and a wrong-size test image is reported and not drawn
 - sound loading: a test sound effect and test music load, and real key presses play them instead of the beeps; the source game loads every real sound file in `assets/` (today the theme song), and the built game loads none until one is cleared

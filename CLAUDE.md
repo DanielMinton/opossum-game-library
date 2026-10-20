@@ -5,6 +5,7 @@ A 16-bit Genesis-style 2D platformer prototype, "Sammy the Opossum: Zombie Hunte
 ## Tone
 - **Owner rule (Confirmed 2026-10-19): uncensored deadpan humour with cursing and swearing is encouraged** for Sammy and the zombies, in game text (title, prompts, banners, gags). Dry, matter-of-fact, profane. Don't bleep it, don't use symbols like `F***`. Short lines: the 3×5 font only has A–Z, 0–9 and `.,!?:-+/'()*=><%"#_` (no `;` or `&`).
 - Badass action-horror with dark humour (Confirmed 2026-10-19). Sammy is a badass "who doesn't fuck around with zombies".
+- **Gore (direction Confirmed 2026-10-19: "gorier"; exact level Proposed):** stylized 16-bit only, reserved gore colours (`S.PAL` `blood*`, `ichor*`, `bone`, `meat`; nothing else may use them); Sammy never bleeds. Every gory picture or effect needs a low-gore version (`-lowgore` art files). The setting `S.gore` ('full'|'low', G key, `?gore=low`, GORE pause button, localStorage `sammy.gore`) is **drawing only**: `sim.js` never reads it, and the game must play identically either way (tests check both).
 - Docs written **to the owner** stay plain, short and polite; the swearing is for the game's own voice.
 
 ## Repo map
@@ -14,7 +15,7 @@ A 16-bit Genesis-style 2D platformer prototype, "Sammy the Opossum: Zombie Hunte
   - `tools/`: `build.mjs` (makes `dist/`), `scan-assets.mjs` (+ `png.mjs` checks), `licenses.mjs` (ship rules), `convert-audio.mjs` (WAV → OGG/MP3 via ffmpeg).
   - `tests/`: `sim.test.mjs` (Node rule tests), `browser-smoke.mjs` (headless Chromium).
   - `dist/`: single-file build, **tracked in git** (until the owner decides otherwise).
-- `assets/`: real art and sound go here (empty `.gitkeep` folders today). `assets/references/` is reference-only.
+- `assets/`: real art and sound go here (mostly empty `.gitkeep` folders; real so far: Sammy's run and chainsaw strips, the chainsaw pickup and HUD icon, the theme song). `assets/references/` is reference-only.
 - `design/`: `GAME_BRIEF.md`, `DECISIONS.md` (dated log; "Current state" at top), `OWNER_DECISIONS.md` (open owner questions), `STYLE_GUIDE.md` (draft, all Proposed), `ASSET_REQUEST_CHECKLIST.md`, `ASSET_SOURCES.csv` (license rows).
 - `templates/`: blank templates; `templates/examples/*/` are **proposed** example specs, not real assets. Never copy an unfinished example into `assets/`.
 
@@ -62,5 +63,5 @@ node tools/build.mjs && node tests/browser-smoke.mjs  # rebuild dist/, then brow
 - The smoke test first checks that `dist/index.html` contains the current code of every `src/*.js` file (except `asset-files.js`) and that `dist/BUILD_INFO.txt` carries its hash. After any `src/` edit, rebuild before running it.
 - The build is repeatable: `BUILD_INFO.txt` holds a 12-character hash of `index.html`, not a time, so rebuilding unchanged code leaves git clean.
 - Touch: `index.html?test=touch&touch=1` taps the real buttons (the smoke test runs it at 852×393 and 393×852; upright, it first checks and dismisses the sideways message). `?touch=1` also works with `?test=shot` (add `&paused=1` for the pause menu). Desktop must never show the buttons.
-- Screenshots: `node tests/browser-smoke.mjs --shots <dir>`, or `index.html?test=shot&frames=N` in headless Chrome (flags in `screenshot()`).
+- Screenshots: `node tests/browser-smoke.mjs --shots <dir>`, or `index.html?test=shot&frames=N` in headless Chrome (flags in `screenshot()`). The autopilot grabs the chainsaw at frame ~2218 and slices zombies on Bethesda Terrace from ~2440 (good frames for rev and kill shots); add `&gore=low` for low gore, `&goredemo=0.2` for every defeat style at once.
 - Update the test counts in `game/README.md` when they change.

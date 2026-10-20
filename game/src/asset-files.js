@@ -3,7 +3,12 @@
 // Art: planned name -> the newest version found. Sound: id -> files.
 (function (S) {
   S.PRESENT_ASSET_FILES = {
-    "characters/character-sammy/sammy-run-strip-v01.png": "characters/character-sammy/sammy-run-strip-v01.png"
+    "characters/character-sammy/sammy-run-strip-v01.png": "characters/character-sammy/sammy-run-strip-v01.png",
+    "characters/character-sammy/sammy-chainsaw-idle-strip-v01.png": "characters/character-sammy/sammy-chainsaw-idle-strip-v01.png",
+    "characters/character-sammy/sammy-chainsaw-run-strip-v01.png": "characters/character-sammy/sammy-chainsaw-run-strip-v01.png",
+    "characters/character-sammy/sammy-chainsaw-rev-strip-v01.png": "characters/character-sammy/sammy-chainsaw-rev-strip-v01.png",
+    "items/item-powerup-chainsaw/chainsaw-pickup-strip-v01.png": "items/item-powerup-chainsaw/chainsaw-pickup-strip-v01.png",
+    "items/item-powerup-chainsaw/hud-icon-chainsaw-v01.png": "items/item-powerup-chainsaw/hud-icon-chainsaw-v01.png"
   };
   S.PRESENT_SOUND_FILES = {
     "music-level-01-central-park": [

@@ -304,7 +304,7 @@
     if (e.t > 0.6) return;
     const list = GAGS[style === 'sliced' && S.gore === 'low' ? 'low' : style] || GAGS.pop;
     const txt = list[hashId(e.id) % list.length];
-    S.drawTextCentered(ctx, txt, Math.round(e.x), y - Math.round(e.t * 12), style === 'sliced' && S.gore !== 'low' ? GORE.bloodHi : K.white, 1, K.black);
+    S.drawTextCentered(ctx, txt, Math.round(e.x), y - Math.round(e.t * 12), style === 'sliced' && S.gore !== 'low' ? K.heart : K.white, 1, K.black);
   }
   // Chainsaw kill: the standing pose cut at the waist. Full gore: the top half slides off and falls, red cut faces and
   // drips. Low gore: no split; the whole zombie sinks into the ground in a grey puff.
@@ -595,11 +595,11 @@
   // Screen text for keyboard players and for the on-screen touch buttons (the tests check every line fits).
   S.TEXT = {
     keys: {
-      title1: 'ARROWS/WASD MOVE  Z JUMP  X WHIP  C PLAY POSSUM', title2: 'ENTER PAUSE   R RESTART   M MUTE',
+      title1: 'ARROWS/WASD MOVE  Z JUMP  X WHIP  C PLAY POSSUM', title2: 'ENTER PAUSE   R RESTART   M MUTE   G GORE',
       start: 'PRESS ENTER OR Z TO START', again: 'PRESS ENTER TO PLAY AGAIN', paused: 'ENTER TO RESUME  R RESTART',
     },
     touch: {
-      title1: 'BUTTONS: MOVE, JUMP, WHIP, PLAY POSSUM', title2: 'PAUSE BUTTON: RESTART AND MUTE',
+      title1: 'BUTTONS: MOVE, JUMP, WHIP, PLAY POSSUM', title2: 'PAUSE BUTTON: RESTART, MUTE, GORE',
       start: 'TAP JUMP TO START', again: 'TAP JUMP TO PLAY AGAIN', paused: 'TAP PLAY TO RESUME',
     },
     // Deadpan, profane, on purpose (owner rule, CLAUDE.md "Tone").

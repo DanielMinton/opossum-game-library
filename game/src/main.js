@@ -472,6 +472,11 @@
       p.state = st; p.t = st === 'ko' ? 1 : 0.15; p.anim = { hurt: 'hurt', playdead: 'play-dead', getup: 'get-up', ko: 'ko', attack: 'tail-whip', normal: 'idle' }[st];
       p.invuln = 0; draw('sammy-' + st);
     }
+    // Chainsaw: idle, run and rev with a full and an almost-empty tank (HUD gauge blinks).
+    for (const [anim, fuel] of [['chainsaw-idle', 20], ['chainsaw-run', 20], ['chainsaw-rev', 3]]) {
+      p.state = 'normal'; p.anim = anim; p.animT = 0.2; p.saw = { fuel, revving: anim === 'chainsaw-rev', tick: 0, slash: 0 }; draw('sammy-' + anim);
+    }
+    p.saw = null; p.anim = 'idle';
     p.shield = 3; draw('shield'); p.shield = 1; draw('shield-cracked'); p.possumCd = 3; draw('possum-cooldown');
     const jog = state.enemies.find((e) => e.type === 'jogger'), ven = state.enemies.find((e) => e.type === 'vendor');
     for (const e of [jog, ven]) if (e) { e.x = p.x + 40; }

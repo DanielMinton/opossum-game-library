@@ -139,24 +139,43 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 
     lid: { hits: 3 },          // item-powerup-trash-lid-shield ABILITY.md
 
+    chainsaw: {                // Stage B (Proposed): pickup on screen 11; WHIP button (held) revs it instead of whipping
+      fuel: 20,                // seconds of revving in a full tank
+      carryDrain: 0.25,        // fuel per second used just carrying it (not revving); revving uses 1 per second
+      reach: 28,               // cutting box in front of Sammy's feet point, px
+      tick: 0.12,              // one cut every this many seconds while revving
+      damage: 1,               // per cut (joggers and vendors have 2 hp: two cuts)
+      slow: 0.6,               // run speed while revving
+      slashTime: 0.2,          // a quick tap still revs (and cuts) this long
+    },
+
     gauntlet: { waves: [2, 3, 4], waveDelay: 1.0 },
   };
 
   // 9-bit colour: each channel snapped to 0,36,72,...,252 (templates/STYLE_GUIDE.md)
+  // Night palette (Zombie Hunter look, design/STYLE_GUIDE.md "Night mood"). Proposed.
   S.PAL = {
     black: '#000000', white: '#fcfcfc', grey: '#909090', dark: '#242424',
-    sky0: '#244890', sky1: '#486cb4', sky2: '#9090d8', sky3: '#d8b4b4', sky4: '#fcd8b4',
-    skyline: '#48486c', trees: '#246c48', bushes: '#249048',
-    grass: '#48b424', dirt: '#906c24', dirtDark: '#6c4824',
-    water: '#246cd8', waterHi: '#90b4fc',
+    sky0: '#000024', sky1: '#000048', sky2: '#24246c', sky3: '#48246c', sky4: '#6c486c', // night sky, top to horizon glow
+    skyline: '#242448', trees: '#002424', bushes: '#244824',
+    grass: '#246c48', dirt: '#48486c', dirtDark: '#242448',                          // night grass; wet blue-grey earth
+    water: '#00246c', waterHi: '#6c90d8',
     sammy: '#d8d8d8', sammyDark: '#909090', nose: '#fc90b4',
     jogger: '#6cb46c', joggerDark: '#246c24', band: '#fc24fc',
     vendor: '#b4b46c', vendorDark: '#6c6c24', hat: '#fcfcfc',
     cart: '#d82424', cartDark: '#902424', umbrella: '#fcd824',
     hotdog: '#fcb424', mustard: '#fcfc24',
     lid: '#909090', lidHi: '#d8d8d8',
-    bench: '#906c24', rock: '#6c6c6c', fence: '#6c4824', pole: '#242424', lamp: '#fcfc90', lampOff: '#6c6c48',
-    heart: '#fc2424', gate: '#484848', hud: '#000024',
+    bench: '#906c24', rock: '#6c6c90', fence: '#6c4824', pole: '#242424', lamp: '#fcd86c', lampOff: '#6c6c48',
+    heart: '#fc2424', gate: '#484848', hud: '#242448', hudHi: '#48486c',
+    // Night extras
+    moon: '#fcfcd8', moonMid: '#d8d8b4', moonCrater: '#b4b490', star: '#d8d8fc', window: '#fcd86c',
+    lampGlow: '#fcb424', lampHalo: '#d89000', lampDeep: '#904800',
+    stone: '#242448', stoneMid: '#48486c', stoneLight: '#6c6c90', arch: '#000024',
+    leaf0: '#fcb400', leaf1: '#d86c00', leaf2: '#b44800',
+    // Reserved for gore only (STYLE_GUIDE "Reserved colours")
+    blood0: '#480000', blood: '#900000', bloodHi: '#b40024', ichor0: '#486c00', ichor: '#90d800', ichorHi: '#d8fc48',
+    bone: '#fcd8b4', meat: '#d86c6c',
   };
 })(globalThis.SAMMY = globalThis.SAMMY || {});
 
@@ -266,6 +285,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       { type: 'hotdog', x: 1504, y: 140 },   // secret: on top of the screen-5 lamp
       { type: 'lid',    x: 2700, y: 172 },   // optional second lid (TBD in LEVEL.md)
       { type: 'hotdog', x: 3364, y: 140 },   // screen 11 lamp top, before the arena (prototype addition)
+      { type: 'chainsaw', x: 3300, y: G },   // screen 11, on the grass: the chainsaw (Stage B, Proposed)
     ],
 
     // Gauntlet arena = last screen. Camera locks; fences block both sides.
@@ -273,13 +293,15 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 
     // On-screen tutorial prompts by x range (screen-by-screen beats in LEVEL.md).
     // touch: the wording used instead when the on-screen touch buttons are showing.
+    // Voice: deadpan and profane on purpose (owner rule, CLAUDE.md "Tone"). One line each, 3x5 font, fits 312 px.
     prompts: [
-      { x0: 0,    x1: 300,  text: 'ARROWS: MOVE   Z: JUMP', touch: 'ARROW PAD: MOVE   JUMP BUTTON: JUMP' },
-      { x0: 340,  x1: 660,  text: 'X: TAIL-WHIP', touch: 'WHIP BUTTON: TAIL-WHIP' },
-      { x0: 1060, x1: 1160, text: 'GRAB THE TRASH LID: BLOCKS 3 HITS' },
-      { x0: 1620, x1: 1760, text: 'WHIP THE CART!' },
-      { x0: 1920, x1: 2080, text: 'C: PLAY POSSUM - ZOMBIES LOSE TRACK OF YOU', touch: 'POSSUM BUTTON: PLAY DEAD - ZOMBIES LOSE YOU' },
-      { x0: 3380, x1: 3520, text: 'THE PARK EXIT IS AHEAD...' },
+      { x0: 0,    x1: 300,  text: 'ARROWS: MOVE   Z: JUMP   IT\'S NIGHT. IT\'S ZOMBIES. FINE.', touch: 'ARROW PAD: MOVE   JUMP BUTTON: JUMP   FUCK ZOMBIES.' },
+      { x0: 340,  x1: 660,  text: 'X: TAIL-WHIP. SMACK THE DEAD BASTARDS.', touch: 'WHIP BUTTON: TAIL-WHIP. SMACK THE DEAD BASTARDS.' },
+      { x0: 1060, x1: 1160, text: 'TRASH LID: BLOCKS 3 HITS. CLASSY AS SHIT.' },
+      { x0: 1620, x1: 1760, text: 'WHIP THE CART TWICE. FREE HOT DOGS. THEY HEAL. DON\'T ASK.' },
+      { x0: 1920, x1: 2080, text: 'C: PLAY DEAD. ZOMBIES ARE DUMB AS SHIT.', touch: 'POSSUM BUTTON: PLAY DEAD. ZOMBIES ARE DUMB AS SHIT.' },
+      { x0: 3270, x1: 3380, text: "SOMEBODY LEFT A CHAINSAW. HOLD X. FUCK 'EM UP.", touch: "SOMEBODY LEFT A CHAINSAW. HOLD WHIP. FUCK 'EM UP." },
+      { x0: 3380, x1: 3520, text: 'BETHESDA TERRACE AHEAD. SHIT GETS REAL.' },
     ],
   };
 })(globalThis.SAMMY = globalThis.SAMMY || {});
@@ -305,6 +327,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   const VEN = 'enemies/enemy-zombie-hot-dog-vendor/';
   const CART = 'props/prop-hot-dog-cart/';
   const LID = 'items/item-powerup-trash-lid-shield/';
+  const SAW = 'items/item-powerup-chainsaw/';
+  const saw = { fw: 64, px: 36 }; // Sammy with the chainsaw: 64x48 cells like tail-whip, so the 28 px saw fits in front
   const ENV = 'environments/environment-central-park-tileset/';
   const cart = { fw: 64, fh: 48, px: 32, py: 47 };
   const small = { fw: 16, fh: 16, px: 8, py: 15 };
@@ -324,6 +348,9 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     strip('sammy:play-dead', SAM + 'sammy-play-dead-strip-v01.png', 4, 8, 'hold', sam()),
     strip('sammy:ko', SAM + 'sammy-ko-strip-v01.png', 6, 10, 'once', sam()),
     strip('sammy:victory', SAM + 'sammy-victory-strip-v01.png', 4, 8, 'loop', sam()),
+    strip('sammy:chainsaw-idle', SAM + 'sammy-chainsaw-idle-strip-v01.png', 4, 6, 'loop', saw),
+    strip('sammy:chainsaw-run', SAM + 'sammy-chainsaw-run-strip-v01.png', 8, 12, 'loop', saw),
+    strip('sammy:chainsaw-rev', SAM + 'sammy-chainsaw-rev-strip-v01.png', 4, 15, 'loop', saw),
 
     strip('jogger:walk', JOG + 'zombie-jogger-walk-strip-v01.png', 6, 8, 'loop'),
     strip('jogger:attack', JOG + 'zombie-jogger-attack-strip-v01.png', 4, 10, 'once', { hitFrame: 2 }),
@@ -349,6 +376,9 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     strip('overlay:lid', LID + 'trash-lid-held-overlay-strip-v01.png', 3, 1, 'frame', mid),
     strip('hud:lid', LID + 'hud-icon-trash-lid-v01.png', 1, 1, 'hold', { fw: 16, fh: 16, px: 0, py: 0, feet: false }),
 
+    strip('pickup:chainsaw', SAW + 'chainsaw-pickup-strip-v01.png', 4, 8, 'loop', { fw: 32, fh: 16, px: 16, py: 15 }),
+    strip('hud:chainsaw', SAW + 'hud-icon-chainsaw-v01.png', 1, 1, 'hold', { fw: 16, fh: 16, px: 0, py: 0, feet: false }),
+
     // Parallax bands: y = top row on screen, scroll = speed vs. the camera, fw = loop width.
     // Bands must not overlap (rows 80-143, 144-175, 176-207), as in the tileset ASSET.md.
     strip('bg:sky', ENV + 'central-park-bg-sky-v01.png', 1, 1, 'hold', { fw: 320, fh: 224, px: 0, py: 0, feet: false, y: 0, scroll: 0 }),
@@ -369,6 +399,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     // Extra sounds the prototype uses (see design/DECISIONS.md)
     'sfx-cart-rock', 'sfx-shield-block', 'sfx-shield-break', 'sfx-throw', 'sfx-splat', 'sfx-splash',
     'sfx-checkpoint', 'sfx-gate-open', 'sfx-level-clear', 'sfx-start',
+    // Stage B: chainsaw and gore (sfx-chainsaw-rev loops while the saw revs)
+    'sfx-chainsaw-start', 'sfx-chainsaw-rev', 'sfx-chainsaw-cut', 'sfx-gore-splat',
   ];
   S.SOUND_MANIFEST = SFX_IDS.map((id) => ({ id, kind: 'sfx', dir: 'audio/sfx/' + id + '/' })).concat([
     { id: 'music-level-01-central-park', kind: 'music', dir: 'audio/music/music-level-01-central-park/' },
@@ -450,7 +482,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 })(globalThis.SAMMY = globalThis.SAMMY || {});
 
 // ---- src/asset-files.js ----
-(function (S) { S.PRESENT_ASSET_FILES = {"characters/character-sammy/sammy-run-strip-v01.png":"characters/character-sammy/sammy-run-strip-v01.png"}; S.PRESENT_SOUND_FILES = {}; })(globalThis.SAMMY = globalThis.SAMMY || {});
+(function (S) { S.PRESENT_ASSET_FILES = {"characters/character-sammy/sammy-run-strip-v01.png":"characters/character-sammy/sammy-run-strip-v01.png","characters/character-sammy/sammy-chainsaw-idle-strip-v01.png":"characters/character-sammy/sammy-chainsaw-idle-strip-v01.png","characters/character-sammy/sammy-chainsaw-run-strip-v01.png":"characters/character-sammy/sammy-chainsaw-run-strip-v01.png","characters/character-sammy/sammy-chainsaw-rev-strip-v01.png":"characters/character-sammy/sammy-chainsaw-rev-strip-v01.png","items/item-powerup-chainsaw/chainsaw-pickup-strip-v01.png":"items/item-powerup-chainsaw/chainsaw-pickup-strip-v01.png","items/item-powerup-chainsaw/hud-icon-chainsaw-v01.png":"items/item-powerup-chainsaw/hud-icon-chainsaw-v01.png"}; S.PRESENT_SOUND_FILES = {}; })(globalThis.SAMMY = globalThis.SAMMY || {});
 
 // ---- src/sim.js ----
 // Game rules for the Sammy prototype. No drawing, no browser APIs: it runs the same in Node tests.
@@ -479,6 +511,12 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   function effect(s, kind, x, y, life, extra) {
     s.effects.push(Object.assign({ kind, x, y, t: 0, life }, extra || {}));
   }
+  // Looping sound (the chainsaw's rev): one event when it starts, one when it stops, never every frame.
+  function sawLoop(s, on) {
+    if (!!s.sawLoop === on) return;
+    s.sawLoop = on;
+    s.events.push({ type: 'sfx-loop', id: 'sfx-chainsaw-rev', on });
+  }
 
   S.makeInput = function () {
     return {
@@ -493,6 +531,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       x, y, vx: 0, vy: 0, face: 1, grounded: true, groundKind: 'ground',
       hp: P.maxHp, shield: 0, state: 'normal', t: 0, invuln: 0,
       coyote: 0, buffer: 0, landT: 0, possumCd: 0, possumFlash: 0, hitSet: null,
+      saw: null, // chainsaw while carried: { fuel (seconds), revving, tick (s to next cut), slash (s of tap-rev left) }
       anim: 'idle', animT: 0,
     };
   }
@@ -505,6 +544,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       grounded: true, hp: k.hp, state: isVendor ? 'idle' : 'patrol', t: 0,
       home: def.x, cd: 0, lostT: 0, throwT: 0.5, released: false, attackHit: false,
       confused: false, arena: false, anim: isVendor ? 'idle' : 'walk', animT: 0,
+      defeatStyle: isVendor ? 'deflate' : 'pop', // how it goes down; 'sliced' when the chainsaw does it
     }, extra || {});
   }
   function makeCart(def, idx) {
@@ -536,6 +576,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     s.stats = { time: 0, defeated: 0, hotdogs: 0, hits: 0, kos: 0 };
     s.lastSafeX = L.start.x;
     s.shake = 0;
+    s.hitstop = 0; // seconds of freeze-frame after a chainsaw kill (effects keep playing)
+    sawLoop(s, false);
     s.clearT = 0;
     s.nextId = 1000;
   }
@@ -640,6 +682,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     if (p.hp <= 0) {
       p.hp = 0; p.state = 'ko'; p.t = 0; p.vx = 0; p.shield = 0;
       s.stats.kos += 1;
+      sawLoop(s, false);
       sfx(s, 'sfx-ko');
       music(s, 'stop');
       return 'ko';
@@ -653,19 +696,30 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   }
   S.hurtPlayer = hurtPlayer;
 
-  function damageEnemy(s, e, fromX) {
+  // opts.source: 'whip' (default), 'chainsaw' or 'cart'. Gore is effect data only; render.js decides how much to show.
+  function damageEnemy(s, e, fromX, opts) {
     if (e.state === 'defeat' || e.state === 'dead') return;
-    e.hp -= 1;
-    sfx(s, 'sfx-hit-zombie');
-    effect(s, 'spark', e.x, e.y - 24, 0.15);
+    const saw = !!opts && opts.source === 'chainsaw';
+    const dir = sign(e.x - fromX) || 1;
+    e.hp -= saw ? C.chainsaw.damage : 1;
+    if (!saw) { sfx(s, 'sfx-hit-zombie'); effect(s, 'spark', e.x, e.y - 24, 0.15); }
+    effect(s, 'blood', e.x, e.y - 24, 0.6, { n: saw ? 8 : 4, dir, power: saw ? 2 : 1 });
     if (e.hp <= 0) {
       e.state = 'defeat'; e.t = 0; e.vx = 0; e.confused = false;
+      e.defeatStyle = saw ? 'sliced' : (e.type === 'vendor' ? 'deflate' : 'pop');
       s.stats.defeated += 1;
       sfx(s, 'sfx-zombie-defeat-comedic');
+      sfx(s, 'sfx-gore-splat');
+      effect(s, 'ichor', e.x, e.y - (saw ? 22 : 36), 0.8, { n: saw ? 10 : 6 });
+      if (saw) {
+        for (let i = 0; i < 3; i++) effect(s, 'chunk', e.x, e.y - 30 + i * 8, 0.9, { dir, i });
+        s.hitstop = Math.max(s.hitstop || 0, 0.06);
+        s.shake = Math.max(s.shake, 0.25);
+      }
       return;
     }
     e.state = 'hitreact'; e.t = 0;
-    e.vx = e.type === 'jogger' ? sign(e.x - fromX) * 120 : 0;
+    e.vx = e.type === 'jogger' ? dir * (saw ? 40 : 120) : 0;
   }
 
   function releaseConfused(s) {
@@ -728,9 +782,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     }
 
     const canControl = p.state === 'normal' || p.state === 'attack';
+    if (p.saw) updateSaw(s, p, inp, canControl);
     if (canControl) {
       const dir = (h.right ? 1 : 0) - (h.left ? 1 : 0);
-      const slow = p.state === 'attack' && p.grounded ? 0.3 : 1;
+      const slow = (p.state === 'attack' && p.grounded ? 0.3 : 1) * (p.saw && p.saw.revving ? C.chainsaw.slow : 1);
       const target = dir * P.runSpeed * slow;
       const rate = dir !== 0 ? P.accel : P.decel;
       if (p.vx < target) p.vx = Math.min(target, p.vx + rate * DT);
@@ -743,7 +798,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       }
       if (!h.jump && p.vy < -P.jumpCutSpeed) p.vy = -P.jumpCutSpeed;
 
-      if (inp.pressed.attack && p.state === 'normal') {
+      if (inp.pressed.attack && p.state === 'normal' && !p.saw) { // with the chainsaw, the same button revs it instead
         p.state = 'attack'; p.t = 0; p.hitSet = new Set();
         sfx(s, 'sfx-tail-whip');
       } else if (inp.pressed.possum && p.state === 'normal' && p.grounded && p.possumCd <= 0) {
@@ -802,11 +857,52 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     for (const e of s.enemies) {
       if (e.state === 'defeat' || e.state === 'dead' || p.hitSet.has(e.id)) continue;
       const k = e.type === 'vendor' ? C.vendor : C.jogger;
-      if (overlap(r, footBox(e, k.bodyW, k.bodyH))) { p.hitSet.add(e.id); damageEnemy(s, e, p.x); }
+      if (overlap(r, footBox(e, k.bodyW, k.bodyH))) { p.hitSet.add(e.id); damageEnemy(s, e, p.x, { source: 'whip' }); }
     }
     for (const c of s.carts) {
       if (p.hitSet.has(c.id)) continue;
       if (overlap(r, { x: c.x, y: G - C.cart.h, w: C.cart.w, h: C.cart.h })) { p.hitSet.add(c.id); hitCart(s, c); }
+    }
+  }
+
+  // ---------- chainsaw ----------
+  // Holding the attack button revs it (a tap revs for slashTime). Revving burns 1 fuel per second, carrying it burns
+  // carryDrain. While revving it cuts whatever is in reach every `tick` seconds. Empty tank: it's gone, back to the whip.
+  function updateSaw(s, p, inp, canControl) {
+    const K = C.chainsaw, w = p.saw;
+    w.slash = Math.max(0, (w.slash || 0) - DT);
+    if (canControl && inp.pressed.attack) w.slash = K.slashTime;
+    const rev = canControl && (inp.held.attack || w.slash > 0) && w.fuel > 0;
+    if (rev && !w.revving) w.tick = 0; // first cut straight away
+    w.revving = rev;
+    w.fuel = Math.max(0, w.fuel - (rev ? 1 : K.carryDrain) * DT);
+    if (rev) {
+      w.tick -= DT;
+      if (w.tick <= 0) { w.tick += K.tick; sawCut(s, p); }
+    }
+    if (w.fuel <= 0) {
+      p.saw = null;
+      effect(s, 'text', p.x, p.y - 44, 1.2, { text: 'OUT OF GAS. SHIT.' });
+    }
+    sawLoop(s, !!(p.saw && p.saw.revving));
+  }
+
+  function sawCut(s, p) {
+    const K = C.chainsaw;
+    const r = { x: p.face > 0 ? p.x : p.x - K.reach, y: p.y - 24, w: K.reach, h: 18 };
+    s.lastSaw = r;
+    let cut = false;
+    for (const e of s.enemies) {
+      if (e.state === 'defeat' || e.state === 'dead' || e.state === 'spawn') continue;
+      const k = e.type === 'vendor' ? C.vendor : C.jogger;
+      if (overlap(r, footBox(e, k.bodyW, k.bodyH))) { damageEnemy(s, e, p.x, { source: 'chainsaw' }); cut = true; }
+    }
+    for (const c of s.carts) {
+      if ((c.state === 'upright' || c.state === 'rocking') && overlap(r, { x: c.x, y: G - C.cart.h, w: C.cart.w, h: C.cart.h })) { hitCart(s, c); cut = true; }
+    }
+    if (cut) {
+      sfx(s, 'sfx-chainsaw-cut');
+      effect(s, 'sparks', p.x + p.face * Math.round(K.reach * 0.7), p.y - 16, 0.15, { dir: p.face });
     }
   }
 
@@ -1009,6 +1105,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         effect(s, 'sparkle', pk.x, pk.y - 8, 0.3);
         if (pk.type === 'hotdog') { p.hp = Math.min(P.maxHp, p.hp + 1); s.stats.hotdogs += 1; }
         if (pk.type === 'lid') p.shield = C.lid.hits;
+        if (pk.type === 'chainsaw') {
+          p.saw = { fuel: C.chainsaw.fuel, revving: false, tick: 0, slash: 0 };
+          sfx(s, 'sfx-chainsaw-start');
+        }
       }
     }
   }
@@ -1045,7 +1145,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     if (a.state === 'idle' && p.x >= A.trigger && p.state !== 'ko') {
       a.state = 'fight'; a.wave = 0; a.timer = 0.6;
       music(s, 'arena');
-      effect(s, 'text', (A.x0 + A.x1) / 2, 60, 1.2, { text: 'ZOMBIE GAUNTLET!' });
+      effect(s, 'text', (A.x0 + A.x1) / 2, 60, 1.2, { text: 'BETHESDA TERRACE. NOBODY LEAVES.' });
     } else if (a.state === 'fight') {
       if (a.timer > 0) {
         a.timer -= DT;
@@ -1056,12 +1156,13 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
           a.wave += 1;
           if (a.wave >= C.gauntlet.waves.length) {
             a.state = 'open'; sfx(s, 'sfx-gate-open'); music(s, 'level');
-            effect(s, 'text', A.gateX, 120, 1.5, { text: 'EXIT OPEN!' });
+            effect(s, 'text', A.gateX, 120, 1.5, { text: 'EXIT OPEN. GO.' });
           } else a.timer = C.gauntlet.waveDelay;
         }
       }
     } else if (a.state === 'open' && p.x >= A.exitX && p.state !== 'ko') {
       s.mode = 'clear'; s.clearT = 0;
+      sawLoop(s, false);
       p.state = 'victory'; p.vx = 0; setAnim(p, 'victory');
       music(s, 'clear');
       sfx(s, 'sfx-level-clear');
@@ -1085,10 +1186,11 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     if (p.state === 'playdead') return 'play-dead';
     if (p.state === 'getup') return 'get-up';
     if (p.state === 'attack') return 'tail-whip';
+    if (p.saw && p.saw.revving) return 'chainsaw-rev';
     if (!p.grounded) return p.vy < 0 ? 'jump-rise' : 'fall';
     if (p.landT > 0) return 'land';
-    if (Math.abs(p.vx) > 10) return 'run';
-    return 'idle';
+    if (Math.abs(p.vx) > 10) return p.saw ? 'chainsaw-run' : 'run';
+    return p.saw ? 'chainsaw-idle' : 'idle';
   }
 
   function updateEffects(s) {
@@ -1120,8 +1222,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       return;
     }
     // playing
-    if (q.start) { s.mode = 'paused'; music(s, 'pause'); return; }
+    if (q.start) { sawLoop(s, false); s.mode = 'paused'; music(s, 'pause'); return; }
     if (q.restart) { resetLevel(s); music(s, 'level'); return; }
+    // Hit-stop after a chainsaw kill: everything holds still for a few frames; effects (and the shake) keep going.
+    if (s.hitstop > 0) { s.hitstop = Math.max(0, s.hitstop - DT); s.t += DT; updateEffects(s); return; }
     s.t += DT;
     s.stats.time += DT;
     updatePlayer(s, inp);
@@ -1245,8 +1349,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   };
   // ?gore=low or ?gore=full wins over the remembered choice.
   S.pickGore = function (query, stored) { return query === 'low' || query === 'full' ? query : stored === 'low' ? 'low' : 'full'; };
-  // Gore colours (9-bit grid). Kept here, not in S.PAL, so the low setting can promise none of them is ever drawn.
-  const GORE = { blood: '#b40000', bloodDark: '#6c0000', bloodHi: '#fc4848', ichor: '#90d824', ichorDark: '#486c00', bone: '#fcfcd8', meat: '#d86c6c' };
+  // Gore colours: the reserved gore keys of S.PAL (one set, STYLE_GUIDE "Reserved colours"). Low gore never draws any of them.
+  const GORE = { blood: K.blood, bloodDark: K.blood0, bloodHi: K.bloodHi, ichor: K.ichor, ichorDark: K.ichor0, bone: K.bone, meat: K.meat };
   S.GORE_COLORS = GORE;
   const LOWPUFF = ['#d8d8d8', '#909090'];
   const gravity = 300; // px/s² for flying bits (looks only)
@@ -1259,9 +1363,17 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   for (const m of S.ASSET_MANIFEST) if (m.key.startsWith('bg:')) BG[m.key] = m;
   function drawBackground(ctx, camX) {
     if (!sprite(ctx, 'bg:sky', 0, 0, BG['bg:sky'].y, 1)) {
+      // Night sky: flat bands, a checkerboard dither row at each seam, stars, and a dithered full moon (light from the top-left).
       const bands = [K.sky0, K.sky1, K.sky2, K.sky3, K.sky4];
       bands.forEach((c, i) => R(ctx, c, 0, i * 28, W, 28));
       R(ctx, K.sky4, 0, 140, W, 84);
+      for (let i = 1; i < bands.length; i++) dither(ctx, bands[i - 1], 0, i * 28, W, 2);
+      for (let i = 0; i < 46; i++) {
+        const sx = Math.floor(rnd(i + 401) * W), sy = 18 + Math.floor(rnd(i + 733) * 70);
+        R(ctx, K.star, sx, sy, 1, 1);
+        if (rnd(i + 57) > 0.85) { R(ctx, K.sky2, sx - 1, sy, 1, 1); R(ctx, K.sky2, sx + 1, sy, 1, 1); R(ctx, K.sky2, sx, sy - 1, 1, 1); R(ctx, K.sky2, sx, sy + 1, 1, 1); }
+      }
+      drawMoon(ctx, 52, 50, 13);
     }
     // Placeholder shapes stay inside each band's rows, like real art would.
     tiled(ctx, 'bg:skyline', camX, (ox, y, w, h) => {
@@ -1270,6 +1382,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         const bx = ox + i * 32;
         R(ctx, K.skyline, bx, y + h - bh, bw, bh);
         if (rnd(i + 3) > 0.6) R(ctx, K.skyline, bx + bw / 2 - 1, y + h - bh - 8, 2, 8);
+        // Lit windows: a few warm squares per building, on a 4 px grid.
+        for (let wy = y + h - bh + 4; wy < y + h - 4; wy += 5) for (let wx = bx + 3; wx < bx + bw - 3; wx += 4) {
+          if (rnd(wx * 7 + wy * 13 + i) > 0.82) R(ctx, K.window, wx, wy, 2, 2);
+        }
       }
     });
     tiled(ctx, 'bg:treeline', camX, (ox, y, w, h) => {
@@ -1284,9 +1400,36 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       for (let i = 0; i < w / 22; i++) {
         const r = 4 + Math.floor(rnd(i + 55) * 8);
         R(ctx, K.bushes, ox + i * 22, y + 12 - r, 20, r);
+        if (rnd(i + 17) > 0.6) R(ctx, [K.leaf0, K.leaf1, K.leaf2][i % 3], ox + i * 22 + 6, y + 14 - r, 1, 1); // autumn leaf
       }
       R(ctx, K.bushes, ox, y + 8, w, h - 8);
     });
+  }
+  // Checkerboard of colour c over a rectangle (the 16-bit way to blend two colours).
+  function dither(ctx, c, x, y, w, h) {
+    ctx.fillStyle = c;
+    for (let yy = 0; yy < h; yy++) for (let xx = (yy + y + x) & 1; xx < w; xx += 2) ctx.fillRect(x + xx, y + yy, 1, 1);
+  }
+  // Full moon: pale disc, dithered shadow edge on the lower right, a few craters, a faint dithered halo.
+  function drawMoon(ctx, cx, cy, r) {
+    for (let y = -r - 3; y <= r + 3; y++) for (let x = -r - 3; x <= r + 3; x++) {
+      const d = Math.sqrt(x * x + y * y);
+      let c = null;
+      if (d <= r) c = (x + y > r * 0.9 && ((x + y) & 1)) ? K.moonMid : K.moon;
+      else if (d <= r + 3 && ((x + y) & 1) === 0 && d > r + 1) c = K.sky2;
+      if (c) R(ctx, c, cx + x, cy + y, 1, 1);
+    }
+    R(ctx, K.moonCrater, cx - 5, cy - 3, 4, 3); R(ctx, K.moonCrater, cx + 3, cy + 2, 3, 3);
+    R(ctx, K.moonCrater, cx - 1, cy + 6, 2, 2); R(ctx, K.moonMid, cx + 4, cy - 6, 2, 2);
+  }
+  // Amber lamp glow: a dithered halo that thins out with distance. Never see-through pixels.
+  function lampGlow(ctx, cx, cy) {
+    for (let y = -14; y <= 14; y++) for (let x = -16; x <= 16; x++) {
+      const d = Math.sqrt(x * x + y * y * 1.3), px = cx + x, py = cy + y;
+      if (d < 5) { if ((px + py) & 1) R(ctx, K.lampGlow, px, py, 1, 1); }
+      else if (d < 10) { if (((px + py) & 1) && (py & 1)) R(ctx, K.lampHalo, px, py, 1, 1); }
+      else if (d < 15) { if ((px & 3) === 0 && (py & 3) === (px & 4 ? 2 : 0)) R(ctx, K.lampDeep, px, py, 1, 1); }
+    }
   }
   function tiled(ctx, key, camX, fallback) {
     const b = BG[key], m = S.images[key];
@@ -1298,16 +1441,39 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   }
 
   // ---------- world ----------
+  // The last screen (the gauntlet arena) is Bethesda Terrace: stone floor instead of grass and earth.
   function drawGround(ctx, s, x0, x1) {
+    const A = s.level.arena;
     for (const g of s.level.ground) {
-      const a = Math.max(g.x0, x0), b = Math.min(g.x1, x1);
-      if (a >= b) continue;
-      R(ctx, K.dirt, a, G, b - a, H - G);
-      R(ctx, K.grass, a, G, b - a, 4);
-      for (let x = Math.floor(a / 8) * 8; x < b; x += 8) {
-        if (rnd(x) > 0.5) R(ctx, K.grass, x + 2, G - 2, 2, 2);
-        if (rnd(x + 1) > 0.7) R(ctx, K.dirtDark, x + 3, G + 10 + Math.floor(rnd(x + 2) * 18), 3, 2);
+      const a = Math.max(g.x0, x0), b = Math.min(g.x1, Math.min(x1, A.x0));
+      if (a < b) {
+        R(ctx, K.dirt, a, G, b - a, H - G);
+        R(ctx, K.grass, a, G, b - a, 4);
+        for (let x = Math.floor(a / 8) * 8; x < b; x += 8) {
+          if (rnd(x) > 0.5) R(ctx, K.grass, x + 2, G - 2, 2, 2);
+          if (rnd(x + 1) > 0.7) R(ctx, K.dirtDark, x + 3, G + 10 + Math.floor(rnd(x + 2) * 18), 3, 2);
+          if (rnd(x + 5) > 0.82) R(ctx, [K.leaf0, K.leaf1, K.leaf2][x % 3], x + 5, G + 1, 2, 1);           // fallen leaves
+          if (rnd(x + 9) > 0.8) { R(ctx, K.stoneLight, x + 1, G + 6 + Math.floor(rnd(x + 3) * 8), 1, 2); }  // wet glint
+        }
       }
+      // Bethesda Terrace: rain-slick stone slabs.
+      const sa = Math.max(g.x0, x0, A.x0), sb = Math.min(g.x1, x1);
+      if (sa < sb) {
+        R(ctx, K.stoneMid, sa, G, sb - sa, H - G);
+        R(ctx, K.stoneLight, sa, G, sb - sa, 2);
+        for (let row = 0; row < 3; row++) {
+          const y = G + 2 + row * 10;
+          R(ctx, K.stone, sa, y + 9, sb - sa, 1);
+          for (let x = Math.floor(sa / 24) * 24 + (row & 1) * 12; x < sb; x += 24) if (x >= sa) R(ctx, K.stone, x, y, 1, 9);
+        }
+        for (let x = Math.floor(sa / 8) * 8; x < sb; x += 8) if (rnd(x + 21) > 0.7) dither(ctx, K.stoneLight, x + 2, G + 4, 1, 4 + Math.floor(rnd(x) * 6));
+      }
+    }
+    // Lamp reflections on the wet ground: short vertical dithered amber streaks under each lamp.
+    for (const p of s.level.platforms) if (p.kind === 'lamp') {
+      const lx = p.x + p.w / 2;
+      if (lx < x0 || lx > x1) continue;
+      for (let i = -1; i <= 1; i++) for (let y = G + 3; y < G + 20 - Math.abs(i) * 8; y += 2) R(ctx, i ? K.lampHalo : K.lampGlow, lx + i * 3 + ((y >> 1) & 1), y, 1, 1);
     }
     for (const w of s.level.water) {
       R(ctx, K.water, w.x0, w.y, w.x1 - w.x0, H - w.y);
@@ -1316,7 +1482,43 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     }
   }
 
+  // Bethesda Terrace backdrop for the arena (decoration only; nothing here is solid):
+  // an arcade wall with arches, a balustrade on top, and the angel fountain in the middle.
+  function drawTerrace(ctx, A) {
+    const x0 = A.x0, x1 = A.x1, wallTop = 140;
+    R(ctx, K.stoneMid, x0, wallTop, x1 - x0, G - wallTop);
+    R(ctx, K.stoneLight, x0, wallTop, x1 - x0, 2);
+    for (let ax = x0 + 12; ax + 28 <= x1; ax += 44) {                // arches: dark openings with round tops
+      R(ctx, K.arch, ax + 4, wallTop + 14, 20, G - wallTop - 14);
+      R(ctx, K.arch, ax + 6, wallTop + 11, 16, 3); R(ctx, K.arch, ax + 9, wallTop + 9, 10, 2);
+      R(ctx, K.stoneLight, ax + 2, wallTop + 14, 2, G - wallTop - 14); // pillar highlight, light from the left
+      dither(ctx, K.stone, ax + 4, G - 6, 20, 6);
+    }
+    R(ctx, K.stoneLight, x0, 124, x1 - x0, 3);                         // balustrade rail
+    for (let bx = x0 + 2; bx < x1; bx += 6) { R(ctx, K.stoneMid, bx, 127, 3, 13); R(ctx, K.stoneLight, bx, 128, 1, 10); }
+    R(ctx, K.stone, x0, 138, x1 - x0, 2);
+    // Angel fountain: wide basin, column, upper bowl, angel with spread wings.
+    const cx = Math.round((x0 + x1) / 2);
+    R(ctx, K.stone, cx - 3, 112, 6, G - 112);                          // column
+    R(ctx, K.stoneLight, cx - 3, 112, 1, G - 124);
+    R(ctx, K.stone, cx - 16, 132, 32, 4); R(ctx, K.stoneLight, cx - 16, 132, 32, 1); R(ctx, K.stone, cx - 10, 136, 20, 3); // upper bowl
+    for (let y = 137; y < G - 12; y += 2) { R(ctx, K.waterHi, cx - 15 + (y & 2), y, 1, 1); R(ctx, K.waterHi, cx + 14 - (y & 2), y, 1, 1); } // spill
+    R(ctx, K.arch, cx - 4, 92, 8, 20);                                // angel body
+    R(ctx, K.arch, cx - 2, 86, 4, 5);                                 // head
+    R(ctx, K.arch, cx - 18, 90, 14, 4); R(ctx, K.arch, cx - 14, 94, 10, 4); R(ctx, K.arch, cx - 9, 98, 5, 4); // wings
+    R(ctx, K.arch, cx + 4, 90, 14, 4); R(ctx, K.arch, cx + 4, 94, 10, 4); R(ctx, K.arch, cx + 4, 98, 5, 4);
+    R(ctx, K.arch, cx + 3, 80, 2, 12);                                // raised arm
+    R(ctx, K.stoneLight, cx - 18, 90, 14, 1); R(ctx, K.stoneLight, cx - 2, 86, 1, 5); R(ctx, K.stoneLight, cx - 4, 92, 1, 20); R(ctx, K.stoneLight, cx + 3, 80, 1, 10); // moonlit edges
+    R(ctx, K.stoneMid, cx - 48, G - 12, 96, 12);                       // lower basin
+    R(ctx, K.stoneLight, cx - 48, G - 12, 96, 2);
+    R(ctx, K.water, cx - 44, G - 10, 88, 3);
+    dither(ctx, K.waterHi, cx - 44, G - 10, 88, 1);
+    R(ctx, K.stone, cx - 48, G - 2, 96, 2);
+  }
+
   function drawStatic(ctx, s) {
+    const A = s.level.arena;
+    if (A.x1 > s.cam.x - 16 && A.x0 < s.cam.x + W + 16) drawTerrace(ctx, A);
     for (const b of s.level.solids) {
       if (b.kind === 'rock') { R(ctx, K.rock, b.x, b.y, b.w, b.h); R(ctx, K.grey, b.x + 3, b.y + 2, b.w - 10, 3); }
       else if (b.kind === 'fence') { R(ctx, K.fence, b.x, b.y, b.w, b.h); R(ctx, K.fence, b.x - 6, b.y + 6, b.w + 12, 3); R(ctx, K.fence, b.x - 6, b.y + 15, b.w + 12, 3); }
@@ -1326,6 +1528,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         R(ctx, K.bench, p.x, p.y, p.w, 4); R(ctx, K.bench, p.x, p.y - 10, p.w, 3);
         R(ctx, K.dark, p.x + 2, p.y + 4, 3, G - p.y - 4); R(ctx, K.dark, p.x + p.w - 5, p.y + 4, 3, G - p.y - 4);
       } else if (p.kind === 'lamp') {
+        lampGlow(ctx, p.x + p.w / 2, p.y + 6);
         R(ctx, K.pole, p.x + p.w / 2 - 2, p.y + 4, 4, G - p.y - 4);
         R(ctx, K.pole, p.x, p.y, p.w, 4); R(ctx, K.lamp, p.x + 4, p.y + 4, p.w - 8, 3);
       }
@@ -1335,7 +1538,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       R(ctx, cp.active ? K.umbrella : K.lampOff, cp.x + 2, G - 40, 12, 8);
       S.drawText(ctx, cp.id, cp.x + 3, G - 39, K.black);
     }
-    const A = s.level.arena;
     if (s.arena.state !== 'idle') {
       R(ctx, K.fence, A.x0, 128, 8, G - 128);
       for (let y = 136; y < G; y += 14) R(ctx, K.fence, A.x0, y, 14, 3);
@@ -1384,6 +1586,15 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       R(ctx, K.lid, pk.x - 7, pk.y - 14 + bob, 14, 12); R(ctx, K.lid, pk.x - 5, pk.y - 16 + bob, 10, 16);
       R(ctx, K.lidHi, pk.x - 2, pk.y - 15 + bob, 4, 2);
       S.drawText(ctx, 'LID', pk.x - 5, pk.y - 11 + bob, K.black);
+    } else if (pk.type === 'chainsaw') {
+      if (sprite(ctx, 'pickup:chainsaw', pk.t, pk.x, pk.y, 1)) return;
+      const x = Math.round(pk.x), y = Math.round(pk.y);
+      R(ctx, K.black, x - 15, y - 11, 31, 10);                 // outline
+      R(ctx, K.hotdog, x - 14, y - 10, 11, 8);                 // engine
+      R(ctx, K.dark, x - 12, y - 13, 7, 3);                    // handle
+      R(ctx, K.grey, x - 3, y - 8, 18, 4);                     // bar
+      for (let i = 0; i < 4; i++) R(ctx, K.white, x - 1 + i * 4, y - 9, 2, 1); // teeth
+      if (Math.floor(pk.t * 3) % 2 === 0) R(ctx, K.white, x + 10, y - 7, 2, 1); // glint
     }
   }
 
@@ -1403,7 +1614,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     if (e.t > 0.6) return;
     const list = GAGS[style === 'sliced' && S.gore === 'low' ? 'low' : style] || GAGS.pop;
     const txt = list[hashId(e.id) % list.length];
-    S.drawTextCentered(ctx, txt, Math.round(e.x), y - Math.round(e.t * 12), style === 'sliced' && S.gore !== 'low' ? GORE.bloodHi : K.white, 1, K.black);
+    S.drawTextCentered(ctx, txt, Math.round(e.x), y - Math.round(e.t * 12), style === 'sliced' && S.gore !== 'low' ? K.heart : K.white, 1, K.black);
   }
   // Chainsaw kill: the standing pose cut at the waist. Full gore: the top half slides off and falls, red cut faces and
   // drips. Low gore: no split; the whole zombie sinks into the ground in a grey puff.
@@ -1507,8 +1718,13 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     if (p.invuln > 0 && p.state !== 'ko' && Math.floor(p.invuln * 15) % 2 === 0) return; // blink while invincible
     const anim = p.anim === 'get-up' ? 'play-dead' : p.anim;
     const flash = p.state === 'hurt';
-    const real = sprite(ctx, 'sammy:' + anim, p.anim === 'get-up' ? p.animT * 2 : p.animT, p.x, p.y, p.face, p.anim === 'get-up', null, flash);
+    const sawArt = anim.startsWith('chainsaw-');
+    let real = sprite(ctx, 'sammy:' + anim, p.anim === 'get-up' ? p.animT * 2 : p.animT, p.x, p.y, p.face, p.anim === 'get-up', null, flash);
+    // No chainsaw strip yet: plain Sammy (idle or run art, or the placeholder) holding a placeholder saw.
+    if (!real && sawArt) real = sprite(ctx, anim === 'chainsaw-run' ? 'sammy:run' : 'sammy:idle', p.animT, p.x, p.y, p.face, false, null, flash);
     if (!real) drawSammyPlaceholder(ctx, s, flash);
+    const lying = p.state === 'playdead' || p.state === 'getup' || p.state === 'ko';
+    if (p.saw && !lying && !(sawArt && S.images['sammy:' + anim])) drawSawPlaceholder(ctx, p, s.t);
     const x = Math.round(p.x), y = Math.round(p.y);
     if (p.state === 'playdead') S.drawTextCentered(ctx, 'Z z', x, y - 26, K.white, 1, K.black);
     if (p.state === 'ko') S.drawTextCentered(ctx, '* * *', x, y - 24 - Math.round(Math.sin(p.t * 8) * 2), K.umbrella, 1, K.black);
@@ -1518,6 +1734,20 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         R(ctx, K.lid, ox - 3, oy - 7, 6, 14); R(ctx, K.lidHi, ox - 1, oy - 5, 2, 4 - (3 - p.shield));
       }
     }
+  }
+
+  // Placeholder chainsaw in Sammy's paws: engine, handle, 16 px bar reaching 28 px in front (the cutting reach).
+  // Revving: it shudders and the teeth run.
+  function drawSawPlaceholder(ctx, p, t) {
+    const x = Math.round(p.x), f = p.face, rev = p.saw.revving;
+    const y = Math.round(p.y) + (rev ? Math.floor(t * 30) % 2 : 0);
+    const at = (a, w) => (f > 0 ? x + a : x - a - w); // a px in front of the feet point, w wide
+    R(ctx, K.black, at(1, 28), y - 21, 28, 10);
+    R(ctx, K.hotdog, at(2, 10), y - 20, 10, 8);
+    R(ctx, K.dark, at(4, 6), y - 23, 6, 3);
+    R(ctx, K.grey, at(12, 16), y - 18, 16, 4);
+    const run = rev ? Math.floor(t * 40) % 4 : 0;
+    for (let i = 0; i < 4; i++) { R(ctx, K.white, at(12 + ((i * 4 + run) % 16), 2), y - 19, 2, 1); R(ctx, K.white, at(12 + ((i * 4 + 16 - run) % 16), 2), y - 14, 2, 1); }
   }
 
   function drawSammyPlaceholder(ctx, s, flash) {
@@ -1619,7 +1849,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   function drawHud(ctx, s) {
     const p = s.player;
     // 16 px bar, tall enough for the 16x16 HUD icons. Left to right:
-    // hearts 4-29 | lid icon 34-49, pips 52-61 | PP 66-79, cooldown bar 82-101 | zombies 120 | time 200 | wave 240.
+    // hearts 4-29 | lid icon 34-49, pips 52-61 | PP 66-79, cooldown bar 82-101 | chainsaw icon 104-119, fuel 122-145
+    // | zombies 150 | time 200 | wave 240.
     R(ctx, K.hud, 0, 0, W, 16);
     for (let i = 0; i < C.sammy.maxHp; i++) heart(ctx, 4 + i * 9, 5, i < p.hp);
     if (p.shield > 0) {
@@ -1635,7 +1866,15 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       const frac = p.state === 'playdead' || p.state === 'getup' ? 0 : 1 - p.possumCd / C.possum.cooldown;
       R(ctx, K.dark, 82, 7, 20, 3); R(ctx, K.nose, 82, 7, Math.round(20 * frac), 3);
     }
-    S.drawText(ctx, 'ZOMBIES ' + s.stats.defeated, 120, 6, K.white);
+    // Chainsaw: icon and fuel gauge while carried; the gauge goes red and blinks when nearly empty.
+    if (p.saw) {
+      if (!sprite(ctx, 'hud:chainsaw', 0, 104, 0, 1)) { R(ctx, K.hotdog, 105, 5, 7, 6); R(ctx, K.dark, 106, 3, 4, 2); R(ctx, K.grey, 112, 7, 7, 3); }
+      const frac = Math.max(0, Math.min(1, p.saw.fuel / C.chainsaw.fuel));
+      const low = frac < 0.25;
+      R(ctx, K.dark, 122, 7, 24, 3);
+      if (!low || Math.floor(s.t * 6) % 2 === 0) R(ctx, low ? K.heart : K.hotdog, 122, 7, Math.ceil(24 * frac), 3);
+    }
+    S.drawText(ctx, 'ZOMBIES ' + s.stats.defeated, 150, 6, K.white);
     const secs = Math.floor(s.stats.time);
     S.drawText(ctx, Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0'), 200, 6, K.white);
     if (s.arena.state === 'fight') S.drawText(ctx, 'WAVE ' + (s.arena.wave + 1) + '/' + C.gauntlet.waves.length, 240, 6, K.umbrella);
@@ -1666,25 +1905,33 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   // Screen text for keyboard players and for the on-screen touch buttons (the tests check every line fits).
   S.TEXT = {
     keys: {
-      title1: 'ARROWS/WASD MOVE  Z JUMP  X WHIP  C PLAY POSSUM', title2: 'ENTER PAUSE   R RESTART   M MUTE',
+      title1: 'ARROWS/WASD MOVE  Z JUMP  X WHIP  C PLAY POSSUM', title2: 'ENTER PAUSE   R RESTART   M MUTE   G GORE',
       start: 'PRESS ENTER OR Z TO START', again: 'PRESS ENTER TO PLAY AGAIN', paused: 'ENTER TO RESUME  R RESTART',
     },
     touch: {
-      title1: 'BUTTONS: MOVE, JUMP, WHIP, PLAY POSSUM', title2: 'PAUSE BUTTON: RESTART AND MUTE',
+      title1: 'BUTTONS: MOVE, JUMP, WHIP, PLAY POSSUM', title2: 'PAUSE BUTTON: RESTART, MUTE, GORE',
       start: 'TAP JUMP TO START', again: 'TAP JUMP TO PLAY AGAIN', paused: 'TAP PLAY TO RESUME',
     },
+    // Deadpan, profane, on purpose (owner rule, CLAUDE.md "Tone").
+    title: {
+      name: 'SAMMY THE OPOSSUM', hunter: 'ZOMBIE HUNTER',
+      tag1: 'CENTRAL PARK. NIGHT. EVERY HUMAN IS A ZOMBIE.', tag2: "HE DOESN'T FUCK AROUND WITH ZOMBIES.",
+      level: 'LEVEL 1: SHEEP MEADOW, AFTER DARK',
+    },
+    quips: { paused: 'THE DEAD CAN FUCKING WAIT.', clear: 'THE PARK IS A LITTLE LESS DEAD.', end: "THAT'S THE PROTOTYPE. GO WASH YOUR PAWS." },
   };
-  function panel(ctx, x, y, w, h) { R(ctx, K.black, x - 1, y - 1, w + 2, h + 2); R(ctx, K.hud, x, y, w, h); R(ctx, K.sky1, x, y, w, 2); }
+  function panel(ctx, x, y, w, h) { R(ctx, K.black, x - 1, y - 1, w + 2, h + 2); R(ctx, K.hud, x, y, w, h); R(ctx, K.hudHi, x, y, w, 2); }
 
   function drawTitle(ctx, s) {
     drawBackground(ctx, (s.titleT || 0) * 20);
     R(ctx, K.dirt, 0, G, W, H - G); R(ctx, K.grass, 0, G, W, 4);
     panel(ctx, 40, 24, 240, 150);
-    S.drawTextCentered(ctx, 'SAMMY', W / 2, 34, K.sammy, 5, K.black);
-    S.drawTextCentered(ctx, '(WORKING TITLE)', W / 2, 64, K.grey);
-    S.drawTextCentered(ctx, 'SAMMY THE OPOSSUM WAKES UP IN CENTRAL PARK.', W / 2, 78, K.white);
-    S.drawTextCentered(ctx, 'NO MEMORY. AND EVERY HUMAN IS A ZOMBIE.', W / 2, 86, K.white);
-    S.drawTextCentered(ctx, 'LEVEL 1: SHEEP MEADOW', W / 2, 100, K.umbrella);
+    S.drawTextCentered(ctx, S.TEXT.title.name, W / 2, 31, K.sammy, 3, K.black);
+    S.drawTextCentered(ctx, S.TEXT.title.hunter, W / 2, 50, K.heart, 4, K.black);
+    S.drawTextCentered(ctx, '(WORKING TITLE)', W / 2, 73, K.grey);
+    S.drawTextCentered(ctx, S.TEXT.title.tag1, W / 2, 83, K.white);
+    S.drawTextCentered(ctx, S.TEXT.title.tag2, W / 2, 91, K.lamp);
+    S.drawTextCentered(ctx, S.TEXT.title.level, W / 2, 103, K.umbrella);
     const t = S.TEXT[S.touchActive ? 'touch' : 'keys'];
     S.drawTextCentered(ctx, t.title1, W / 2, 116, K.white);
     S.drawTextCentered(ctx, t.title2, W / 2, 124, K.white);
@@ -1709,7 +1956,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     ];
     rows.forEach((r, i) => { S.drawText(ctx, r[0], 76, 76 + i * 12, K.white); S.drawText(ctx, String(r[1]), 220, 76 + i * 12, K.umbrella); });
     if (s.clearT > 1.5 && Math.floor(s.clearT * 2) % 2 === 0) S.drawTextCentered(ctx, S.TEXT[S.touchActive ? 'touch' : 'keys'].again, W / 2, 152, K.nose);
-    S.drawTextCentered(ctx, 'END OF THE PROTOTYPE LEVEL', W / 2, 164, K.grey);
+    S.drawTextCentered(ctx, S.TEXT.quips.clear, W / 2, 66, K.white);
+    S.drawTextCentered(ctx, S.TEXT.quips.end, W / 2, 164, K.grey);
   }
 
   S.render = function (ctx, s) {
@@ -1745,7 +1993,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       // With touch buttons held sideways, the box also holds the RESTART and MUTE buttons (layout.js menuPanel).
       const mp = S.touchActive && S.touchMenuPanel;
       if (mp) panel(ctx, mp.x0, mp.y0, mp.x1 - mp.x0, mp.y1 - mp.y0); else panel(ctx, 100, 80, 120, 50);
-      S.drawTextCentered(ctx, 'PAUSED', W / 2, 90, K.white, 2, K.black);
+      S.drawTextCentered(ctx, 'PAUSED', W / 2, 88, K.white, 2, K.black);
+      S.drawTextCentered(ctx, S.TEXT.quips.paused, W / 2, 102, K.lamp);
       S.drawTextCentered(ctx, S.TEXT[S.touchActive ? 'touch' : 'keys'].paused, W / 2, 112, K.grey);
       if (!S.touchActive) S.drawTextCentered(ctx, 'G: GORE ' + (S.gore === 'low' ? 'LOW' : 'FULL'), W / 2, 121, K.grey);
     }
@@ -1785,6 +2034,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     'sfx-gate-open': ['triangle', 200, 800, 0.6, 0.3],
     'sfx-level-clear': ['square', 523, 1046, 0.6, 0.25],
     'sfx-start': ['square', 440, 880, 0.2, 0.2],
+    'sfx-chainsaw-start': ['sawtooth', 60, 180, 0.35, 0.25],
+    'sfx-chainsaw-rev': ['sawtooth', 90, 150, 0.06, 0.12], // loop: pitch wobbles between the two Hz, 0.06 s per wobble
+    'sfx-chainsaw-cut': ['noise', 2400, 900, 0.08, 0.2],
+    'sfx-gore-splat': ['noise', 400, 60, 0.25, 0.35],
   };
   const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
   const TRACKS = {
@@ -2140,6 +2393,37 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       if (sounds()[id] && sounds()[id].length) { playFile(id); return; }
       const d = SFX[id]; if (d && ctx) tone(d[0], d[1], d[2], d[3], d[4]);
     };
+    // Looping sound effects (the chainsaw's rev), started and stopped by 'sfx-loop' events from sim.js.
+    // A real file loops whole; otherwise a buzzing placeholder. Mute silences both (master gain / el.muted).
+    const loops = new Map(); // id -> stop()
+    api.sfxLoop = function (id, on) {
+      try {
+        const stop = loops.get(id);
+        if (!on) { if (stop) { stop(); loops.delete(id); } return; }
+        if (stop) return;
+        const list = sounds()[id];
+        if (list && list.length) {
+          const el = list[0];
+          S.soundPlays[id] = (S.soundPlays[id] || 0) + 1;
+          el.loop = true; el.volume = V.sfxVolume; el.muted = api.muted;
+          try { el.currentTime = 0; } catch (e) { /* not seekable yet */ }
+          quiet(el.play());
+          loops.set(id, () => { el.pause(); el.loop = false; });
+          return;
+        }
+        const d = SFX[id];
+        if (!d || !ctx) return;
+        const o = ctx.createOscillator(), g = ctx.createGain(), lfo = ctx.createOscillator(), depth = ctx.createGain();
+        o.type = d[0] === 'noise' ? 'sawtooth' : d[0];
+        o.frequency.value = (d[1] + d[2]) / 2;
+        lfo.frequency.value = 1 / d[3]; depth.gain.value = (d[2] - d[1]) / 2;
+        lfo.connect(depth); depth.connect(o.frequency);
+        g.gain.value = d[4]; o.connect(g); g.connect(master);
+        o.start(); lfo.start();
+        loops.set(id, () => { try { o.stop(); lfo.stop(); g.disconnect(); } catch (e) { /* already stopped */ } });
+      } catch (e) { /* never let sound break the game */ }
+    };
+    api.loopsPlaying = () => Array.from(loops.keys());
     api.music = function (cmd) {
       if (cmd === 'stop') { stopMusic(); current = null; return; }
       if (cmd === 'pause') { stopMusic(true); return; }
@@ -2971,6 +3255,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     for (const ev of state.events) {
       if (ev.type === 'sfx') audio.sfx(ev.id);
       else if (ev.type === 'music') audio.music(ev.id);
+      else if (ev.type === 'sfx-loop') audio.sfxLoop(ev.id, ev.on);
     }
     state.events.length = 0;
   }
@@ -3345,6 +3630,11 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       p.state = st; p.t = st === 'ko' ? 1 : 0.15; p.anim = { hurt: 'hurt', playdead: 'play-dead', getup: 'get-up', ko: 'ko', attack: 'tail-whip', normal: 'idle' }[st];
       p.invuln = 0; draw('sammy-' + st);
     }
+    // Chainsaw: idle, run and rev with a full and an almost-empty tank (HUD gauge blinks).
+    for (const [anim, fuel] of [['chainsaw-idle', 20], ['chainsaw-run', 20], ['chainsaw-rev', 3]]) {
+      p.state = 'normal'; p.anim = anim; p.animT = 0.2; p.saw = { fuel, revving: anim === 'chainsaw-rev', tick: 0, slash: 0 }; draw('sammy-' + anim);
+    }
+    p.saw = null; p.anim = 'idle';
     p.shield = 3; draw('shield'); p.shield = 1; draw('shield-cracked'); p.possumCd = 3; draw('possum-cooldown');
     const jog = state.enemies.find((e) => e.type === 'jogger'), ven = state.enemies.find((e) => e.type === 'vendor');
     for (const e of [jog, ven]) if (e) { e.x = p.x + 40; }

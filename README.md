@@ -2,10 +2,10 @@
 
 # Sammy the Opossum: Zombie Hunter
 
-**Sammy the Opossum: Zombie Hunter** (working title) is a small 2D action platformer in the style of a 16-bit home console game. You play Sammy, an opossum who wakes up in Central Park with no memory of how he got there. Everyone in the city has turned into a zombie, and Sammy doesn't mess around with zombies. He fights his way through Central Park at night, under a full moon and amber lamps, to a last stand on Bethesda Terrace by the angel fountain, with a vicious tail-whip, a trash-can lid, a tipped-over hot dog cart and his secret move: playing dead, then getting back up swinging. **Coming next: a chainsaw.** It's badass action-horror with deadpan, foul-mouthed humour, with stylized 16-bit pixel gore planned (plus a low-gore option).
+**Sammy the Opossum: Zombie Hunter** (working title) is a small 2D action platformer in the style of a 16-bit home console game. You play Sammy, an opossum who wakes up in Central Park with no memory of how he got there. Everyone in the city has turned into a zombie, and Sammy doesn't mess around with zombies. He fights his way through Central Park at night, under a full moon and amber lamps, to a last stand on Bethesda Terrace by the angel fountain, with a vicious tail-whip, a trash-can lid, a tipped-over hot dog cart his secret move: playing dead, then getting back up swinging, and a **chainsaw** somebody left on the grass right before the last stand. It's badass action-horror with deadpan, foul-mouthed humour and stylized 16-bit pixel gore (with a low-gore option).
 
 > [!NOTE]
-> **Status: playable placeholder prototype.** One level (level 1, Sheep Meadow) can be played from start to finish today. Almost all art is placeholder boxes (now in the night-time look, with a placeholder Bethesda Terrace for the final fight) and the sound effects are computer-made beeps. Real so far: **Sammy's run animation** and the level music (the owner's theme song, "Sammy the Opossum : Zombie Hunter", which plays in your own copy; see [Credits](#credits)). The night-time park is in (as placeholder art); the chainsaw and the gore come next. "Sammy the Opossum: Zombie Hunter" is a working title.
+> **Status: playable placeholder prototype.** One level (level 1, Sheep Meadow) can be played from start to finish today. Almost all art is placeholder boxes (now in the night-time look, with a placeholder Bethesda Terrace for the final fight) and the sound effects are computer-made beeps. Real so far: **Sammy's run animation**, **Sammy with the chainsaw** (idle, run and rev), the chainsaw pickup and its top-bar icon, and the level music (the owner's theme song, "Sammy the Opossum : Zombie Hunter", which plays in your own copy; see [Credits](#credits)). The night-time park, the chainsaw and the gore (placeholder drawing, with a low-gore option) are in. "Sammy the Opossum: Zombie Hunter" is a working title.
 
 Every gameplay number and rule in the game is a **proposal**, not an approved decision. They can all be changed.
 
@@ -73,12 +73,16 @@ The game draws at 320×224 pixels, like a classic console, and scales up by whol
 | Move | ← → or A D | D-pad (the cross-shaped direction pad) left/right, or left stick | Arrow pad, bottom left (slide your thumb across to turn round) |
 | Jump (hold for a higher jump) | Z, Space, ↑, W or K | A / Cross, or D-pad up | Green JUMP button, bottom right |
 | Tail-whip | X or J | X / Square | Red WHIP button |
+| Chainsaw (once picked up): hold to rip, tap for a quick cut | Hold X or J | Hold X / Square | Hold the red WHIP button |
 | Play Possum (play dead) | C or L | B / Circle or Y / Triangle | Pink POSSUM button |
 | Pause / start | Enter, Esc or P | Start | Blue pause button (‖); JUMP or a tap on the picture starts the game |
 | Restart the level | R | Select / Back | RESTART (shown while paused) |
 | Mute | M | — | MUTE (shown while paused) |
+| Gore: full or low | G (also `?gore=low` in the address) | — | GORE (shown while paused) |
 
 (Down is read too, but nothing uses it yet.)
+
+**Chainsaw:** it lies on the grass just before the final fight. Holding the button revs it and cuts whatever is in front; revving slows Sammy down and burns fuel (the orange gauge in the top bar, 20 seconds of revving). When it's empty he goes back to the tail-whip. A K.O. loses it. The game remembers your gore choice in this browser; full gore is the default.
 
 **Sound and the theme song:** browsers keep a page silent until you press a key or tap, so the title screen is silent. The press (or tap) that starts the game also turns sound on, and the theme song starts with it, so you only press once.
 
@@ -125,18 +129,19 @@ For the full screen-by-screen guide, see **[game/README.md](game/README.md)**.
 | **Sammy** | The opossum hero, and he doesn't mess around. Runs, jumps, tail-whips and plays possum. |
 | **Zombie Jogger** | The main enemy. Patrols, chases Sammy and lunges at him. Two whips knock its head off. |
 | **Hot Dog Vendor** | A zombie that lobs hot dogs at Sammy from a distance. Deflates when defeated. |
-| **Chainsaw** | **Coming next.** A power-up: Sammy picks it up and, for a while, revs and cuts through zombies. The tail-whip stays his basic attack. Not in the game yet. |
+| **Chainsaw** | A power-up, in the game now with real art. Sammy picks it up before the final fight and, until the fuel runs out, revs and cuts zombies in half. The tail-whip stays his basic attack. |
 | **Hot Dog Cart** | Whip it twice to tip it. It spills 3 hot dogs that heal Sammy, and knocks zombies back. |
 | **Trash Lid Shield** | A power-up. Once Sammy picks it up, it blocks the next 3 hits from zombies or thrown hot dogs. It doesn't help if he falls in the pond. |
 
-These drawings were made for this page only. They are not the game's art, and they show the proposed gore level; the game itself has no gore yet. In the game, everyone is still a placeholder box, except Sammy while he runs (his real run animation, cartoon style with the red bandana).
+These drawings were made for this page only. They are not the game's art, and they show the proposed gore level. Their "coming next" captions date from before the chainsaw was added; it's in the game now. In the game, most things are still placeholder boxes, except Sammy while he runs or holds the chainsaw (real art, cartoon style with the red bandana) and the chainsaw itself.
 
 ## Project status and roadmap
 
 **Done:**
 - A complete, playable level 1 with placeholder art and sound.
 - **New direction (2026-10-19): Zombie Hunter.** Badass action-horror with dark humour, a chainsaw, Central Park at night. The design docs, art briefs and style guide follow it; the owner's theme song is the level music; the concept picture is saved as a reference (`assets/references/`).
-- The first real art: **Sammy's run animation**.
+- The first real art: **Sammy's run animation**, then **Sammy with the chainsaw** and the chainsaw pickup and icon.
+- **Stage B (2026-10-19):** the chainsaw power-up (hold to rip, fuel gauge), stylized gore with a low-gore option (G key, `?gore=low`, GORE button), the night park, a placeholder Bethesda Terrace for the final fight, the "Zombie Hunter" title screen and a deadpan, foul-mouthed voice for the on-screen text.
 - Bigger, sharper scaling on phones and tablets, and **on-screen touch buttons** (shown only on touch screens).
 - The phone layout: a "turn your phone sideways" message, a full-screen button (Android), room for notches, no accidental zoom, and auto-pause when you leave the page.
 - Reliable sound on phones: it starts on the first tap and comes back after a call or the lock screen. Plus a step-by-step checklist for testing on a real phone: [design/MOBILE_TEST_CHECKLIST.md](design/MOBILE_TEST_CHECKLIST.md).
@@ -147,7 +152,7 @@ These drawings were made for this page only. They are not the game's art, and th
 - Design docs, templates and worked examples for every kind of art and sound.
 
 **Next:**
-1. **The chainsaw (step B):** the chainsaw power-up in the game, with stylized gore and a low-gore option.
+1. **You play the chainsaw and the gore** and say whether the fuel, the gore level and the jokes feel right (all Proposed). Real chainsaw sounds and real zombie art come after.
 2. **Desktop and mobile (major priority):** the game now fills phone and tablet screens crisply, has on-screen touch buttons, the phone layout (sideways message, full screen, notches, no accidental zoom, auto-pause) and sound that starts on the first tap. Still to do: tests on a real iPhone and Android phone with **[design/MOBILE_TEST_CHECKLIST.md](design/MOBILE_TEST_CHECKLIST.md)**. The game must be put on a website first, which needs your go-ahead (suggested: itch.io or GitHub Pages). The plan is in [design/DECISIONS.md](design/DECISIONS.md).
 3. **You (the owner) answer the open questions** in **[design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)**. There are 21, each with a suggested answer. The short version is in **[design/OPEN_TASKS.md](design/OPEN_TASKS.md)**. Examples: the final title, exactly how gory it gets, which Suno plan the theme song was made on, who makes the art, and what goes in the first release.
 4. You review the draft style guide, [design/STYLE_GUIDE.md](design/STYLE_GUIDE.md) (now with the night look and the gore rules).
@@ -277,7 +282,7 @@ node tests/browser-smoke.mjs
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | **63 game-rule tests:** every move, enemy and item in level 1, a full autopilot run, the screen-size, notch, touch-button and "turn sideways" message maths, starting sound on phones, the art, sound and license checks, the "still missing" lists, the suggested license rows, the drawing templates, the theme song (found, used as the level music, kept out of the build until its license is confirmed), the concept picture (reference only), the README pictures, the night palette (every colour on the 9-bit grid, gore colours kept for gore) and that every game message fits on screen. |
+| `node --test tests/sim.test.mjs` | **75 game-rule tests:** every move, enemy and item in level 1, a full autopilot run, the screen-size, notch, touch-button and "turn sideways" message maths, starting sound on phones, the art, sound and license checks, the "still missing" lists, the suggested license rows, the drawing templates, the theme song (found, used as the level music, kept out of the build until its license is confirmed), the concept picture (reference only), the README pictures, the night palette (every colour on the 9-bit grid, gore colours kept for gore), that every game message fits on screen, the chainsaw (pickup, revving, cuts, fuel, losing it), the gore effects the rules send, and the gore setting (low never draws blood; the game plays the same either way). |
 | `node tests/browser-smoke.mjs` | **51 browser checks:** opens the game in a hidden Chromium browser, plays the whole level in both the normal and the shareable copy, presses real keys, taps the real touch buttons at phone sizes, draws every screen, loads the theme song (and, in the shareable copy, no sound until it's cleared), loads test art and sound, checks the picture is big and sharp at a phone size and a laptop size, checks the "turn your phone sideways" message (upright phones only, not tablets), auto-pause and starting sound on phones, and checks the touch buttons and the message stay hidden on a computer. Needs Chrome, Edge or another Chromium browser. |
 | `?test=full` | Open `game/index.html`, click the address bar, type `?test=full` at the very end and press Enter. The game then plays itself ("autopilot") so you can watch a full run. |
 
