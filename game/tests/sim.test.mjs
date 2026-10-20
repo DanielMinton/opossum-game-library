@@ -657,16 +657,33 @@ test('tail-whip art cell is wide enough for the whip hitbox', () => {
   const m = S.ASSET_MANIFEST.find((a) => a.key === 'sammy:tail-whip');
   const reach = 6 + C.sammy.whipW; // whipHits in sim.js: starts 6 px in front of the feet point
   assert.ok(m.px + reach <= m.fw, 'reach ' + reach + ' px fits right of the pivot');
-  assert.ok(m.px - reach >= 0, 'and left of it when mirrored');
   assert.equal(m.fh, 48); assert.equal(m.py, 47);
-  for (const a of S.ASSET_MANIFEST) if (a.key.startsWith('sammy:') && a !== m && !a.key.startsWith('sammy:chainsaw-')) assert.equal(a.fw, 48, a.key + ' stays 48 wide');
 });
 
-test('chainsaw art cells are wide enough for the saw reach, with the same pivot as tail-whip', () => {
+test("Sammy's cells and feet points: one table, so he never hops when the animation changes", () => {
+  // Rebuilt from the master sheets on 2026-10-20 (design/DECISIONS.md): most strips are 48 wide with the feet at (28, 47);
+  // the crawl run, play-dead, ko, tail-whip and the chainsaw strips are wider, each with its own feet column; land's feet are at 17.
+  const want = {
+    'sammy:idle': [48, 28], 'sammy:run': [64, 36], 'sammy:jump-rise': [48, 28], 'sammy:fall': [48, 28], 'sammy:land': [48, 17],
+    'sammy:tail-whip': [64, 36], 'sammy:hurt': [48, 28], 'sammy:play-dead': [64, 32], 'sammy:ko': [76, 38], 'sammy:victory': [48, 28],
+    'sammy:chainsaw-idle': [64, 26], 'sammy:chainsaw-run': [64, 26], 'sammy:chainsaw-rev': [64, 26],
+  };
+  const sammy = S.ASSET_MANIFEST.filter((a) => a.key.startsWith('sammy:'));
+  assert.deepEqual(sammy.map((a) => a.key).sort(), Object.keys(want).sort(), 'every Sammy slot is in the table');
+  for (const a of sammy) {
+    assert.deepEqual([a.fw, a.px], want[a.key], a.key + ' cell width and feet column');
+    assert.equal(a.fh, 48, a.key + ' is 48 tall'); assert.equal(a.py, 47, a.key + ' feet on row 47'); assert.ok(a.feet, a.key + ' is a feet sprite');
+    assert.ok(a.px >= 0 && a.px < a.fw, a.key + ' feet column inside the cell');
+  }
+});
+
+test('chainsaw art cells are wide enough for the saw reach', () => {
   for (const k of ['idle', 'run', 'rev']) {
     const m = S.ASSET_MANIFEST.find((a) => a.key === 'sammy:chainsaw-' + k);
-    assert.deepEqual([m.fw, m.fh, m.px, m.py], [64, 48, 36, 47], m.key);
-    assert.ok(m.px + C.chainsaw.reach <= m.fw && m.px - C.chainsaw.reach >= 0, m.key + ' holds the reach both ways');
+    assert.deepEqual([m.fw, m.fh, m.px, m.py], [64, 48, 26, 47], m.key);
+    // The saw bar reaches 28 px in front of the feet point; the cell must hold it. Facing left needs no room on the other side:
+    // render.js mirrors the whole cell around the feet column, so the same 37 px lie in front either way.
+    assert.ok(m.px + C.chainsaw.reach <= m.fw, m.key + ' holds the reach in front of the feet');
     assert.equal(m.loop, 'loop');
   }
   const pk = S.ASSET_MANIFEST.find((a) => a.key === 'pickup:chainsaw');
@@ -989,11 +1006,11 @@ test('art versions: the newest -vNN.png wins; older versions are not flagged as 
     const put = (rel, buf) => { const f = path.join(tmp, 'assets', rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, buf); };
     const SAM = 'characters/character-sammy/';
     const clear = () => [0, 0, 0, 0];
-    put(SAM + 'sammy-run-strip-v01.png', png(384, 48, clear));
-    put(SAM + 'sammy-run-strip-v02.png', png(384, 48, clear));   // newer: wins
+    put(SAM + 'sammy-run-strip-v01.png', png(512, 48, clear));
+    put(SAM + 'sammy-run-strip-v02.png', png(512, 48, clear));   // newer: wins
     put(SAM + 'sammy-idle-strip-v01.png', png(192, 48, clear));  // only version
     put(SAM + 'sammy-hurt-strip-v03.png', png(96, 48, clear));   // v03 alone still counts
-    put(SAM + 'sammy-runn-strip-v01.png', png(384, 48, clear));  // misnamed
+    put(SAM + 'sammy-runn-strip-v01.png', png(512, 48, clear));  // misnamed
     const out = path.join(tmp, 'asset-files.js');
     const r = scan(tmp, out);
     assert.deepEqual(r.files, {

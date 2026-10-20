@@ -10,9 +10,9 @@ import { png } from '../tools/png-writer.mjs';
 import { decodeAnyPng, checkPng } from '../tools/png.mjs';
 import { importArt, loadSlots, adhocSlot, detectPixelGrid, medianCut, quantise, main } from '../tools/import-art.mjs';
 import os from 'node:os';
-import { detectSheet, gridSplit, fitCount, draftMap } from '../tools/art-detect.mjs';
+import { detectSheet, gridSplit, fitCount, draftMap, foregroundMask } from '../tools/art-detect.mjs';
 import { buildCharacter, parseRecolor, parseHueShift } from '../tools/art-character.mjs';
-import { loadGoreColours, makeTransform, rgbToHsv, paletteFromJson } from '../tools/art-colour.mjs';
+import { loadGoreColours, makeTransform, rgbToHsv, paletteFromJson, nudgeOffReserved } from '../tools/art-colour.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const slots = loadSlots();
@@ -104,7 +104,7 @@ function same(a, b) { assert.ok(a.strip && b.strip); assert.ok(Buffer.compare(a.
 test('slots are read from the game manifest, not typed twice', () => {
   assert.equal(slots['jogger:walk'].frames, 6);
   assert.equal(slots['jogger:walk'].fw, 48);
-  assert.equal(slots['sammy:run'].px, 28);
+  assert.equal(slots['sammy:run'].px, 36); // the crawl run uses a 64 px cell (2026-10-20)
   assert.equal(slots['pickup:chainsaw'].fw, 32);
   const a = adhocSlot({ size: '32x32', frames: 4, pivot: '16,31' });
   assert.deepEqual([a.fw, a.fh, a.frames, a.px, a.py, a.feet], [32, 32, 4, 16, 31, true]);
@@ -197,7 +197,9 @@ test('an already-correct strip passes through with identical pixels', () => {
 test("Sammy's approved run strip is unchanged by importing it into sammy:run", () => {
   const p = path.join(here, '..', '..', 'assets', 'characters', 'character-sammy', 'sammy-run-strip-v01.png');
   if (!fs.existsSync(p)) return; // the file is part of the repo; skip only in odd checkouts
-  const src = fs.readFileSync(p), res = importArt(src, { slot: slots['sammy:run'] });
+  // Since 2026-10-20 the game's run slot is 64 wide (the crawl run from the master sheets, v02); the old v01 strip is still on disk
+  // in its 48 x 48 cells, so it is imported here as a hand-described 48 x 48 slot with the old feet point (28, 47).
+  const src = fs.readFileSync(p), res = importArt(src, { slot: adhocSlot({ size: '48x48', frames: 8, pivot: '28,47', feet: true }) });
   assert.ok(res.strip);
   assert.equal(res.verdict, 'READY');
   assert.deepEqual(Array.from(decodeAnyPng(res.strip).px), Array.from(decodeAnyPng(src).px));
@@ -475,6 +477,53 @@ test('gore colours: acid green is moved to grey-teal, dark blood red only stays 
   assert.equal(redOf(r1.palette).length, 0, 'blood red is moved by default: ' + r1.palette.map((c) => c.join(' ')));
   assert.ok(redOf(r2.palette).length >= 1, 'blood red stays with --allow-blood');
   assert.match(r2.report, /Blood red was allowed/);
+  // the exact value of a reserved colour is never in a palette (bone and meat too): it moves one grid step, keeping its hue
+  const n = nudgeOffReserved([[0, 0, 0], gore.bone.slice(), gore.meat.slice()], gore.all);
+  assert.equal(n.moves.length, 2);
+  assert.ok(!n.palette.some((c) => gore.all.some((r) => r.join() === c.join())), 'no reserved colour left: ' + n.palette.map((c) => c.join(' ')));
+  assert.deepEqual(n.moves[0][1], [252, 216, 144], 'bone cream becomes a warmer cream');
+  for (const [a, b] of n.moves) assert.ok(Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) <= 36, 'moved by one step');
+  const bony = painterlySheet({ skin: gore.bone.slice(), seed: 7 });
+  const bp = buildFrom(bony).res.palette;
+  assert.ok(!bp.some((c) => c.join() === gore.bone.join()), 'a bone-coloured figure is nudged off the reserved bone colour');
+});
+
+test('an enclosed pocket of background colour (inside a curled tail) is background; small dark details (eyes) are not', () => {
+  // A figure painted at 3x on a flat backdrop: a body with legs, a tail that curls round into a closed loop with backdrop
+  // colour inside it, and a 3 x 3 (9 x 9 painted) eye whose colour is within tolerance of the backdrop.
+  const BG = [34, 39, 46], SKIN = [150, 120, 90], EYE = [36, 41, 48], k = 3, W = 300, H = 240, d = new Uint8Array(W * H * 4);
+  for (let i = 0; i < W * H; i++) d.set([...BG, 255], i * 4);
+  const box = (x0, y0, x1, y1, c) => { for (let y = y0 * k; y < y1 * k; y++) for (let x = x0 * k; x < x1 * k; x++) d.set([...c, 255], ((40 + y) * W + 40 + x) * 4); };
+  box(20, 0, 40, 40, SKIN);            // body 20 x 40
+  box(22, 36, 27, 40, [80, 60, 40]); box(33, 36, 38, 40, [80, 60, 40]); // feet
+  box(0, 10, 20, 13, SKIN); box(0, 10, 3, 32, SKIN); box(0, 29, 20, 32, SKIN); // the tail: a loop 20 wide x 22 tall, 3 px thick, open side on the body
+  box(28, 6, 31, 9, EYE);              // the eye, nearly backdrop-coloured
+  const img = { w: W, h: H, d };
+  const mask = foregroundMask(img, BG, 12);
+  const at = (x, y) => mask[(40 + y * k + 1) * W + 40 + x * k + 1];
+  assert.equal(at(10, 20), 0, 'the inside of the tail loop is background');
+  assert.equal(at(29, 7), 1, 'the eye stays part of the figure');
+  assert.equal(at(1, 20), 1, 'the tail itself is figure');
+  assert.equal(at(30, 20), 1, 'the body is figure');
+  // through the whole character build: the loop interior is see-through in the strip, the eye is solid and dark, no hole in the body
+  const map = { slots: { 'loop:idle': { cell: [64, 64], pivot: [32, 63], feet: true, frames: [{ box: [40, 40, 120, 120] }, { box: [40, 40, 120, 120] }] } } };
+  const res = buildCharacter({ sheet: img, map, manifest, gore, opts: {}, sheetName: 'loop.png' });
+  const dec = decodeAnyPng(res.strips[0].png), SW = 128;
+  const solid = (x, y) => x >= 0 && y >= 0 && x < 64 && y < 64 && dec.px[(y * SW + x) * 4 + 3] > 0;
+  // transparent pixels that cannot be reached from the frame's edge = enclosed pockets
+  const seen = new Uint8Array(64 * 64), st = [];
+  for (let x = 0; x < 64; x++) for (const y of [0, 63]) if (!solid(x, y)) { seen[y * 64 + x] = 1; st.push([x, y]); }
+  for (let y = 0; y < 64; y++) for (const x of [0, 63]) if (!solid(x, y) && !seen[y * 64 + x]) { seen[y * 64 + x] = 1; st.push([x, y]); }
+  while (st.length) { const [x, y] = st.pop(); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < 64 && ny < 64 && !solid(nx, ny) && !seen[ny * 64 + nx]) { seen[ny * 64 + nx] = 1; st.push([nx, ny]); } } }
+  const pockets = [];
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) if (!solid(x, y) && !seen[y * 64 + x]) {
+    const q = [[x, y]]; seen[y * 64 + x] = 1; let n = 0;
+    while (q.length) { const [a, b] = q.pop(); n++; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = a + dx, ny = b + dy; if (nx >= 0 && ny >= 0 && nx < 64 && ny < 64 && !solid(nx, ny) && !seen[ny * 64 + nx]) { seen[ny * 64 + nx] = 1; q.push([nx, ny]); } } }
+    pockets.push(n);
+  }
+  assert.equal(pockets.length, 1, 'exactly one see-through pocket (the tail loop), no hole where the eye is: ' + JSON.stringify(pockets));
+  assert.ok(pockets[0] >= 380 && pockets[0] <= 560, 'the pocket is about 21 x 24 game px (the loop interior at the shared scale): ' + pockets[0]);
+  assert.ok(res.strips[0].verdict !== 'REDO', res.strips[0].report);
 });
 
 test('a big cell (96 x 96) and a new enemy type that has no game slot yet', () => {

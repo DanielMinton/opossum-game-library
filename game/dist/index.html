@@ -358,15 +358,19 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   const strip = (key, path, frames, fps, loop, extra) =>
     Object.assign({ key, path, fw: 48, fh: 48, frames, fps, loop, px: 24, py: 47, feet: true }, extra || {});
   const SAM = 'characters/character-sammy/';
-  // Sammy's feet point sits at x 28 (not the usual 24): his tail needs the extra room behind him.
-  // Set from the first real strip (run, 2026-10-19). All Sammy strips use it so he doesn't jump when switching animations.
+  // Sammy's feet point sits at x 28 (not the usual 24) in his 48 px cells: his tail needs the extra room behind him.
+  // Since the rebuild from the owner's master sheets (2026-10-20, v02 strips) a few of his strips use wider cells with their own
+  // feet column, so his body lands in the same place on screen in every animation: run 64 wide, feet (36, 47) (the four-legged
+  // crawl is long); play-dead 64 wide, feet (32, 47); ko 76 wide, feet (38, 47); tail-whip 64 wide, feet (36, 47); the three
+  // chainsaw strips 64 wide, feet (26, 47) so the saw bar fits in front. Land keeps 48 wide but its feet column is 17: those two
+  // frames lunge forward. Everything else is 48 x 48 with feet (28, 47).
   const sam = (extra) => Object.assign({ px: 28 }, extra || {});
   const JOG = 'enemies/enemy-zombie-jogger/';
   const VEN = 'enemies/enemy-zombie-hot-dog-vendor/';
   const CART = 'props/prop-hot-dog-cart/';
   const LID = 'items/item-powerup-trash-lid-shield/';
   const SAW = 'items/item-powerup-chainsaw/';
-  const saw = { fw: 64, px: 36 }; // Sammy with the chainsaw: 64x48 cells like tail-whip, so the 28 px saw fits in front
+  const saw = { fw: 64, px: 26 }; // Sammy with the chainsaw: 64x48 cells; feet at x 26 leave 37 px in front for the saw bar (the cutting reach is 28)
   const ENV = 'environments/environment-central-park-tileset/';
   const cart = { fw: 64, fh: 48, px: 32, py: 47 };
   const small = { fw: 16, fh: 16, px: 8, py: 15 };
@@ -376,15 +380,15 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 
   S.ASSET_MANIFEST = [
     strip('sammy:idle', SAM + 'sammy-idle-strip-v01.png', 4, 6, 'loop', sam()),
-    strip('sammy:run', SAM + 'sammy-run-strip-v01.png', 8, 12, 'loop', sam()),
+    strip('sammy:run', SAM + 'sammy-run-strip-v01.png', 8, 12, 'loop', sam({ fw: 64, px: 36 })), // crawl run: 64 wide, feet (36, 47)
     strip('sammy:jump-rise', SAM + 'sammy-jump-rise-strip-v01.png', 2, 10, 'hold', sam()),
     strip('sammy:fall', SAM + 'sammy-fall-strip-v01.png', 2, 10, 'loop', sam()),
-    strip('sammy:land', SAM + 'sammy-land-strip-v01.png', 2, 15, 'once', sam()),
+    strip('sammy:land', SAM + 'sammy-land-strip-v01.png', 2, 15, 'once', sam({ px: 17 })), // the landing frames lunge forward: feet (17, 47)
     // Wider 64x48 cell, pivot (36, 47) (Sammy's 28 plus 8): the whip reaches 26 px in front of Sammy, more than a 48 px cell allows.
     strip('sammy:tail-whip', SAM + 'sammy-tail-whip-strip-v01.png', 4, 15, 'once', { fw: 64, px: 36, hitFrame: 2 }),
     strip('sammy:hurt', SAM + 'sammy-hurt-strip-v01.png', 2, 10, 'once', sam()),
-    strip('sammy:play-dead', SAM + 'sammy-play-dead-strip-v01.png', 4, 8, 'hold', sam()),
-    strip('sammy:ko', SAM + 'sammy-ko-strip-v01.png', 6, 10, 'once', sam()),
+    strip('sammy:play-dead', SAM + 'sammy-play-dead-strip-v01.png', 4, 8, 'hold', sam({ fw: 64, px: 32 })), // lying down is long: 64 wide, feet (32, 47)
+    strip('sammy:ko', SAM + 'sammy-ko-strip-v01.png', 6, 10, 'once', sam({ fw: 76, px: 38 })), // the tumble and the slide are long: 76 wide, feet (38, 47)
     strip('sammy:victory', SAM + 'sammy-victory-strip-v01.png', 4, 8, 'loop', sam()),
     strip('sammy:chainsaw-idle', SAM + 'sammy-chainsaw-idle-strip-v01.png', 4, 6, 'loop', saw),
     strip('sammy:chainsaw-run', SAM + 'sammy-chainsaw-run-strip-v01.png', 8, 12, 'loop', saw),
@@ -552,7 +556,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 })(globalThis.SAMMY = globalThis.SAMMY || {});
 
 // ---- src/asset-files.js ----
-(function (S) { S.PRESENT_ASSET_FILES = {"characters/character-sammy/sammy-run-strip-v01.png":"characters/character-sammy/sammy-run-strip-v01.png","characters/character-sammy/sammy-chainsaw-idle-strip-v01.png":"characters/character-sammy/sammy-chainsaw-idle-strip-v01.png","characters/character-sammy/sammy-chainsaw-run-strip-v01.png":"characters/character-sammy/sammy-chainsaw-run-strip-v01.png","characters/character-sammy/sammy-chainsaw-rev-strip-v01.png":"characters/character-sammy/sammy-chainsaw-rev-strip-v01.png","items/item-powerup-chainsaw/chainsaw-pickup-strip-v01.png":"items/item-powerup-chainsaw/chainsaw-pickup-strip-v01.png","items/item-powerup-chainsaw/hud-icon-chainsaw-v01.png":"items/item-powerup-chainsaw/hud-icon-chainsaw-v01.png"}; S.PRESENT_SOUND_FILES = {}; })(globalThis.SAMMY = globalThis.SAMMY || {});
+(function (S) { S.PRESENT_ASSET_FILES = {"characters/character-sammy/sammy-idle-strip-v01.png":"characters/character-sammy/sammy-idle-strip-v02.png","characters/character-sammy/sammy-run-strip-v01.png":"characters/character-sammy/sammy-run-strip-v02.png","characters/character-sammy/sammy-jump-rise-strip-v01.png":"characters/character-sammy/sammy-jump-rise-strip-v02.png","characters/character-sammy/sammy-fall-strip-v01.png":"characters/character-sammy/sammy-fall-strip-v02.png","characters/character-sammy/sammy-land-strip-v01.png":"characters/character-sammy/sammy-land-strip-v02.png","characters/character-sammy/sammy-tail-whip-strip-v01.png":"characters/character-sammy/sammy-tail-whip-strip-v02.png","characters/character-sammy/sammy-hurt-strip-v01.png":"characters/character-sammy/sammy-hurt-strip-v02.png","characters/character-sammy/sammy-play-dead-strip-v01.png":"characters/character-sammy/sammy-play-dead-strip-v02.png","characters/character-sammy/sammy-ko-strip-v01.png":"characters/character-sammy/sammy-ko-strip-v02.png","characters/character-sammy/sammy-victory-strip-v01.png":"characters/character-sammy/sammy-victory-strip-v02.png","characters/character-sammy/sammy-chainsaw-idle-strip-v01.png":"characters/character-sammy/sammy-chainsaw-idle-strip-v02.png","characters/character-sammy/sammy-chainsaw-run-strip-v01.png":"characters/character-sammy/sammy-chainsaw-run-strip-v02.png","characters/character-sammy/sammy-chainsaw-rev-strip-v01.png":"characters/character-sammy/sammy-chainsaw-rev-strip-v02.png","items/item-powerup-chainsaw/chainsaw-pickup-strip-v01.png":"items/item-powerup-chainsaw/chainsaw-pickup-strip-v01.png","items/item-powerup-chainsaw/hud-icon-chainsaw-v01.png":"items/item-powerup-chainsaw/hud-icon-chainsaw-v01.png"}; S.PRESENT_SOUND_FILES = {}; })(globalThis.SAMMY = globalThis.SAMMY || {});
 
 // ---- src/sim.js ----
 // Game rules for the Sammy prototype. No drawing, no browser APIs: it runs the same in Node tests.
@@ -4314,7 +4318,13 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       result.stats = state.stats;
       result.realArtDraws = S.spriteDraws;
       result.flashDraws = S.flashDraws;
-      result.player = { x: Math.round(state.player.x), hp: state.player.hp, state: state.player.state };
+      result.player = { x: Math.round(state.player.x), hp: state.player.hp, state: state.player.state, anim: state.player.anim, grounded: !!state.player.grounded };
+      // ?test=shot&pose=hurt|ko|playdead|attack: put Sammy in that state for a screenshot of art the autopilot rarely shows
+      if (name === 'shot' && params.has('pose')) {
+        const pose = params.get('pose'), p = state.player;
+        const anims = { hurt: 'hurt', ko: 'ko', playdead: 'play-dead', attack: 'tail-whip' };
+        if (anims[pose]) { p.state = pose; p.t = pose === 'ko' ? 0.5 : 0.1; p.anim = anims[pose]; p.invuln = 0; }
+      }
       if (name === 'full') {
         result.reachedClear = state.mode === 'clear';
         const restart = S.makeInput(); restart.pressed.start = true;

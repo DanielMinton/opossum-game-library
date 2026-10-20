@@ -194,6 +194,29 @@ export function keepClearOf(palette, reserved, minDist = 44) {
   return { palette: [...new Map(out.map((c) => [c.join(), c])).values()].sort((a, b) => luma(...a) - luma(...b)), moves };
 }
 
+// A palette colour that lands EXACTLY on a reserved gore colour (bone, meat, blood, ichor) moves one grid step: of the six
+// single-channel neighbours, the one that changes the hue least, then the brightness least. (Sammy's cream face snaps to the
+// same value as the bone colour, for example; it becomes a slightly warmer cream.) Returns { palette, moves }.
+export function nudgeOffReserved(palette, reserved) {
+  const moves = [];
+  const isRes = (c) => reserved.some((r) => r.join() === c.join());
+  const hueGap = (a, b) => { const [ha, sa] = rgbToHsv(...a), [hb, sb] = rgbToHsv(...b); if (sa < 0.08 || sb < 0.08) return 0; const d = Math.abs(ha - hb); return Math.min(d, 360 - d); };
+  const out = palette.map((c) => {
+    if (!isRes(c)) return c;
+    const options = [];
+    for (let ch = 0; ch < 3; ch++) for (const step of [-GRID, GRID]) {
+      const n = c.slice(); n[ch] = c[ch] + step;
+      if (n[ch] < 0 || n[ch] > 252 || isRes(n)) continue;
+      options.push({ n, hue: hueGap(c, n), lum: Math.abs(luma(...c) - luma(...n)) });
+    }
+    options.sort((a, b) => a.hue - b.hue || a.lum - b.lum || a.n.join().localeCompare(b.n.join()));
+    const pick = options.length ? options[0].n : c;
+    if (pick !== c) moves.push([c, pick]);
+    return pick;
+  });
+  return { palette: [...new Map(out.map((c) => [c.join(), c])).values()].sort((a, b) => luma(...a) - luma(...b)), moves };
+}
+
 // Palette files: { "colours": ["#rrggbb", ...], "outline": "#rrggbb" }
 export function paletteToJson(palette, outline) { return JSON.stringify({ colours: palette.map(hex6), outline: outline ? hex6(outline) : null }, null, 2) + '\n'; }
 export function paletteFromJson(text) {

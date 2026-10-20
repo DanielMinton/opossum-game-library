@@ -69,6 +69,7 @@ To answer, edit this file, or just tell Claude (for example, "go with the sugges
 ### 13. Do the drawing tool's terms let you sell the game with Sammy's run art?
 - **Suggested:** you check the terms of the AI coding assistant used to draw `sammy-run-strip-v01.png`, and tell Claude what they say. Until then, treat the run art as fine for testing but not for selling.
 - **Why it matters:** the run art is already in the shareable copy. Its row in `design/ASSET_SOURCES.csv` says "owner to confirm the tool's terms allow selling the game". Answer this before the game goes on a public website or store.
+- **Update (2026-10-20):** the same question now covers all 13 of Sammy's animations, which were cut from your two master sheets made with **ChatGPT image generation** (the old run strip is no longer used). Their rows in `design/ASSET_SOURCES.csv` say the same thing: please confirm that the image tool's current terms allow selling a game made with its pictures.
 
 ### 14. Where should the game go online, and should it start private?
 - **Suggested:** a private draft page on itch.io first (only people with the link can play), so it can be tried on a real iPhone and Android phone. Go public later. GitHub Pages is the other choice. Before going public, change the browser-tab title, which still says "placeholder prototype".

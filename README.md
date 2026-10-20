@@ -5,7 +5,7 @@
 **Sammy the Opossum: Zombie Hunter** (working title) is a small 2D action platformer in the style of a 16-bit home console game. You play Sammy, an opossum who wakes up in Central Park with no memory of how he got there. Everyone in the city has turned into a zombie, and Sammy doesn't mess around with zombies. He fights his way through Central Park at night, under a full moon and amber lamps, to a last stand on Bethesda Terrace by the angel fountain, with a vicious tail-whip, a trash-can lid, a tipped-over hot dog cart his secret move: playing dead, then getting back up swinging, and a **chainsaw** somebody left on the grass right before the last stand. It's badass action-horror with deadpan, foul-mouthed humour and stylized 16-bit pixel gore (with a low-gore option).
 
 > [!NOTE]
-> **Status: playable placeholder prototype.** One level (level 1, Sheep Meadow) can be played from start to finish today. Almost all art is placeholder boxes (now in the night-time look, with a placeholder Bethesda Terrace for the final fight) and the sound effects are computer-made beeps. Real so far: **Sammy's run animation**, **Sammy with the chainsaw** (idle, run and rev), the chainsaw pickup and its top-bar icon, and the level music (the owner's theme song, "Sammy the Opossum : Zombie Hunter", which plays in your own copy; see [Credits](#credits)). The night-time park, the chainsaw and the gore (placeholder drawing, with a low-gore option) are in. "Sammy the Opossum: Zombie Hunter" is a working title.
+> **Status: playable placeholder prototype.** One level (level 1, Sheep Meadow) can be played from start to finish today. Almost all art is placeholder boxes (now in the night-time look, with a placeholder Bethesda Terrace for the final fight) and the sound effects are computer-made beeps. Real so far: **all of Sammy** (every one of his 13 animations, rebuilt on 2026-10-20 from the owner's master sheets: idle, a four-legged crawl run, jump, fall, land, tail-whip, hurt, play-dead, K.O., victory, and idle, run and rev with the chainsaw), the chainsaw pickup and its top-bar icon, and the level music (the owner's theme song, "Sammy the Opossum : Zombie Hunter", which plays in your own copy; see [Credits](#credits)). The night-time park, the chainsaw and the gore (placeholder drawing, with a low-gore option) are in. "Sammy the Opossum: Zombie Hunter" is a working title.
 
 Every gameplay number and rule in the game is a **proposal**, not an approved decision. They can all be changed.
 
@@ -133,7 +133,7 @@ For the full screen-by-screen guide, see **[game/README.md](game/README.md)**.
 | **Hot Dog Cart** | Whip it twice to tip it. It spills 3 hot dogs that heal Sammy, and knocks zombies back. |
 | **Trash Lid Shield** | A power-up. Once Sammy picks it up, it blocks the next 3 hits from zombies or thrown hot dogs. It doesn't help if he falls in the pond. |
 
-These drawings were made for this page only. They are not the game's art, and they show the proposed gore level. Their "coming next" captions date from before the chainsaw was added; it's in the game now. In the game, most things are still placeholder boxes, except Sammy while he runs or holds the chainsaw (real art, cartoon style with the red bandana) and the chainsaw itself.
+These drawings were made for this page only. They are not the game's art, and they show the proposed gore level. Their "coming next" captions date from before the chainsaw was added; it's in the game now. In the game, most things are still placeholder boxes, except Sammy himself (real art in every animation since 2026-10-20: grey-brown fur, cream face, red polka-dot bandana, cut from the owner's master sheets) and the chainsaw.
 
 ## Project status and roadmap
 
@@ -141,6 +141,7 @@ These drawings were made for this page only. They are not the game's art, and th
 - A complete, playable level 1 with placeholder art and sound.
 - **New direction (2026-10-19): Zombie Hunter.** Badass action-horror with dark humour, a chainsaw, Central Park at night. The design docs, art briefs and style guide follow it; the owner's theme song is the level music; the concept picture is saved as a reference (`assets/references/`).
 - The first real art: **Sammy's run animation**, then **Sammy with the chainsaw** and the chainsaw pickup and icon.
+- **Sammy rebuilt from the master sheets (2026-10-20):** all 13 of his animations are real art now, in one look (`-v02` files; the old white-faced run and the code-built chainsaw strips stay on disk as `-v01`). His run is a four-legged crawl, the owner's choice. Some frames are stand-ins until the owner generates the missing ones (listed in `design/OPEN_TASKS.md`).
 - **Stage B (2026-10-19):** the chainsaw power-up (hold to rip, fuel gauge), stylized gore with a low-gore option (G key, `?gore=low`, GORE button), the night park, a placeholder Bethesda Terrace for the final fight, the "Zombie Hunter" title screen and a deadpan, foul-mouthed voice for the on-screen text.
 - Bigger, sharper scaling on phones and tablets, and **on-screen touch buttons** (shown only on touch screens).
 - The phone layout: a "turn your phone sideways" message, a full-screen button (Android), room for notches, no accidental zoom, and auto-pause when you leave the page.
@@ -174,7 +175,7 @@ opossum-game-library/
 │   ├── tools/           ← build, art/sound scanner, audio converter, license rules, drawing-template maker
 │   ├── tests/           ← automatic checks
 │   └── dist/            ← ready-to-share copy (index.html, BUILD_INFO.txt, CREDITS.txt and an assets/ folder with the cleared real art)
-├── assets/              ← real art and sound go here (so far Sammy's run animation and the theme song)
+├── assets/              ← real art and sound go here (so far all of Sammy's animations, the chainsaw pickup and icon, and the theme song)
 │   ├── characters/  enemies/  props/  items/  environments/  npcs/  ui/
 │   ├── audio/           ← sfx/ (sound effects) and music/
 │   └── references/      ← reference pictures only (the Zombie Hunter concept picture); never shipped
@@ -258,7 +259,7 @@ This refreshes `game/dist/`. You only need it for the shareable copy; your own c
 
 | File | What it is |
 |---|---|
-| `index.html` | The game's code in one file. Cleared art and sound are copied into `dist/assets/` beside it (today: Sammy's run animation; the theme song waits on owner question 21), so share the whole `dist/` folder. |
+| `index.html` | The game's code in one file. Cleared art and sound are copied into `dist/assets/` beside it (today: Sammy's 13 animations and the chainsaw pickup and icon; the theme song waits on owner question 21), so share the whole `dist/` folder. |
 | `assets/` | The cleared real art and sound. |
 | `BUILD_INFO.txt` | Which art and sound went in, and why any were left out. Its "Still placeholders (no real file yet):" section is your to-do list: every planned picture and sound that has no real file yet. |
 | `CREDITS.txt` | A credit line for every included file whose license asks for one. |
@@ -272,7 +273,7 @@ This refreshes `game/dist/`. You only need it for the shareable copy; your own c
 
 Anything else is left out, and `BUILD_INFO.txt` says why. Files in `assets/references/` are never included. Your own copy of the game still uses every file.
 
-Today the only real art is Sammy's run animation (licensed in `design/ASSET_SOURCES.csv`, so it goes into the build). The theme song is real too, but its row says `commercial_use` is "tbd" until the owner confirms which Suno plan it was made on (owner question 21), so the build leaves it out and plays the placeholder tune. Everything else is a placeholder. The `dist/` folder is saved in the project history for now (this is open question 9 in [design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)).
+Today the real art is all of Sammy (13 animation strips) plus the chainsaw pickup and icon (each licensed in `design/ASSET_SOURCES.csv`, so they go into the build). The theme song is real too, but its row says `commercial_use` is "tbd" until the owner confirms which Suno plan it was made on (owner question 21), so the build leaves it out and plays the placeholder tune. Everything else is a placeholder. The `dist/` folder is saved in the project history for now (this is open question 9 in [design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)).
 
 ## Tests
 
@@ -286,8 +287,8 @@ node tests/browser-smoke.mjs
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | **76 game-rule tests:** every move, enemy and item in level 1, a full autopilot run, the screen-size, notch, touch-button and "turn sideways" message maths, starting sound on phones, the art, sound and license checks, the "still missing" lists, the suggested license rows, the drawing templates, the theme song (found, used as the level music, kept out of the build until its license is confirmed), the concept picture (reference only), the README pictures, the night palette (every colour on the 9-bit grid, gore colours kept for gore), that every game message fits on screen, the chainsaw (pickup, revving, cuts, fuel, losing it), the gore effects the rules send, and the gore setting (low never draws blood; the game plays the same either way), and the scenery pieces (sizes, pivots, level placement, the rules never read them). |
-| `node --test tests/import-art.test.mjs` | **21 art-importer tests:** a blurry picture on a flat or checkerboard background, a contact sheet, a 500-colour picture, an already-correct strip and Sammy's run strip (these must come out exact, the same every time), the unusual PNG layouts it can read, the plain-language problem reports, and the whole-character mode: finding frames and animation groups on a painterly sheet, one shared palette and a clean outline on every strip, feet on the line, loose particles removed, the same bytes every run, acid green and blood red kept away from the gore colours, a 96x96 cell, portrait grids, left-facing sheets, saved palettes and colour shifts. |
+| `node --test tests/sim.test.mjs` | **77 game-rule tests:** every move, enemy and item in level 1, a full autopilot run, the screen-size, notch, touch-button and "turn sideways" message maths, starting sound on phones, the art, sound and license checks, the "still missing" lists, the suggested license rows, the drawing templates, the theme song (found, used as the level music, kept out of the build until its license is confirmed), the concept picture (reference only), the README pictures, the night palette (every colour on the 9-bit grid, gore colours kept for gore), that every game message fits on screen, the chainsaw (pickup, revving, cuts, fuel, losing it), Sammy's cell sizes and feet points (one table, so he never hops when the animation changes), the gore effects the rules send, and the gore setting (low never draws blood; the game plays the same either way), and the scenery pieces (sizes, pivots, level placement, the rules never read them). |
+| `node --test tests/import-art.test.mjs` | **22 art-importer tests:** a blurry picture on a flat or checkerboard background, a contact sheet, a 500-colour picture, an already-correct strip and Sammy's run strip (these must come out exact, the same every time), the unusual PNG layouts it can read, the plain-language problem reports, and the whole-character mode: finding frames and animation groups on a painterly sheet, one shared palette and a clean outline on every strip, feet on the line, loose particles removed, the same bytes every run, acid green and blood red kept away from the gore colours, a 96x96 cell, portrait grids, left-facing sheets, saved palettes and colour shifts, the inside of a curled tail left see-through while eyes stay solid, and no palette ever landing exactly on a reserved gore colour. |
 | `node tests/browser-smoke.mjs` | **55 browser checks:** opens the game in a hidden Chromium browser, plays the whole level in both the normal and the shareable copy, presses real keys, taps the real touch buttons at phone sizes, draws every screen, loads the theme song (and, in the shareable copy, no sound until it's cleared), loads test art and sound, checks the picture is big and sharp at a phone size and a laptop size, checks the "turn your phone sideways" message (upright phones only, not tablets), auto-pause and starting sound on phones, and checks the touch buttons and the message stay hidden on a computer. Needs Chrome, Edge or another Chromium browser. |
 | `?test=full` | Open `game/index.html`, click the address bar, type `?test=full` at the very end and press Enter. The game then plays itself ("autopilot") so you can watch a full run. |
 
@@ -307,7 +308,7 @@ If you changed the game's code, run the build (see [Building a shareable copy](#
 | [design/MOBILE_TEST_CHECKLIST.md](design/MOBILE_TEST_CHECKLIST.md) | Step-by-step list for trying the game on a real iPhone and Android phone (once it's on a website). |
 | [design/STYLE_GUIDE.md](design/STYLE_GUIDE.md) | Draft art and sound rules: sizes, colors, outlines, light. All Proposed. |
 | [design/ASSET_REQUEST_CHECKLIST.md](design/ASSET_REQUEST_CHECKLIST.md) | What art and sound to send, in order of priority. |
-| [design/ASSET_SOURCES.csv](design/ASSET_SOURCES.csv) | One row per art or sound file: who made it and its license. Two rows so far (Sammy's run, and the theme song, waiting on owner question 21). |
+| [design/ASSET_SOURCES.csv](design/ASSET_SOURCES.csv) | One row per art or sound file: who made it and its license. Rows so far: Sammy's 13 animations (v02) and his older run and chainsaw strips (v01), the chainsaw pickup and icon, and the theme song (waiting on owner question 21). |
 | [templates/](templates/) | Blank forms for describing art (`ASSET.md`), interactive objects (`INTERACTION.md`), sound (`AUDIO.md`), levels (`LEVEL.md`), abilities (`ABILITY.md`) and the style guide. |
 | [templates/art-templates/](templates/art-templates/) | Blank, see-through drawing templates at the exact size of each planned picture, plus enlarged, labelled contact sheets (`contact-sheet-*.png`). Made by `game/tools/make-art-templates.mjs`. |
 | [templates/examples/README.md](templates/examples/README.md) | Filled-in examples of every form, and the planning specs for every planned file. Proposals only. Run the scanner to see which files exist. |

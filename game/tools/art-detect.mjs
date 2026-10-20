@@ -47,7 +47,13 @@ export function autoTolerance(bg) {
   return Math.max(12, Math.min(base, Math.round(bg.noise * 1.6 + 10)));
 }
 
-// True where the picture is foreground. Background = pixels close to the background colour that connect to the border.
+// True where the picture is foreground. Background = pixels close to the background colour that connect to the border,
+// plus any big pocket of background colour that the figure encloses (the inside of a curled tail, a closed limb loop):
+// a pocket counts as background when it is big: at least a fifth of its figure's height across (area >= (0.18 x height)^2)
+// and at least a twentieth of the figure's area. Smaller dark spots that happen to be close to the background colour
+// (pupils, sunglasses, the inside of a mouth, a small gap between the legs) stay part of the figure, so nothing punches
+// holes in a face. Returns a Uint8Array (1 = figure).
+export const POCKET_SHARE = 0.18, POCKET_AREA_SHARE = 0.05;
 export function foregroundMask(img, bgColour, tolerance) {
   const { w, h, d } = img, bgm = new Uint8Array(w * h), stack = [];
   const isBg = (p) => {
@@ -67,8 +73,21 @@ export function foregroundMask(img, bgColour, tolerance) {
   }
   const fg = new Uint8Array(w * h);
   for (let p = 0; p < w * h; p++) fg[p] = bgm[p] ? 0 : 1;
+  // enclosed pockets: background-coloured pixels the border flood could not reach
+  const pocket = new Uint8Array(w * h);
+  let any = false;
+  for (let p = 0; p < w * h; p++) if (fg[p] && isBg(p)) { pocket[p] = 1; any = true; }
+  if (!any) return fg;
+  const pieces = labelPieces(fg, w, h), pockets = labelPieces(pocket, w, h);
+  for (const k of pockets.comps) {
+    const owner = pieces.comps[pieces.labels[k.y0 * w + firstX(pockets.labels, k, w)] - 1];
+    const minArea = Math.max(9, Math.pow(POCKET_SHARE * (owner.y1 - owner.y0), 2), POCKET_AREA_SHARE * owner.area);
+    if (k.area < minArea) continue;
+    for (let y = k.y0; y < k.y1; y++) for (let x = k.x0; x < k.x1; x++) if (pockets.labels[y * w + x] === k.id) fg[y * w + x] = 0;
+  }
   return fg;
 }
+function firstX(labels, c, w) { for (let x = c.x0; x < c.x1; x++) if (labels[c.y0 * w + x] === c.id) return x; return c.x0; }
 
 // ---------- connected pieces ----------
 // 8-connected labelling. Returns { labels (Int32, 0 = none, 1.. = piece), comps: [{id, area, x0, y0, x1, y1}] } (x1,y1 exclusive).

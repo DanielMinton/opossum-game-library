@@ -11,6 +11,7 @@ You chose a new direction: a badass opossum who doesn't mess around with zombies
 - **Done (step B, 2026-10-19):** the chainsaw is in the game with real art (Sammy idle, run and rev with the saw, the pickup and the top-bar icon), plus stylized gore with a low-gore setting (G key, `?gore=low`, GORE button), the night park, a placeholder Bethesda Terrace for the final fight, the "Zombie Hunter" title screen and the swearing deadpan voice. All Proposed: please play it and say if the fuel (20 seconds of revving), the gore and the jokes feel right. Details: `design/DECISIONS.md`, "Stage B".
 - **Scenery (2026-10-19, Proposed):** the park and Bethesda Terrace now look much better in code, and 18 scenery slots are ready for real art (briefs in `design/ART_BRIEFS.md`). Please look and say what to change (trees, lamps, the angel), (foreground trees now pass behind Sammy, so a trunk can never hide him; say if you'd rather have them in front). Details: `design/DECISIONS.md`, "2026-10-19: Scenery slots and park look".
 - **Art importer v2 (2026-10-19, Proposed):** the importer can now build a whole zombie (every strip, one shared size and palette, a clean outline, acid green and blood red kept off it) from one sheet: `--detect`, look at the overlay, then `--character map.json` (steps in `design/ART_PROMPTS.md`). Nothing for you to decide yet; when you have a zombie you like, say so and Claude installs it (that also needs the new enemy type added to the game, see CLAUDE.md "Add an enemy type"). Details: `design/DECISIONS.md`, "2026-10-19: Importer v2".
+- **Sammy rebuilt from your master sheets (2026-10-20; your choice B, Confirmed):** all 13 of Sammy's animations are now real art cut from your two sheets (grey-brown fur, cream face, red polka-dot bandana), one look everywhere, with the four-legged crawl as his run (your choice). The old white-faced run and the code-built chainsaw strips are no longer used (they stay on disk as `-v01`). Please play it and say whether the crawl feels right at speed, and whether the hurt flinch and the K.O. tumble read well. The frames still to generate are listed under **Sammy frames still wanted** below. Details: `design/DECISIONS.md`, "2026-10-20: Sammy rebuilt from the master sheets (option B)".
 - **Small leftovers from step B:** the README pictures (banner, cast, footer) still say the chainsaw is "coming next" and need redrawing; the chainsaw "cut" strip from the art brief isn't drawn yet (the rev strip covers cutting for now); the browser tab still says "Sammy (placeholder prototype)".
 - **Waiting on you:** which Suno plan the song was made on ([21](OWNER_DECISIONS.md#21-which-suno-plan-was-the-theme-song-made-on)), the exact gore level and age ([1](OWNER_DECISIONS.md#1-how-gory-and-who-is-it-for)), and the title ([3](OWNER_DECISIONS.md#3-what-is-the-game-called); suggested: "Sammy the Opossum: Zombie Hunter").
 
@@ -63,7 +64,7 @@ Work Claude can do as soon as you say "go". None of it needs a decision from you
 
 ## Art and sound to make
 
-- **Still missing today:** 33 of 39 planned pictures and 26 of 27 planned sounds. Real: Sammy's run, the five chainsaw pictures, and the level music (your theme song).
+- **Still missing today:** 42 of 57 planned pictures and 26 of 27 planned sounds. Real: all 13 of Sammy's animations, the chainsaw pickup and icon, and the level music (your theme song). *(Updated 2026-10-20.)*
 - **Chainsaw sounds still needed:** `sfx-chainsaw-start`, `sfx-chainsaw-rev` (loops), `sfx-chainsaw-cut`, `sfx-gore-splat`. Their folders are ready in `assets/audio/sfx/`; the game beeps until they arrive.
 - **Not in those counts:** art the game has no place to show yet, such as the 8×8 font, the hearts, the Play Possum icon and the park tile sheet (full list in `game/README.md`, "Requested art the game can't show yet"). Also the four palette sheets, which set the colours rather than appear on screen.
 - **What each one should look and sound like:** `design/ART_BRIEFS.md` (all Proposed).
@@ -71,6 +72,34 @@ Work Claude can do as soon as you say "go". None of it needs a decision from you
 - **See exactly what's missing, with each file's name, folder and size:** go into the `game` folder and run `node tools/scan-assets.mjs`.
 - **Order to send them in:** Tier 1 first, as listed in `design/ASSET_REQUEST_CHECKLIST.md`.
 - **Every file needs a license row** in `design/ASSET_SOURCES.csv`, or it is left out of the ready-to-share copy.
+
+## Sammy frames still wanted (2026-10-20)
+
+Every Sammy animation plays today (holds and repeats fill the gaps). These are the frames the image tool still has to produce, and exactly where each one drops in. Generated frames are cut in with `game/tools/import-art.mjs` and land as `-v03` strips. Add the shared style line to every prompt:
+
+> Same Sammy the opossum as the master sheet: grey-brown fur, cream face, blue eye with dark eye mask, dark ears, thick pink tail, red polka-dot bandana with a loose knot. 16-bit pixel art, facing right, side view, clean 1 px dark outline, plain solid black background, no text, no dust, no speed lines, no motion arcs, single character, same camera distance and scale as the master sheet (standing idle about 120 px tall on a 1536x1024 sheet).
+
+**Priority 1 (so the animations do not look broken)**
+
+| Strip (today) | Wanted | Where it slots in |
+|---|---|---|
+| Chainsaw run (`sammy-chainsaw-run`, the one sheet frame repeated 8 times: it slides instead of running) | **7 frames**: a full run cycle with the saw held out in both paws, mouth open roaring: contact, down, passing, up, contact, down, passing, up; tail streaming behind | replaces frames 2-8 (keep the sheet frame as frame 1); 64×48 cells, feet (26, 47); the saw tip no more than 37 px in front of the feet |
+| Run (`sammy-run`, 5 crawl poses played out and back) | **3 in-betweens**: A front paws mid-reach and hind paws pushing off; B all four paws tucked, body highest; C hind paws landing, front paws extended | new order: pose 1, A, 2, 3, B, 4, C, 6 (drops the backwards 4/3/2); 64×48 cells, feet (36, 47); same crawl camera as the sheet's row 2 |
+| Fall (`sammy-fall`, frame 2 is a back view with no face) | **1 frame**: head-down fall, arms flung back, legs trailing up, mouth open | replaces frame 2; airborne, fits 48×48 at scale 0.32 |
+| Play dead (`sammy-play-dead`, frame 4 repeats frame 3) | **1 frame**: settled belly-up, paw curled on the chest, tongue out, one X eye, calm | replaces frame 4 (the held frame); 64×48 cells, feet (32, 47) |
+| K.O. (`sammy-ko`, frames 1-2 are the same tumble) | **2 frames**: thrown backwards through the air (X eyes, flailing), then a bounce on the back (feet up, one small puff) | the air frame replaces frame 2, the bounce replaces frame 3; 76×48 cells, feet (38, 47) |
+
+**Priority 2 (polish)**
+
+| Strip (today) | Wanted | Where |
+|---|---|---|
+| Victory (`sammy-victory`, the sunglasses "cool" pose, 3 poses) | **4 frames** cheer: crouch, jump with fists up, peak, landing | replaces all 4; 48×48, feet (28, 47) |
+| Play dead | **1 frame** sag: collapsing sideways, paw to the forehead, tongue out, X eye | replaces frame 1 |
+| Hurt (`sammy-hurt`, frame 2 reads as a reach) | **1 frame** flinch: head snapped back, eyes shut, arms in, no dust | replaces frame 2; must fit 48×48 with the feet at 28 (both current poses lean past the box and were slid back) |
+| Land (`sammy-land`, both frames lunge forward, feet at 17) | **2 frames**: a landing crouch with a small puff, the whole body inside 48×48 with the feet at column 28 | replaces both frames and lets the feet point go back to (28, 47) in `game/src/assets.js` |
+| Chainsaw idle (`sammy-chainsaw-idle`, 2 poses alternating) | **2 frames** breathing: body 1 px lower, saw bar bobbing | replaces frames 3 and 4 |
+
+Also open, not frames: the X eyes (play-dead, K.O.) could use a hand repaint (a 3×3 black X on a white dot; the sheet's X marks blur to a blob at game size); the tail curl is wider than the 48 px cell, so idle and victory lose about 7 px of tail tip; the chainsaw rev's second frame slides 8 px to keep the long saw inside the box, so the body shakes while revving (it reads as revving, but a redraw with a shorter bar would be calmer).
 
 ## Later: needs direction
 

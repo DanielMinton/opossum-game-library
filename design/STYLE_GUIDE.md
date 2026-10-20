@@ -64,11 +64,11 @@ The owner's direction (Confirmed) is night-time Central Park, Bethesda Terrace a
 
 | Reserved for | Dark · base · highlight | Notes |
 |---|---|---|
-| **Blood red** | 72,0,0 · 144,0,0 · 180,0,36 | Deeper and darker than Sammy's bandana (216,36,36 and 252,72,72 in his run strip), so the bandana never reads as blood. |
+| **Blood red** | 72,0,0 · 144,0,0 · 180,0,36 | Deeper and darker than Sammy's bandana (216,36,36 and 216,72,72 in his v02 strips; its darkest shadow is a crimson 108,36,36), so the bandana never reads as blood. |
 | **Zombie ichor green** | 72,108,0 · 144,216,0 · 216,252,72 | An acid yellow-green, brighter than any grass or zombie skin, so ichor never reads as scenery. Zombie skin stays grey-green or grey-blue (see above). |
 
 **Sammy: ferocious, still cartoon**
-- In the game Sammy keeps his **existing cartoon style** with the **red bandana** (the run strip, feet point (28, 47)). The README artwork shows the attitude: narrowed eyes, bared fangs, ears back, a snarl when he attacks.
+- In the game Sammy is the opossum from the owner's **master sheets** (2026-10-20): grey-brown fur, cream face, blue eye with a dark mask, dark ears, thick pink tail, **red polka-dot bandana**, one shared 14-colour palette with a 1 px outline. *(Superseded: this used to say he keeps the white-faced cartoon style of the first run strip.)* The README artwork shows the attitude: narrowed eyes, bared fangs, ears back, a snarl when he attacks.
 - Expressions: a **snarl** (fangs showing) for attacks and the chainsaw, **gritted teeth** when hurt, a **cocky grin** on victory. Play Possum stays comic (X eyes, tongue out); dark humour is welcome.
 - He's an opossum, not a monster: keep him likeable and readable at 1× size.
 
@@ -134,7 +134,7 @@ The owner's direction (Confirmed) is night-time Central Park, Bethesda Terrace a
 
 | Asset type | Cell size | Character height in cell |
 |---|---|---|
-| Sammy | 48×48 px, feet at **(28, 47)** (tail whip only: **64×48 px**, feet at (36, 47), so the tail fits) | about 32–40 px (the first real run strip is about 43 px with ears) |
+| Sammy | 48×48 px, feet at **(28, 47)**. Wider cells with their own feet column (since the 2026-10-20 rebuild from the master sheets): run and tail-whip **64×48**, feet (36, 47); play-dead **64×48**, feet (32, 47); K.O. **76×48**, feet (38, 47); the three chainsaw strips **64×48**, feet (26, 47); land 48×48 with the feet at (17, 47) | about 42 px standing (idle, with ears); the run is a four-legged crawl about 30 px tall (owner's choice) |
 | Standard zombie | 48×48 px | about 40–46 px (a little taller than Sammy) |
 | Large zombie / boss | 64×64 px | TBD |
 | Items / power-ups | 16×16 px (pickups: feet at (8, 15)) | — |
@@ -154,7 +154,7 @@ The exact size of every planned file is in `game/src/assets.js`. Sammy's cell si
 
 ### Pivot and baseline rules
 
-- Pivot = **bottom-center**. In a 48×48 cell that is **(24, 47)**, zero-based. **Exception: Sammy** uses **(28, 47)** (tail-whip (36, 47)): his long tail needs room behind him, so his body sits 4 px right of centre. Set from the first real strip (run, 2026-10-19); every Sammy strip must use it.
+- Pivot = **bottom-center**. In a 48×48 cell that is **(24, 47)**, zero-based. **Exception: Sammy** uses **(28, 47)** in his 48-wide cells: his long tail needs room behind him, so his body sits 4 px right of centre. His wider cells have their own feet column (run and tail-whip (36, 47), play-dead (32, 47), K.O. (38, 47), chainsaw (26, 47)) and land uses (17, 47); the table is in `game/src/assets.js` and the point is always where his body stands, so he never hops sideways when the animation changes *(updated 2026-10-20; this used to say every Sammy strip uses (28, 47))*.
 - Feet touch **row 47** in every grounded frame (64×64 cell: (32, 63), row 63).
 - Jump and fall frames may lift off the baseline; keep the body centered horizontally.
 - Characters face **RIGHT** by default. Mirroring for left is allowed unless an asymmetric detail must stay on one side — note it.

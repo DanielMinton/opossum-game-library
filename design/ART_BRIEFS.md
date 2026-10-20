@@ -67,13 +67,15 @@ A contact sheet is an enlarged, labelled preview of the templates, for looking a
 
 ---
 
-## Sammy (10 strips)
+## Sammy (10 strips, plus the 3 chainsaw strips below)
 
 Folder: `assets/characters/character-sammy/`. Templates: `templates/art-templates/characters/character-sammy/`.
 
-**Look (example, change freely):** grey-white fur, white face with dark eye patches, pink nose, rounded black ears, black legs, long bare pink tail, **red bandana** (as in his run strip). ~~Scruffy, wide-eyed and confused, but scrappy.~~ *(Superseded 2026-10-19.)* **Ferocious:** narrowed eyes, bared fangs, ears back when he attacks; a cocky grin when he wins. Same cartoon style as his run strip, not the painted concept picture. About 32–40 px tall (his run strip is about 43 with ears). Uses the Sammy + top-bar colour set (palette line 0).
+> **Status (2026-10-20): all 13 Sammy strips exist as real art (`-v02.png`).** They were cut from the owner's two master sheets (made with ChatGPT image generation) with `game/tools/import-art.mjs` in character mode: one scale (0.35 game px per sheet px; 0.32 for jump and fall, 0.30 for land, so those big poses fit), one 14-colour palette and a 1 px outline for all 13. The owner chose the sheets' **four-legged crawl** as the run, so the run is long and low (about 30 px tall) while idle stands about 42 px. Some frames are stand-ins (the run plays its 5 poses out and back, the chainsaw run repeats its one frame, the fall's second frame is a back view, play-dead's last frame repeats, the victory is the sunglasses pose); the frames still wanted, and where they slot in, are listed in `design/OPEN_TASKS.md`, "Sammy frames still wanted". New frames land as `-v03`. The briefs below describe the ideal version and are kept for that.
 
-**Feet point (28, 47)** in every 48×48 frame. That's 4 px right of centre, so his tail has room behind him. The tail-whip uses a wider 64×48 box with the feet point at **(36, 47)**, so his body lands in the same place. Every Sammy strip must use these points, or he will jump sideways when the animation changes.
+**Look (set by the master sheets, 2026-10-20):** grey-brown fur, cream face, blue eye with a dark eye mask, dark rounded ears, thick pink tail with a curl, **red polka-dot bandana** with a loose knot (the dots turn to noise at game size, so it reads as plain red). *(Superseded: "grey-white fur, white face ... same cartoon style as his run strip", the look of the first, white-faced run strip, which is replaced.)* **Ferocious:** narrowed eyes, bared fangs, ears back when he attacks; a cocky grin when he wins. About 42 px tall standing (with ears); the crawl run is about 30 px. One shared 14-colour palette for all 13 strips (the importer's `palette.json`); it is the Sammy + top-bar colour set (palette line 0).
+
+**Feet point (28, 47)** in every 48×48 frame. That's 4 px right of centre, so his tail has room behind him. Wider boxes have their own feet point so his body lands in the same place: run and tail-whip **64×48** at **(36, 47)**, play-dead **64×48** at **(32, 47)**, K.O. **76×48** at **(38, 47)**, the chainsaw strips **64×48** at **(26, 47)**; land keeps 48×48 but its feet point is **(17, 47)** because both frames lunge forward. Use the point its strip has, or he will jump sideways when the animation changes.
 
 ### Idle: `sammy-idle-strip-v01.png`
 - Save as `assets/characters/character-sammy/sammy-idle-strip-v01.png`
@@ -87,11 +89,12 @@ Folder: `assets/characters/character-sammy/`. Templates: `templates/art-template
   3. Full breath: ears perk, tail tip at its highest. Maybe a blink.
   4. Breathing out, halfway back to frame 1.
 
-### Run: `sammy-run-strip-v01.png`: **done (v01 exists); template for redraws**
-- Save as `assets/characters/character-sammy/sammy-run-strip-v01.png` (a redraw goes beside it as `-v02.png`)
+### Run: `sammy-run-strip-v01.png`: **done (v02 exists: the four-legged crawl); a new version goes beside it as `-v03.png`**
+- Save as `assets/characters/character-sammy/sammy-run-strip-v03.png` (v02 is the crawl from the master sheets; v01 is the old white-faced upright run, no longer used)
 - Template: `templates/art-templates/characters/character-sammy/sammy-run-strip-TEMPLATE.png`
-- Size: **384×48** (8 frames of 48×48)
-- Speed: 12 fps; total time 0.67 s. Plays: **loops**. Feet point (28, 47).
+- Size: **512×48** (8 frames of **64×48**; was 48×48 until 2026-10-20)
+- Speed: 12 fps; total time 0.67 s. Plays: **loops**. Feet point **(36, 47)**.
+- **Today (v02):** a four-legged crawl (the owner's choice) built from 5 sheet poses played out and back; 3 in-between poses are still wanted (`design/OPEN_TASKS.md`).
 - When: moving along the ground. Sammy covers about 73 px during one full loop at top speed; match the step length to that so his feet don't slide.
 - Frames: 1 front foot lands · 2 body at its lowest · 3 pushing off · 4 both feet in the air · 5 other foot lands · 6 lowest · 7 pushing off · 8 in the air. Feet touch the bottom row on the landing frames. Tail streams behind and bobs against the body.
 
@@ -117,7 +120,7 @@ Folder: `assets/characters/character-sammy/`. Templates: `templates/art-template
 - Save as `assets/characters/character-sammy/sammy-land-strip-v01.png`
 - Template: `templates/art-templates/characters/character-sammy/sammy-land-strip-TEMPLATE.png`
 - Size: **96×48** (2 frames of 48×48)
-- Speed: 15 fps; total time 0.13 s. Plays: **once**, then idle or run. Feet point (28, 47).
+- Speed: 15 fps; total time 0.13 s. Plays: **once**, then idle or run. Feet point **(17, 47)** for the v02 frames, which lunge forward; a redraw that fits with the feet at (28, 47) is wanted, and then the point goes back to (28, 47).
 - When: only after a real fall, not after tiny hops. The game adds a dust puff itself; don't draw dust here.
 - Frames:
   1. Squash: knees deeply bent, body 2–3 px lower, feet flat on the bottom row.
@@ -148,8 +151,8 @@ Folder: `assets/characters/character-sammy/`. Templates: `templates/art-template
 ### Play dead (Play Possum): `sammy-play-dead-strip-v01.png`
 - Save as `assets/characters/character-sammy/sammy-play-dead-strip-v01.png`
 - Template: `templates/art-templates/characters/character-sammy/sammy-play-dead-strip-TEMPLATE.png`
-- Size: **192×48** (4 frames of 48×48)
-- Speed: 8 fps; total time 0.5 s. Plays: **holds the last frame** for as long as he plays dead (up to 3 s). Feet point (28, 47).
+- Size: **256×48** (4 frames of **64×48**; was 48×48 until 2026-10-20, lying down is long)
+- Speed: 8 fps; total time 0.5 s. Plays: **holds the last frame** for as long as he plays dead (up to 3 s). Feet point **(32, 47)**.
 - **Getting up uses the same strip played backwards at double speed** (0.25 s). There's no separate get-up strip, so frames 4 → 1 must also look right as "getting up".
 - When lying down, his body is about 28 px wide and 14 px tall. The game draws "Z z" above him for now.
 - Frames:
@@ -161,8 +164,8 @@ Folder: `assets/characters/character-sammy/`. Templates: `templates/art-template
 ### KO (out of hearts): `sammy-ko-strip-v01.png`
 - Save as `assets/characters/character-sammy/sammy-ko-strip-v01.png`
 - Template: `templates/art-templates/characters/character-sammy/sammy-ko-strip-TEMPLATE.png`
-- Size: **288×48** (6 frames of 48×48)
-- Speed: 10 fps; total time 0.6 s. Plays: **once**, then frame 6 stays on screen for about 1 more second before the restart. Feet point (28, 47).
+- Size: **456×48** (6 frames of **76×48**; was 48×48 until 2026-10-20, the tumble and the slide are long)
+- Speed: 10 fps; total time 0.6 s. Plays: **once**, then frame 6 stays on screen for about 1 more second before the restart. Feet point **(38, 47)**.
 - The game draws spinning stars ("* * *") above his head, so leave a little room above him.
 - Suggestion: make it clearly different from play dead, so the player knows he really lost.
 - Frames:
@@ -450,7 +453,7 @@ Folder: `assets/items/item-powerup-trash-lid-shield/`. Templates: `templates/art
 
 ---
 
-## Chainsaw power-up (planned for step B; not in the game yet)
+## Chainsaw power-up (in the game since Stage B; Sammy's three saw strips are real art since 2026-10-20)
 
 **All Proposed (2026-10-19).** The owner confirmed that Sammy fights with a chainsaw. The game doesn't have it yet: step B adds it. **These files have no slot in the game today** (they aren't in `game/src/assets.js`, the scanner doesn't list them, and there are no templates yet), so the names and sizes below may change when step B is built. Wait for step B before drawing final art; rough sketches are welcome now.
 
@@ -465,7 +468,7 @@ Folder: `assets/items/item-powerup-trash-lid-shield/`. Templates: `templates/art
 - Frames: 1 resting · 2 a glint runs along the bar · 3 a small puff of exhaust · 4 resting.
 
 ### Sammy with the chainsaw: two ways to draw it (pick one; Proposed: **A**)
-- **A. Full strips (Proposed):** Sammy drawn holding the saw, in the same boxes and feet point as his other strips. Best look; more drawing. **64×48** frames, feet point **(36, 47)** (like the tail-whip, so the bar fits in front of him):
+- **A. Full strips (Proposed, and what the game has):** Sammy drawn holding the saw. **64×48** frames, feet point **(26, 47)** since 2026-10-20 (the sheets' saw is big: the bar reaches up to 37 px in front of the feet, so the feet moved left from 36 to 26 to keep the tip inside the box). The v02 strips come from the master sheets; the run repeats its one sheet frame until 7 more are generated (`design/OPEN_TASKS.md`):
   - `sammy-chainsaw-idle-strip-v01.png`: 4 frames, 6 fps, loops (engine idling: the saw shakes 1 px, a puff of smoke).
   - `sammy-chainsaw-run-strip-v01.png`: 8 frames, 12 fps, loops (same leg timing as his run strip, saw held forward).
   - `sammy-chainsaw-rev-strip-v01.png`: 2 frames, 15 fps, loops (revving before the cut: snarl, saw lifted, chain blurred).

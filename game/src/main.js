@@ -549,7 +549,13 @@
       result.stats = state.stats;
       result.realArtDraws = S.spriteDraws;
       result.flashDraws = S.flashDraws;
-      result.player = { x: Math.round(state.player.x), hp: state.player.hp, state: state.player.state };
+      result.player = { x: Math.round(state.player.x), hp: state.player.hp, state: state.player.state, anim: state.player.anim, grounded: !!state.player.grounded };
+      // ?test=shot&pose=hurt|ko|playdead|attack: put Sammy in that state for a screenshot of art the autopilot rarely shows
+      if (name === 'shot' && params.has('pose')) {
+        const pose = params.get('pose'), p = state.player;
+        const anims = { hurt: 'hurt', ko: 'ko', playdead: 'play-dead', attack: 'tail-whip' };
+        if (anims[pose]) { p.state = pose; p.t = pose === 'ko' ? 0.5 : 0.1; p.anim = anims[pose]; p.invuln = 0; }
+      }
       if (name === 'full') {
         result.reachedClear = state.mode === 'clear';
         const restart = S.makeInput(); restart.pressed.start = true;

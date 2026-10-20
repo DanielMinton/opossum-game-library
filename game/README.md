@@ -1,6 +1,6 @@
 # Sammy: placeholder prototype (level 1, Sheep Meadow)
 
-This is a playable first level that uses **placeholder art and sound**. Real art so far: Sammy's run animation, Sammy with the chainsaw (idle, run, rev) and the chainsaw pickup and top-bar icon. The level music is real too: the owner's theme song "Sammy the Opossum : Zombie Hunter" (made with Suno; it plays here but is left out of `dist/` until its license is confirmed, owner question 21). Otherwise Sammy is a grey box with ears and a pink nose, zombies are green boxes, and every sound effect is a code-generated beep. The look is now the "Zombie Hunter" night park (placeholder boxes: night sky, full moon, stars, lit skyline windows, amber lamp glow, wet ground) with a placeholder Bethesda Terrace (stone floor, arches, balustrade, angel fountain) for the final fight. The game's text is deadpan and swears on purpose (owner rule). The chainsaw is in: it lies on the grass just before the final fight; hold WHIP (X) to rip, and the orange top-bar gauge shows its fuel. Gore is stylized placeholder drawing (blood, chunks, zombies cut in half) with a low-gore setting: G, `?gore=low` or the GORE button while paused; the browser remembers it. The gore setting changes drawing only, never the rules (see `design/DECISIONS.md`, Stage B). The on-screen label "PLACEHOLDER ART – NOT FINAL" stays visible the whole time. Your real art and sound replace the placeholders automatically, one file at a time, as you add them (see **Adding art** and **Adding sound** below).
+This is a playable first level that uses **placeholder art and sound**. Real art so far: all of Sammy (his 13 animations, cut from the owner's master sheets on 2026-10-20: grey-brown fur, cream face, red bandana; the run is a four-legged crawl) and the chainsaw pickup and top-bar icon. The level music is real too: the owner's theme song "Sammy the Opossum : Zombie Hunter" (made with Suno; it plays here but is left out of `dist/` until its license is confirmed, owner question 21). Otherwise zombies are green boxes, and every sound effect is a code-generated beep. The look is now the "Zombie Hunter" night park (placeholder boxes: night sky, full moon, stars, lit skyline windows, amber lamp glow, wet ground) with a placeholder Bethesda Terrace (stone floor, arches, balustrade, angel fountain) for the final fight. The game's text is deadpan and swears on purpose (owner rule). The chainsaw is in: it lies on the grass just before the final fight; hold WHIP (X) to rip, and the orange top-bar gauge shows its fuel. Gore is stylized placeholder drawing (blood, chunks, zombies cut in half) with a low-gore setting: G, `?gore=low` or the GORE button while paused; the browser remembers it. The gore setting changes drawing only, never the rules (see `design/DECISIONS.md`, Stage B). The on-screen label "PLACEHOLDER ART – NOT FINAL" stays visible the whole time. Your real art and sound replace the placeholders automatically, one file at a time, as you add them (see **Adding art** and **Adding sound** below).
 
 Every gameplay value comes from the examples in `templates/examples/`, which are **proposals, not approved design**. Changes the prototype made are listed in `design/DECISIONS.md`. The questions only you can answer (title, art style, how gory, and more) are in `design/OWNER_DECISIONS.md`, each with a suggested answer.
 
@@ -74,7 +74,7 @@ node tools/import-art.mjs ~/Downloads/jogger-walk.png --slot jogger:walk
 - **PNG only.** For a JPG or WebP, convert first. On a Mac: `sips -s format png "in.jpg" --out out.png`.
 - **Nothing touches `assets/` until you add `--install`.** `--install` never overwrites (use `--force`, or `--version 2` for a `-v02` file) and prints a ready-to-paste `ASSET_SOURCES.csv` row. `--dry-run` prints the report and writes nothing.
 - **Other options:** `--list` (every slot), `--frames N`, `--src-pixel N`, `--height H`, `--scale K` (match a strip you already made), `--anchor-x X`, `--shrink` (if a pose is too wide for the cell), `--relayout`, `--tolerance N`. Art with no slot yet: `--size 32x32 --frames 4 --pivot 16,31` (add `--no-feet` for things that float). `--help` lists everything.
-- **A picture that is already the right size and see-through** keeps its layout; only the colours are tidied. Sammy's run strip comes out unchanged.
+- **A picture that is already the right size and see-through** keeps its layout; only the colours are tidied. Sammy's old run strip (v01) comes out unchanged.
 - **A whole zombie from one sheet (character mode):** `node tools/import-art.mjs sheet.png --detect` finds every frame (even with a row of big poses on top), writes `detect-overlay.png` (numbered boxes, one colour per animation) and a draft `map.json`; `node tools/import-art.mjs --character map.json` builds **all** the strips at once with one shared scale, one shared palette (15 colours at most), a clean 1 px outline, loose particles removed, gore colours (acid green, blood red) moved away from the zombie, and writes `CHARACTER-REPORT.md`, a contact sheet, a palette swatch and before/after pictures. `--prefix NAME` for a new enemy type, `--size 96x96` (up to 192x192) or `"cell"` in the map for big ones, `--grid-split 10x2` for portrait grids, `--palette` / `--save-palette`, `--recolor`, `--hue-shift`, `--allow-blood`, `--flip`. Steps and the best prompt: [design/ART_PROMPTS.md](../design/ART_PROMPTS.md).
 - Prompts to paste into the image tool, and a checklist of what to regenerate: [design/ART_PROMPTS.md](../design/ART_PROMPTS.md). The reasons for the choices are in `design/DECISIONS.md` ("Art import tool").
 
@@ -88,7 +88,7 @@ node tools/import-art.mjs ~/Downloads/jogger-walk.png --slot jogger:walk
 
 **Licenses:** art only goes into the shareable build when its row in `design/ASSET_SOURCES.csv` clears it (see **Build a shareable copy**). The game on your own computer uses every file either way.
 
-Frame sizes, frame counts, speeds and the feet point (24, 47) follow the draft style guide (`design/STYLE_GUIDE.md`) and each example's animation table. Exceptions for Sammy: his feet point is (28, 47), not (24, 47), so his tail has room behind him; and his tail-whip strip uses wider 64×48 frames with the feet point at (36, 47). Background band rows, scroll speeds and loop widths are in the `bg:` lines of `game/src/assets.js`.
+Frame sizes, frame counts, speeds and the feet point (24, 47) follow the draft style guide (`design/STYLE_GUIDE.md`) and each example's animation table. Exceptions for Sammy: his feet point is (28, 47), not (24, 47), so his tail has room behind him, and some of his strips use wider cells with their own feet point so his body stays put when the animation changes (since 2026-10-20): run and tail-whip 64×48 with the feet at (36, 47), play-dead 64×48 at (32, 47), K.O. 76×48 at (38, 47), the three chainsaw strips 64×48 at (26, 47), and land 48×48 at (17, 47). The full table is in `game/src/assets.js` and a test checks it. Background band rows, scroll speeds and loop widths are in the `bg:` lines of `game/src/assets.js`.
 
 
 ### Scenery art (2026-10-19, Proposed)
@@ -138,7 +138,7 @@ node tools/build.mjs
 
 This makes `game/dist/`. You only need it for the shareable copy; `game/index.html` picks up new files after the scanner runs.
 - `index.html`: the game's code in one file.
-- `assets/`: the cleared real art and sound (today: Sammy's run animation; the theme song isn't cleared yet). Share the whole `dist/` folder.
+- `assets/`: the cleared real art and sound (today: Sammy's 13 animations plus the chainsaw pickup and icon; the theme song isn't cleared yet). Share the whole `dist/` folder.
 - `BUILD_INFO.txt`: what art and sound was included, and why anything was left out. Its "Still placeholders (no real file yet):" section lists every planned picture and sound that has no real file yet. Its first line has a 12-character code that only changes when the game itself changes, so building again with nothing new leaves `dist/` exactly as it was.
 - `CREDITS.txt`: the credit line for every included file that needs one.
 
@@ -155,7 +155,7 @@ This makes `game/dist/`. You only need it for the shareable copy; `game/index.ht
 | `attribution_required` | `yes` or `no`. `yes` adds it to `CREDITS.txt` |
 | `notes` | Anything else |
 
-A file is copied **only if** `commercial_use` is `yes` **and** the license is filled in (not blank, TBD or unknown) **and** the license isn't non-commercial (NC) or reference-only. Anything else is left out, with the reason in `BUILD_INFO.txt`. Nothing from `assets/references/` is ever copied. Today the real files are Sammy's run animation (cleared, so it is in the build) and the theme song (left out: its `commercial_use` is "tbd" until the owner confirms the Suno plan); everything else is a placeholder.
+A file is copied **only if** `commercial_use` is `yes` **and** the license is filled in (not blank, TBD or unknown) **and** the license isn't non-commercial (NC) or reference-only. Anything else is left out, with the reason in `BUILD_INFO.txt`. Nothing from `assets/references/` is ever copied. Today the real files are Sammy's 13 animation strips and the chainsaw pickup and icon (cleared, so they are in the build) and the theme song (left out: its `commercial_use` is "tbd" until the owner confirms the Suno plan); everything else is a placeholder.
 
 **Publishing (not done; needs your go-ahead).** The `dist/` folder is a static website, so it can be zipped and uploaded as an HTML game to itch.io, or hosted with GitHub Pages or Netlify. Before any public release:
 - Replace the placeholders.
@@ -168,16 +168,18 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | 76 game-rule checks (see the list below) |
-| `node --test tests/import-art.test.mjs` | 21 art-importer checks (`npm test` runs both test files: 97 in all) |
+| `node --test tests/sim.test.mjs` | 77 game-rule checks (see the list below) |
+| `node --test tests/import-art.test.mjs` | 22 art-importer checks (`npm test` runs both test files: 99 in all) |
 | `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 55 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 | `index.html?test=touch&touch=1` | The touch-button check by hand (it taps the real buttons for you) |
 | `index.html?test=audio&touch=1` | The phone-sound check by hand (result appears as text in the top left) |
+| `index.html?test=shot&frames=N` | Stops after N frames for a screenshot. Add `&god=0` to let the autopilot take hits, or `&pose=hurt`, `ko`, `playdead` or `attack` to put Sammy in that state at the end (art the autopilot rarely shows) |
 
 **Game-rule checks** cover:
 - startup, level layout, movement, jumping, one-way platforms and rocks
 - tail-whip; jogger patrol, chase and attack; invincibility after a hit
+- Sammy's art cells: one table of cell widths and feet points (48-wide strips at (28, 47); run, tail-whip, play-dead, K.O. and the chainsaw strips wider, each with its own feet column; land at (17, 47)), and the chainsaw cells hold the saw's reach
 - Play Possum (confusion, cancel, cooldown, range, the "ready" flash)
 - cart (tip, spill, heal, settle), trash lid, vendor, pond, and falling into a dry pit (no splash)
 - K.O. and checkpoints; the gauntlet and exit; finishing in mid-air

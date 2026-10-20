@@ -4,7 +4,7 @@ For making zombie art in an image tool (ChatGPT, Codex, Midjourney and so on) an
 
 ## The short version
 
-1. Open your image tool. Attach Sammy's run strip (see "Show it Sammy" below).
+1. Open your image tool. Attach Sammy's idle strip (see "Show it Sammy" below).
 2. Paste the **locked character description**, then the **animation prompt** for one strip.
 3. Save the picture as a PNG (JPG or WebP: see the box below).
 4. In Terminal, from the `game` folder, run the importer with that strip's slot:
@@ -57,9 +57,9 @@ If the tool makes them anyway, the importer fixes most of it (outline, colours, 
 
 ## Show it Sammy (style and size reference)
 
-Attach `assets/characters/character-sammy/sammy-run-strip-v01.png` to the chat and say:
+Attach `assets/characters/character-sammy/sammy-idle-strip-v02.png` (Sammy as he is in the game since 2026-10-20, cut from your master sheets; or one of the master sheets themselves) to the chat and say:
 
-> "This is the approved style reference: chunky 16-bit pixel art, 1-pixel dark outline, flat shading with only a few colours, about 40 pixels tall. Match that look and that size relationship. Do **not** copy Sammy's design; the new character is a different creature."
+> "This is the approved style reference: chunky 16-bit pixel art, 1-pixel dark outline, flat shading with only a few colours, about 42 pixels tall standing. Match that look and that size relationship. Do **not** copy Sammy's design; the new character is a different creature."
 
 If the tool lets you attach a second picture, a screenshot of the game (the night park) helps it pick colours that stand out.
 

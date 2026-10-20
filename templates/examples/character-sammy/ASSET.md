@@ -13,7 +13,7 @@ How to read this example:
 - Asset ID: `character-sammy`
 - Display name: Sammy
 - Category: character
-- Files and purpose: see **Planned files** below. Only the run strip (`sammy-run-strip-v01.png`) has been supplied so far; run the scanner to see which files exist.
+- Files and purpose: see **Planned files** below. All 13 animation strips exist as `-v02.png` files since 2026-10-20 (cut from the owner's two master sheets with the art importer); run the scanner to see which files exist.
 - Readiness: TBD — Example: the model sheet would be `reference`; each animation strip would be `ready` once it matches the frame rules below, or `needs-preparation` if frames are uneven.
 - Visual description: Confirmed: an opossum, male ("he"). Example wording to replace with yours: "Grey-white fur, white face, pink nose, black rounded ears, black legs, long bare pink tail. Slightly scruffy, wide-eyed and confused but scrappy. Small torn bandana (proposed) to read clearly at small size."
 - Intended role in the game: Confirmed: the playable hero. He wakes in Central Park with no memory and fights through each level using interactive objects, power-ups, and special abilities.
@@ -22,7 +22,7 @@ How to read this example:
 - Transparent background: Proposed: yes — transparent PNG, hard edges, 1-bit transparency only (each pixel fully see-through or fully solid; no soft/semi-transparent edges, no anti-aliasing against the background).
 - Source/creator/license: TBD — Example: "Drawn by [your name], 2026, owned by me, OK to ship." Also record in `design/ASSET_SOURCES.csv`.
 
-## Planned files (only the run strip supplied so far)
+## Planned files (all 13 strips supplied as v02 on 2026-10-20)
 
 | File (planned) | Type | Purpose |
 |---|---|---|
@@ -30,22 +30,22 @@ How to read this example:
 | `palette-line-0-sammy-hud-v01.png` | Palette swatch | The 15 colors (plus transparent) Sammy and the HUD may use. One row of 16 squares. Saved in `assets/ui/palettes/` with the other palette sheets, not in Sammy's folder. |
 | `sammy-expressions-v01.png` | Reference (optional) | Portrait/face sheet — see "Expression/portrait sheet (optional)". |
 | `sammy-idle-strip-v01.png` | Production strip | 4 frames, 192×48 px |
-| `sammy-run-strip-v01.png` | Production strip | 8 frames, 384×48 px |
+| `sammy-run-strip-v01.png` | Production strip | 8 frames, 512×48 px (64×48 cells, feet (36, 47): the run is a four-legged crawl, long and low; v02 is the real one) |
 | `sammy-jump-rise-strip-v01.png` | Production strip | 2 frames, 96×48 px |
 | `sammy-fall-strip-v01.png` | Production strip | 2 frames, 96×48 px |
-| `sammy-land-strip-v01.png` | Production strip | 2 frames, 96×48 px |
+| `sammy-land-strip-v01.png` | Production strip | 2 frames, 96×48 px (feet (17, 47): both landing frames lunge forward) |
 | `sammy-tail-whip-strip-v01.png` | Production strip | 4 frames, 256×48 px (wider 64×48 cells, see below) |
 | `sammy-hurt-strip-v01.png` | Production strip | 2 frames, 96×48 px |
-| `sammy-play-dead-strip-v01.png` | Production strip | 4 frames, 192×48 px |
-| `sammy-ko-strip-v01.png` | Production strip | 6 frames, 288×48 px |
+| `sammy-play-dead-strip-v01.png` | Production strip | 4 frames, 256×48 px (64×48 cells, feet (32, 47): lying down is long) |
+| `sammy-ko-strip-v01.png` | Production strip | 6 frames, 456×48 px (76×48 cells, feet (38, 47): the tumble and the slide are long) |
 | `sammy-victory-strip-v01.png` | Production strip | 4 frames, 192×48 px |
 | `sammy-wake-up-strip-v01.png` | Production strip (polish tier) | 6 frames, 288×48 px |
-| `sammy-chainsaw-idle-strip-v01.png` | Production strip (Stage B, Proposed) | 4 frames, 256×48 px (64×48 cells, holding the chainsaw) |
-| `sammy-chainsaw-run-strip-v01.png` | Production strip (Stage B, Proposed) | 8 frames, 512×48 px (64×48 cells) |
-| `sammy-chainsaw-rev-strip-v01.png` | Production strip (Stage B, Proposed) | 4 frames, 256×48 px (64×48 cells, saw revving and shaking) |
+| `sammy-chainsaw-idle-strip-v01.png` | Production strip (Stage B, Proposed) | 4 frames, 256×48 px (64×48 cells, feet (26, 47), holding the chainsaw) |
+| `sammy-chainsaw-run-strip-v01.png` | Production strip (Stage B, Proposed) | 8 frames, 512×48 px (64×48 cells, feet (26, 47)) |
+| `sammy-chainsaw-rev-strip-v01.png` | Production strip (Stage B, Proposed) | 4 frames, 256×48 px (64×48 cells, feet (26, 47), saw revving and shaking) |
 | `sammy-source-v01.aseprite` (or .psd / .kra) | Layered source | Your working file. Kept as the original; never overwritten. |
 
-Strip width = frame count × 48 px (with no padding). The exceptions are tail-whip and the three chainsaw strips: their cells are 64×48 (pivot (36, 47)), so tail-whip is 4 × 64 = 256 px wide. The chainsaw bar reaches 28 px in front of Sammy's feet point, which a 48 px cell can't hold.
+Strip width = frame count × cell width (with no padding). Most cells are 48×48 with the feet point at (28, 47). The wider cells, each with its own feet point so Sammy's body stays in the same place on screen (updated 2026-10-20 when every strip was rebuilt from the master sheets): run 64×48, feet (36, 47) (the four-legged crawl is long and low); tail-whip 64×48, feet (36, 47); play-dead 64×48, feet (32, 47); ko 76×48, feet (38, 47); the three chainsaw strips 64×48, feet (26, 47), because the saw bar reaches 28 px in front of the feet. Land keeps 48×48 but its feet point is (17, 47): both landing frames lunge forward.
 
 ## Reference vs production
 
@@ -55,11 +55,11 @@ Strip width = frame count × 48 px (with no padding). The exceptions are tail-wh
 
 ## Animation (if applicable)
 - File: one strip per animation (see Planned files).
-- Frame width × height in pixels: Proposed: 48 × 48 for every animation except tail-whip, which uses **64 × 48** cells. The whip reaches 26 px in front of Sammy's feet point, and a 48 px cell only has 23 px of room.
+- Frame width × height in pixels: Proposed: 48 × 48 for most animations; **64 × 48** for tail-whip (the whip reaches 26 px in front of the feet point), run, play-dead and the chainsaw strips; **76 × 48** for ko. Cells and feet points per strip are in the table above and in `game/src/assets.js`.
 - Grid columns / rows: one row per file; columns = frame count (e.g. run = 8 columns × 1 row).
 - Frame count and reading order: left to right, starting at frame 0. Counts in the table below.
 - Padding / spacing: Proposed: none (frames touch). If you prefer 1 px gaps between frames, say "1 px padding" here.
-- Pivot / feet baseline: Proposed: pixel (28, 47) counting from 0 at the top-left (4 px right of centre, so the tail has room behind him; set from the first real run strip, 2026-10-19). In every grounded frame the feet touch row 47 (the bottom row). Jump/fall frames may lift off that row. Tail-whip (64 × 48 cells): pivot **(36, 47)**, so Sammy's body sits in the same place and the extra 16 px give the tail room on both sides.
+- Pivot / feet baseline: Proposed: pixel (28, 47) counting from 0 at the top-left in the 48-wide cells (4 px right of centre, so the tail has room behind him). In every grounded frame the feet touch row 47 (the bottom row). Jump/fall frames may lift off that row. Wider cells have their own feet column (run and tail-whip (36, 47), play-dead (32, 47), ko (38, 47), chainsaw (26, 47)); land uses (17, 47). The feet column is where Sammy's body stands, so he never hops sideways when the animation changes; the run is drawn lower (a crawl, about 30 px tall) on purpose.
 - Animation names and frame ranges (state whether zero- or one-based): zero-based — see table.
 - Frames per second per animation: see table.
 - Looping / one-shot: see table.
@@ -70,14 +70,14 @@ Strip width = frame count × 48 px (with no padding). The exceptions are tail-wh
 | Animation | Frames (zero-based, within its strip) | Count | FPS | Loop / one-shot | Notes |
 |---|---|---|---|---|---|
 | idle | 0–3 | 4 | 6 | loop | Breathing; tail sways. |
-| run | 0–7 | 8 | 12 | loop | Feet on row 47 on contact frames. |
+| run | 0–7 | 8 | 12 | loop | A four-legged crawl (owner's choice, 2026-10-19), about 30 px tall. 64×48 cells, pivot (36, 47). Feet on row 47. |
 | jump-rise | 0–1 | 2 | 10 | one-shot, hold last frame | Holds frame 1 while going up. |
 | fall | 0–1 | 2 | 10 | loop | Tail/fur flutter. |
-| land | 0–1 | 2 | 15 | one-shot | Squash on frame 0. Returns to idle/run. |
+| land | 0–1 | 2 | 15 | one-shot | Squash on frame 0. Returns to idle/run. Pivot (17, 47): the frames lunge forward. |
 | tail-whip (attack) | 0–3 | 4 | 15 | one-shot | **Hit frame = 2** (the frame where damage happens). 0–1 wind-up, 3 recovery. 64×48 cells, pivot (36, 47). |
 | hurt | 0–1 | 2 | 10 | one-shot | Knock-back flinch; a white/flash frame can be done in code. |
-| play-dead | 0–3 | 4 | 8 | one-shot, then hold frame 3 | Drops, rolls over, tongue out (Example). Used by the "Play Possum" ability. |
-| ko (defeat) | 0–5 | 6 | 10 | one-shot | Comic faint, stars/birds optional as separate effect. |
+| play-dead | 0–3 | 4 | 8 | one-shot, then hold frame 3 | Drops, rolls over, tongue out (Example). Used by the "Play Possum" ability. 64×48 cells, pivot (32, 47). |
+| ko (defeat) | 0–5 | 6 | 10 | one-shot | Comic faint, stars/birds optional as separate effect. 76×48 cells, pivot (38, 47). |
 | victory | 0–3 | 4 | 8 | loop | End-of-level celebration. |
 | wake-up (intro) | 0–5 | 6 | 6 | one-shot | Polish tier. Opening scene: Sammy wakes on the grass, confused. |
 

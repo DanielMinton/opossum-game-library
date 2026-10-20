@@ -158,8 +158,8 @@ fs.cpSync(path.join(gameDir, 'index.html'), path.join(tmp, 'game', 'index.html')
 fs.cpSync(path.join(gameDir, 'src'), path.join(tmp, 'game', 'src'), { recursive: true });
 const sam = path.join(tmp, 'assets', 'characters', 'character-sammy');
 fs.mkdirSync(sam, { recursive: true });
-// Correct size: run strip, 8 frames of 48x48 = 384x48. A blue block standing on row 47.
-fs.writeFileSync(path.join(sam, 'sammy-run-strip-v01.png'), png(384, 48, (x, y) => ((x % 48) > 12 && (x % 48) < 36 && y > 14 ? [36, 72, 216, 255] : [0, 0, 0, 0])));
+// Correct size: run strip, 8 frames of 64x48 = 512x48 (the crawl run's wide cell, 2026-10-20). A blue block standing on row 47.
+fs.writeFileSync(path.join(sam, 'sammy-run-strip-v01.png'), png(512, 48, (x, y) => ((x % 64) > 20 && (x % 64) < 52 && y > 14 ? [36, 72, 216, 255] : [0, 0, 0, 0])));
 // Wrong size on purpose: idle strip 100x48 instead of 192x48.
 fs.writeFileSync(path.join(sam, 'sammy-idle-strip-v01.png'), png(100, 48, () => [216, 36, 36, 255]));
 // Two versions of the hurt strip (2 frames = 96x48): v02 must win. The old v01 is the wrong size, so it would warn if used.

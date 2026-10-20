@@ -8,7 +8,7 @@
 import path from 'node:path';
 import { labelPieces, foregroundMask, sheetBackground, autoTolerance, median, hexOf } from './art-detect.mjs';
 import {
-  snap9, luma, hex6, parseHex6, makeTransform, makeHistogram, kmeans, finishPalette, ensureColour, keepClearOf, nearestIndex,
+  snap9, luma, hex6, parseHex6, makeTransform, makeHistogram, kmeans, finishPalette, ensureColour, keepClearOf, nudgeOffReserved, nearestIndex,
 } from './art-colour.mjs';
 import { stripPreview, compareImage, contactSheet, swatchImage, toPng, pickScale } from './art-preview.mjs';
 
@@ -215,6 +215,11 @@ function cleanGroup(frames, o) {
   if (reserved.length && !o.palette) {
     const r = keepClearOf(palette, reserved, 44);
     palette = r.palette; info.gorePalette = r.moves;
+  }
+  // never the exact value of ANY reserved colour (bone and meat included): nothing but gore may use them
+  if (!o.palette) {
+    const r = nudgeOffReserved(palette, o.gore.all);
+    palette = r.palette; info.gorePalette = [...info.gorePalette, ...r.moves];
   }
   // outline colour
   let outline = null;
@@ -669,7 +674,7 @@ function finishReports(res, input, o) {
     const list = [...st.moved.values()].sort((a, b) => b.n - a.n).slice(0, 4);
     for (const e of list) moves.push(`${hex6(e.from.map(Math.round))} -> ${hex6(e.to.map(Math.round))} (${(100 * e.n / fgTotal).toFixed(1)}% of the picture)`);
   }
-  for (const [a, b] of gi.gorePalette) moves.push(`palette colour ${hex6(a)} was too close to a reserved gore colour and moved to ${hex6(b)}`);
+  for (const [a, b] of gi.gorePalette) moves.push(`palette colour ${hex6(a)} was ${a.join() === b.join() ? '' : 'too close to or exactly '}a reserved gore colour and moved to ${hex6(b)}`);
   res.goreMoves = moves;
   const goreShare = ((st.ichor || 0) + (st.blood || 0)) / fgTotal;
   res.sourceHadOutline = gi.sourceEdgeDark >= 0.6;
