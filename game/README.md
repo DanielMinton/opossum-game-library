@@ -1,6 +1,6 @@
 # Sammy: placeholder prototype (level 1, Sheep Meadow)
 
-This is a playable first level that uses **placeholder art and sound**. Sammy is a grey box with ears and a pink nose, zombies are green boxes, and every sound is a code-generated beep. The on-screen label "PLACEHOLDER ART – NOT FINAL" stays visible the whole time. Your real art and sound replace the placeholders automatically, one file at a time, as you add them (see **Adding art** and **Adding sound** below).
+This is a playable first level that uses **placeholder art and sound**. The first real art is in: Sammy's run animation. Otherwise Sammy is a grey box with ears and a pink nose, zombies are green boxes, and every sound is a code-generated beep. The on-screen label "PLACEHOLDER ART – NOT FINAL" stays visible the whole time. Your real art and sound replace the placeholders automatically, one file at a time, as you add them (see **Adding art** and **Adding sound** below).
 
 Every gameplay value comes from the examples in `templates/examples/`, which are **proposals, not approved design**. Changes the prototype made are listed in `design/DECISIONS.md`. The questions only you can answer (title, art style, how gory, and more) are in `design/OWNER_DECISIONS.md`, each with a suggested answer.
 
@@ -55,11 +55,9 @@ The level is 12 screens long, about 1 minute for a fast run and 3–5 minutes fo
 
 ## Adding art
 
-1. Put real files in `assets/` using the exact names from `templates/examples/` (for example, `assets/characters/character-sammy/sammy-run-strip-v01.png`). The full list is in `game/src/assets.js`.
-2. Run `node game/tools/scan-assets.mjs` from the library folder. It lists the files it found, any images whose names the game doesn't recognize, and any art warnings (below).
-3. Reload the game. Any sprite with a real file uses it; everything else stays a placeholder.
+**The steps are in the main README: [Adding real art](../README.md#adding-real-art).** In short: from the `game/` folder, run `node tools/scan-assets.mjs` to see every missing file with its exact path and size, save the PNG there, add its license row, and run the scanner again. This section only adds details.
 
-**New versions:** save `sammy-run-strip-v02.png` beside `v01`. The highest version wins; older ones stay in the folder and are skipped quietly. Run the scanner again afterwards.
+**Blank drawing templates:** `templates/art-templates/` has a see-through PNG for every planned picture, at its exact size, with guide marks to erase before saving. What each picture should show, and what the guide colours mean, is in [design/ART_BRIEFS.md](../design/ART_BRIEFS.md). To make the templates again, run `node tools/make-art-templates.mjs` from the `game/` folder.
 
 **What the scanner warns about** (a warning never stops a file from being listed):
 - **Wrong size**, for example "expected 384x48 px, got 100x48". The game does **not** use a wrong-size file, because it would be cut into frames wrongly. The placeholder stays, the browser console says why, and the title screen shows "ART WARNINGS".
@@ -75,7 +73,7 @@ Frame sizes, frame counts, speeds and the feet point (24, 47) follow the draft s
 
 ### Requested art the game can't show yet
 
-The docs ask for these, but the game has no place to draw them yet, so adding the files changes nothing on screen:
+The docs ask for these, but the game has no place to draw them yet, so adding the files changes nothing on screen (and the scanner's missing list leaves them out):
 - Play Possum HUD icon (the "PP" box stays)
 - hearts
 - Sammy wake-up strip (`sammy-wake-up-strip-v01.png`)
@@ -91,24 +89,15 @@ To try every planned file without scanning, add `?probe=1` to the address. Missi
 
 ## Adding sound
 
-1. Put each sound in its own folder under `assets/audio/`, named after the folder plus a version:
-   - Sound effects: `assets/audio/sfx/sfx-jump/sfx-jump-v01.ogg`
-   - Music: `assets/audio/music/music-level-01-central-park/music-level-01-central-park-v01.ogg`
-2. Run `node game/tools/scan-assets.mjs`. It lists the sounds it found and flags any audio file with a name it doesn't recognize.
-3. Reload the game and press a key or tap the screen (browsers stay silent until you do). Each sound with a file uses it; the rest keep their beep.
+**The steps are in the main README: [Adding sound](../README.md#adding-sound)** (including how to turn WAV files into `.ogg`). In short: from the `game/` folder, run `node tools/scan-assets.mjs` to see every missing sound with its exact path, save the file there, add its license row, and run the scanner again. The scanner also flags any audio file with a name it doesn't recognize. This section only adds details.
 
-**Only have WAV files?** From the `game/` folder, run `node tools/convert-audio.mjs` (or `npm run convert`). It makes an `.ogg` beside every `.wav` in `assets/audio/` that doesn't have one yet. Add `--mp3` to also make any missing `.mp3` copies for older Safari (this works even after the `.ogg` files exist). It needs ffmpeg (`brew install ffmpeg`); without it, it prints the exact commands to run. It never deletes or overwrites anything, and the `.wav` stays as the master copy. Then run the scanner (step 2).
+**Which sounds are planned:** the scanner's "Still missing — sounds" list shows every planned sound that has no file yet (the full list is `S.SOUND_MANIFEST` in `game/src/assets.js`).
 
-**Sound names.** The full list is `S.SOUND_MANIFEST` in `game/src/assets.js`:
-- The 11 core sounds from `templates/examples/audio/AUDIO.md` (`sfx-jump`, `sfx-land`, `sfx-tail-whip`, `sfx-hit-zombie`, `sfx-zombie-groan`, `sfx-pickup`, `sfx-hurt`, `sfx-play-dead`, `sfx-zombie-defeat-comedic`, `sfx-cart-crash`, `sfx-ko`).
-- 10 extra sounds the prototype uses: `sfx-cart-rock`, `sfx-shield-block`, `sfx-shield-break`, `sfx-throw`, `sfx-splat`, `sfx-splash`, `sfx-checkpoint`, `sfx-gate-open`, `sfx-level-clear`, `sfx-start`.
-- Music: `music-level-01-central-park` plays during the level. `music-level-01-gauntlet` plays during the gauntlet; without it, the level music keeps playing there without restarting. Real music also carries on (rather than restarting) after a checkpoint respawn or **R**; a K.O. starts it over. Pausing keeps the music's place, for both real music and the placeholder tune.
+**Music:** `music-level-01-central-park` plays during the level. `music-level-01-gauntlet` plays during the gauntlet; without it, the level music keeps playing there without restarting. Real music also carries on (rather than restarting) after a checkpoint respawn or **R**; a K.O. starts it over. Pausing keeps the music's place, for both real music and the placeholder tune.
 
-**Formats and versions:**
+**Formats:**
 - Use `.ogg` (what `AUDIO.md` asks for). `.mp3` and `.wav` also work. If a sound has more than one format, the game uses the first one the browser can play, in the order ogg → mp3 → wav. Adding an `.mp3` next to each `.ogg` covers older Safari, which can't play `.ogg`.
 - A `.wav` next to an `.ogg` or `.mp3` of the same sound is treated as the master copy. It isn't loaded or copied into the build.
-- Variations: `sfx-land-v01-a.ogg`, `sfx-land-v01-b.ogg`, and so on. One is picked at random each time.
-- New version: save `sfx-jump-v02.ogg` beside `v01`. The highest version wins.
 
 **Volume:** `sound.musicVolume` and `sound.sfxVolume` in `game/src/config.js` (0 to 1). **M** mutes everything.
 
@@ -123,12 +112,13 @@ cd game
 node tools/build.mjs
 ```
 
-This makes `game/dist/`:
-- `index.html`: the whole game in one file.
-- `BUILD_INFO.txt`: what art and sound was included, and why anything was left out. Its first line has a 12-character code that only changes when the game itself changes, so building again with nothing new leaves `dist/` exactly as it was.
+This makes `game/dist/`. You only need it for the shareable copy; `game/index.html` picks up new files after the scanner runs.
+- `index.html`: the game's code in one file.
+- `assets/`: the cleared real art and sound (today: Sammy's run animation). Share the whole `dist/` folder.
+- `BUILD_INFO.txt`: what art and sound was included, and why anything was left out. Its "Still placeholders (no real file yet):" section lists every planned picture and sound that has no real file yet. Its first line has a 12-character code that only changes when the game itself changes, so building again with nothing new leaves `dist/` exactly as it was.
 - `CREDITS.txt`: the credit line for every included file that needs one.
 
-**License rules.** Each art or sound file needs its own row in `design/ASSET_SOURCES.csv` (a new version, like `-v02`, needs a new row). Columns:
+**License rules.** Each art or sound file needs its own row in `design/ASSET_SOURCES.csv` (a new version, like `-v02`, needs a new row). Near the top of what it prints, the build lists any file without a row under "License rows missing in design/ASSET_SOURCES.csv (paste and check):", with a ready-to-paste row for each; it never changes the CSV itself (see [Building a shareable copy](../README.md#building-a-shareable-copy)). Columns:
 
 | Column | What to write |
 |---|---|
@@ -141,7 +131,7 @@ This makes `game/dist/`:
 | `attribution_required` | `yes` or `no`. `yes` adds it to `CREDITS.txt` |
 | `notes` | Anything else |
 
-A file is copied **only if** `commercial_use` is `yes` **and** the license is filled in (not blank, TBD or unknown) **and** the license isn't non-commercial (NC) or reference-only. Anything else is left out, with the reason in `BUILD_INFO.txt`. Nothing from `assets/references/` is ever copied. Today no art or sound exists, so the build is placeholders only.
+A file is copied **only if** `commercial_use` is `yes` **and** the license is filled in (not blank, TBD or unknown) **and** the license isn't non-commercial (NC) or reference-only. Anything else is left out, with the reason in `BUILD_INFO.txt`. Nothing from `assets/references/` is ever copied. Today the only real file is Sammy's run animation (cleared, so it is in the build); everything else is a placeholder.
 
 **Publishing (not done; needs your go-ahead).** The `dist/` folder is a static website, so it can be zipped and uploaded as an HTML game to itch.io, or hosted with GitHub Pages or Netlify. Before any public release:
 - Replace the placeholders.
@@ -154,7 +144,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | 53 game-rule checks (see the list below) |
+| `node --test tests/sim.test.mjs` | 58 game-rule checks (see the list below) |
 | `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 51 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 | `index.html?test=touch&touch=1` | The touch-button check by hand (it taps the real buttons for you) |
@@ -173,12 +163,14 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - the audio converter picks only `.wav` files missing an `.ogg` (or an `.mp3` with `--mp3`), and never overwrites
 - animation timings in `config.js` match the frame counts and speeds of the art strips
 - art versions (the newest wins), the license rules for the build, and the scanner's PNG checks (size, colour profile, semi-transparent pixels, off-grid colours, too many colours, broken files)
+- the scanner's "Still missing" lists (exact file names, folders and sizes, and nothing listed that already exists) and the license rows the build suggests (a new file gets blanks and stays out of the build; a new version copies the older version's row)
 - the screen-size maths (`layout.js`) for ten phones, tablets and computers: the right whole-number size, centred on whole real pixels, never cut off, never smaller than ×1, and space kept free for touch buttons
 - the touch-button layout for seven phones and tablets (plus notches and a narrow screen): every button at least 56 points (pause 44), on screen and clear of notches, not on top of each other, sharp, and covering only the dirt strip at the bottom corners of the picture, never the top bar or the grass lane; upright, all buttons below the picture
 - the touch wording fits on screen
 - notches: with and without touch buttons, the picture (and every button, including full screen, RESTART and MUTE) keeps clear of notch, camera-hole and home-bar margins on seven phones and tablets, centred in what's left; computers are unchanged
 - the "turn your phone sideways" message: shown only on an upright phone (not a tablet) with touch buttons and until put away; its card is sharp, big enough and clear of notches
 - starting sound on phones (with a pretend sound engine and sound files): every kind of tap tries, a refused try is retried, a silent sample plays, every file and copy is primed without a sound and gets its volume back, files are primed only when a finger lifts, a click or a key press (a pretend phone that, like a real one, lets muted files play any time but unlocks them only then: a finger going down must not count), it stops listening once sound is on, it restarts after a call or the lock screen but never while hidden, music waits for the unpause, and mute reaches every copy
+- the drawing templates: one for every planned picture at its exact size, kept outside `assets/`; their guide marks are part see-through, so the scanner warns about a guide left in; making them again gives the same files
 
 **Browser checks** cover:
 - the shareable copy is up to date: `dist/index.html` has the current code from `src/`, and `BUILD_INFO.txt` has the matching code. If not, it says "run node tools/build.mjs". (So after changing anything in `src/`, build before running this test.)
@@ -222,7 +214,7 @@ The art and sound checks use a temporary copy of the library, never your `assets
 | `src/touch.js` | On-screen touch buttons for phones and tablets (where they go is worked out in `layout.js`) |
 | `src/phone.js` | Phone page behaviour: the "turn your phone sideways" message, full screen, no accidental zoom or long-press menus |
 | `src/bot.js` | Autopilot used only by the tests |
-| `tools/` | Art and sound scanner (with PNG checks in `png.mjs`), WAV-to-OGG converter, build script, and license rules (`licenses.mjs`) |
+| `tools/` | Art and sound scanner (with PNG checks in `png.mjs`), WAV-to-OGG converter, build script, license rules (`licenses.mjs`), and the drawing-template maker (`make-art-templates.mjs`, which writes blank templates and contact sheets to `templates/art-templates/`; `png-writer.mjs` saves its PNGs) |
 | `tests/` | Game-rule tests and the browser check |
 | `dist/` | Latest shareable build (made by `tools/build.mjs`) |
 

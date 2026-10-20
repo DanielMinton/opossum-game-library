@@ -1,6 +1,6 @@
 # Asset metadata — Zombie Jogger (example)
 
-> **EXAMPLE ONLY — not a real asset. No files listed here exist yet.** Copy into assets/<category>/<asset-id>/ and replace with your real details.
+> **EXAMPLE ONLY — planning spec, not a finished asset.** Run the scanner to see which files exist. Don't copy this into assets/ until every TBD is filled in.
 
 How to read this example: **Confirmed** = humans have turned into zombies, with humorous, graphic (cartoon/slapstick) animations. Everything else (this enemy type, its behavior, numbers) is **Proposed** / **Example**. For a real enemy you would copy this file to `assets/enemies/enemy-zombie-jogger/ASSET.md`.
 

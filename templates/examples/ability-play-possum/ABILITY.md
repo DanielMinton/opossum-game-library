@@ -1,5 +1,5 @@
 # Ability — Play Possum (example)
-> **EXAMPLE ONLY — not a real asset. No files listed here exist yet.** Copy into assets/<category>/<asset-id>/ and replace with your real details.
+> **EXAMPLE ONLY — planning spec, not approved design.** Don't copy this into design/ until every TBD is filled in.
 
 > **Where the real copy goes:** `design/abilities/ability-play-possum.md` (per `templates/ABILITY.md`) — **not** `assets/`. Ability docs describe rules, not artwork.
 

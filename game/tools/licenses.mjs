@@ -33,3 +33,26 @@ export function excludeReason(row) {
 }
 export function cleared(row) { return !excludeReason(row); }
 export function needsCredit(row) { return !!row && yes(row.attribution_required); }
+
+// A ready-to-paste design/ASSET_SOURCES.csv line for a file that has no row yet. Pure: it never writes the CSV.
+// filePath is like 'assets/characters/character-sammy/sammy-run-strip-v02.png'.
+// If a row exists for another version of the same file, its creator, source and license columns are copied;
+// otherwise license is TBD and commercial_use is blank, so the file will not ship until someone fills them in.
+export const CSV_COLUMNS = ['asset_id', 'path', 'creator', 'source_url', 'license', 'commercial_use', 'attribution_required', 'notes'];
+const withoutVersion = (p) => String(p).replace(/^\.?\//, '').replace(/-v\d+(-[a-z0-9]+)?\.[a-z0-9]+$/i, '');
+const verNum = (p) => { const m = /-v(\d+)(-[a-z0-9]+)?\.[a-z0-9]+$/i.exec(String(p)); return m ? parseInt(m[1], 10) : -1; };
+const csvField = (v) => (/[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v);
+export function suggestRow(filePath, rows = []) {
+  const key = withoutVersion(filePath);
+  const older = rows.filter((r) => r.path && withoutVersion(r.path) === key && r.path.replace(/^\.?\//, '') !== filePath)
+    .sort((a, b) => verNum(a.path) - verNum(b.path) || (a.path < b.path ? -1 : a.path > b.path ? 1 : 0)).pop();
+  const row = {
+    asset_id: key.split('/').pop(), path: filePath, creator: '', source_url: '', license: 'TBD',
+    commercial_use: '', attribution_required: '', notes: 'New file; check every column',
+  };
+  if (older) {
+    for (const k of ['creator', 'source_url', 'license', 'commercial_use', 'attribution_required']) row[k] = older[k] || '';
+    row.notes = 'Copied from ' + older.path + '; check it still applies';
+  }
+  return CSV_COLUMNS.map((k) => (k === 'notes' ? '"' + row.notes.replace(/"/g, '""') + '"' : csvField(row[k]))).join(',');
+}

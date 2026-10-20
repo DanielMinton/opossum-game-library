@@ -7,8 +7,8 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { scan } from './scan-assets.mjs';
-import { parseCsv, cleared, excludeReason, needsCredit } from './licenses.mjs';
+import { scan, missingArtLines, missingSoundLines } from './scan-assets.mjs';
+import { parseCsv, cleared, excludeReason, needsCredit, suggestRow } from './licenses.mjs';
 
 const gameDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const root = path.join(gameDir, '..');
@@ -36,6 +36,17 @@ for (const [id, files] of Object.entries(scanResult.sounds)) {
   }
 }
 const soundFiles = [].concat(...Object.values(soundsIncluded));
+
+// Files the game would use but that have no license row yet: a ready-to-paste row for each (the CSV is never written).
+// Reference-only files, older versions, .wav masters and images the game doesn't use are not listed.
+const needRow = Object.values(scanResult.files).filter((p) => !p.startsWith('references/'))
+  .concat(...Object.values(scanResult.sounds))
+  .filter((p) => !rowFor(p));
+if (needRow.length) {
+  console.log('License rows missing in design/ASSET_SOURCES.csv (paste and check):');
+  for (const p of needRow) console.log(suggestRow('assets/' + p, sources));
+  console.log('');
+}
 
 fs.rmSync(dist, { recursive: true, force: true });
 fs.mkdirSync(dist, { recursive: true });
@@ -73,6 +84,9 @@ const info = [
   `Art left out (${excluded.length}):`, ...excluded.map((p) => '  ' + p),
   `Sound files included (${soundFiles.length}):`, ...soundFiles.map((p) => '  ' + p),
   `Sound files left out (${soundsExcluded.length}):`, ...soundsExcluded.map((p) => '  ' + p),
+  '',
+  'Still placeholders (no real file yet):',
+  ...missingArtLines(scanResult), ...missingSoundLines(scanResult),
   '',
   'Placeholder shapes and code-generated beeps are used for everything not included.',
   'A file is included only when design/ASSET_SOURCES.csv says commercial_use "yes" and names a commercial-use license.',

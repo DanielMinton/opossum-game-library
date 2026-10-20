@@ -1,5 +1,5 @@
 # Asset metadata — Central Park tileset + parallax (example)
-> **EXAMPLE ONLY — not a real asset. No files listed here exist yet.** Copy into assets/<category>/<asset-id>/ and replace with your real details.
+> **EXAMPLE ONLY — planning spec, not a finished asset.** Run the scanner to see which files exist. Don't copy this into assets/ until every TBD is filled in.
 
 How to use this example: a filled-in `ASSET.md` for a level tileset and its scrolling background layers. Real copy goes in `assets/environments/environment-central-park-tileset/`. Setting (Central Park, NYC) is confirmed by the user; everything marked **Proposed** or **Example** is a suggestion.
 

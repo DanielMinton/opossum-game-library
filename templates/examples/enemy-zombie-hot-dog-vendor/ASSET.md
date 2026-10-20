@@ -1,6 +1,6 @@
 # Asset metadata — Zombie Hot Dog Vendor (example)
 
-> **EXAMPLE ONLY — not a real asset. No files listed here exist yet.** Copy into assets/<category>/<asset-id>/ and replace with your real details.
+> **EXAMPLE ONLY — planning spec, not a finished asset.** Run the scanner to see which files exist. Don't copy this into assets/ until every TBD is filled in.
 
 A shorter second example. It shows how to describe an enemy that **behaves differently** (stays put and throws things) and how to list the **extra assets** that behavior needs. Everything here is **Proposed** / **Example** except "humans are zombies" (Confirmed). For the full field-by-field model, see `templates/examples/enemy-zombie-jogger/ASSET.md`.
 

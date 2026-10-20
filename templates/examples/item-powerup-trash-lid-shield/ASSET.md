@@ -1,5 +1,5 @@
 # Asset metadata — Trash can lid shield (example)
-> **EXAMPLE ONLY — not a real asset. No files listed here exist yet.** Copy into assets/<category>/<asset-id>/ and replace with your real details.
+> **EXAMPLE ONLY — planning spec, not a finished asset.** Run the scanner to see which files exist. Don't copy this into assets/ until every TBD is filled in.
 
 How to use this example: a filled-in `ASSET.md` for a power-up pickup. Real copy goes in `assets/items/item-powerup-trash-lid-shield/`. What the power-up *does* is in the example `ABILITY.md` beside this file; its real copy goes in `design/abilities/item-powerup-trash-lid-shield.md`, not in `assets/`. Everything marked **Proposed** or **Example** is a suggestion, not a decision.
 

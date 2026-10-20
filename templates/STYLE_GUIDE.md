@@ -123,12 +123,12 @@ One guide for the whole project. This is the blank template. **Sammy's filled-in
 
 - Lowercase kebab-case, version suffix `-v01`, `-v02`, …
 - Pattern: `<asset>-<animation or state>-<kind>-v01.png`
-- Kind words: `strip` = one horizontal strip for one animation (the normal case); `sheet` = a multi-row sheet or a tile sheet; `loop` = a repeating background band; `reference` = not for the game.
-- Examples (naming patterns only — these files do not exist):
+- Kind words: `strip` = one horizontal strip for one animation (the normal case); `sheet` = a multi-row sheet or a tile sheet; `reference` = not for the game. Background bands use `<place>-bg-<band>-v01.png`.
+- Examples (naming patterns only; exact names come from the scanner or `game/src/assets.js`):
   - `sammy-run-strip-v01.png`
   - `sammy-reference-v01.png`
   - `zombie-jogger-walk-strip-v01.png`
-  - `central-park-sky-loop-v01.png`
+  - `central-park-bg-sky-v01.png`
   - `palette-line-0-sammy-hud-v01.png`
   - `music-level-01-central-park-v01.ogg`
 - Never overwrite the only original. Save a new version instead.

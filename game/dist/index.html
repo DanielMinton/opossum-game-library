@@ -309,6 +309,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   const cart = { fw: 64, fh: 48, px: 32, py: 47 };
   const small = { fw: 16, fh: 16, px: 8, py: 15 };
   const mid = { fw: 16, fh: 16, px: 8, py: 8, feet: false };
+  // Some items live in another thing's folder: the hot dog projectile and splat are in the vendor's folder (VEN),
+  // and the hot dog pickup is in the cart's folder (CART). The scanner's "Still missing" list shows each exact path.
 
   S.ASSET_MANIFEST = [
     strip('sammy:idle', SAM + 'sammy-idle-strip-v01.png', 4, 6, 'loop', sam()),
