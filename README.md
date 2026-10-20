@@ -293,6 +293,8 @@ The game is a plain website, so hosting is simple. Once it's online you can play
 
 Command-line alternative: `npm i -g vercel`, then `vercel --prod` in the project folder.
 
+**Share picture and icons:** when the link is pasted into a chat or social post it shows the card in `game/share/og-image.png`; the tab, home-screen and app icons are beside it. The page points at `https://opossum-game-library.vercel.app/og-image.png`; if your Vercel address is different, change that line in `game/index.html` (search for `og:image`).
+
 ## Tests
 
 The tests need Node 18 or newer (a free program for running JavaScript). Nothing else to install. From the project folder, run:

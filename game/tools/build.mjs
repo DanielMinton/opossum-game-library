@@ -91,6 +91,9 @@ const info = [
   'Placeholder shapes and code-generated beeps are used for everything not included.',
   'A file is included only when design/ASSET_SOURCES.csv says commercial_use "yes" and names a commercial-use license.',
 ].join('\n');
+// Site files: icons, the social-share picture and the web manifest live in game/share/ and are copied to the top of dist/.
+const shareDir = path.join(gameDir, 'share');
+if (fs.existsSync(shareDir)) for (const f of fs.readdirSync(shareDir)) if (!f.startsWith('.')) fs.copyFileSync(path.join(shareDir, f), path.join(dist, f));
 fs.writeFileSync(path.join(dist, 'BUILD_INFO.txt'), info + '\n');
 
 const credits = artFiles.concat(soundFiles).filter((p) => needsCredit(rowFor(p))).map((p) => {
