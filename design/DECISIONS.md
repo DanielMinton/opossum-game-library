@@ -294,7 +294,7 @@ Mobile steps 3 and 4 (phone layout, reliable sound on phones) and the task list,
 - The **theme song** is the owner's.
 
 **Proposed (reversible) in this step (step A: docs, song, art):**
-- **Working title:** "Sammy the Opossum: Zombie Hunter", from the song. Still owner question 3. The game's own title screen and browser tab are unchanged ("Sammy").
+- **Working title:** "Sammy the Opossum: Zombie Hunter", from the song. Still owner question 3. The game's own title screen and browser tab are unchanged ("Sammy"). *(Superseded by Stage B: the title screen now shows "SAMMY THE OPOSSUM / ZOMBIE HUNTER (WORKING TITLE)"; the browser tab is still "Sammy".)*
 - **Gore level:** stylized 16-bit gore: chunky pixel blood in reserved colours, zombies cut in half by the chainsaw, green ichor, sparks; never realistic; Sammy never bleeds. A **low-gore option** (blood becomes ichor or dust, bodies stay in one piece) is part of the plan, and low-gore art files are named with `-lowgore` before the version. Audience **13 and up**. Rules and colours: `design/STYLE_GUIDE.md`, "Night mood". Other option: keep cartoon pops and splats with only a little blood (easier for stores and younger players).
 - **Chainsaw = a power-up**, with the **tail-whip kept as the basic attack**. Art can be full Sammy-with-saw strips (suggested) or a saw drawn over his normal strips. Brief: `design/ART_BRIEFS.md`, "Chainsaw power-up". Planned sound names: `sfx-chainsaw-start`, `sfx-chainsaw-rev` (loops), `sfx-chainsaw-cut`, `sfx-gore-splat`. **None of these are in the game yet** (not in `game/src/assets.js`, no templates, the scanner doesn't ask for them): step B adds them, and may change names or sizes. Other option: make the chainsaw Sammy's permanent weapon (simpler, but leaves the tail-whip with no job).
 - **In-game Sammy keeps his cartoon look** with the red bandana (his run strip). The README art shows the ferocious attitude in that style. The painted concept picture is mood only.
@@ -334,3 +334,17 @@ Mobile steps 3 and 4 (phone layout, reliable sound on phones) and the task list,
 - A hard convention: "**Gore:** stylized 16-bit only (reserved blood red and ichor green, see `design/STYLE_GUIDE.md`); Sammy never bleeds. Every gory picture or effect needs a low-gore version (`-lowgore` before the version), and gore drawn in code must check the low-gore setting."
 
 **Tests after this step:** 61 game-rule tests (3 new: the theme song is found, is the level track and is held out of the build with its reason; the concept picture stays reference-only; the README pictures are self-contained and their cast numbers match the game) and 51 browser checks (one changed: the source game now loads one real sound file, the theme song, and the built game none), all passing.
+
+## 2026-10-19: Stage B — chainsaw, gore, night park
+
+### Night park, Bethesda Terrace and voice (builder 3)
+
+All **Proposed (reversible)** unless marked Confirmed.
+
+- **Owner rule (Confirmed):** uncensored deadpan humour with cursing and swearing is encouraged for Sammy and the zombies. Recorded in `CLAUDE.md` ("Tone") and `design/STYLE_GUIDE.md` ("Voice and humour"). Docs to the owner stay plain.
+- **Night palette** (`game/src/config.js`, `S.PAL`): the existing colour names now hold night colours from the style guide (navy-to-purple sky, blue-green grass, wet blue-grey earth), plus new ones for the moon, stars, lit windows, lamp glow, stone and autumn leaves. The reserved gore colours (blood red, ichor green) are in the palette too, and a test checks nothing else uses them. The HUD bar is now dark slate so it doesn't vanish into the night sky. Zombie and Sammy colours are unchanged.
+- **Placeholder night scene:** flat sky bands with dithered seams, stars, a dithered full moon upper left (light from the top-left), lit windows in the skyline, autumn leaf pixels, an amber dithered glow round each lamp, and short dithered reflections on the wet ground under lamps. Real background art still replaces it when added.
+- **Bethesda Terrace arena:** the last screen (the gauntlet) has a stone floor, an arcade wall with arches, a balustrade, and a placeholder angel fountain (basin, column, upper bowl, angel) in the middle. Decoration only: nothing new is solid, so the fight plays the same. Other option: a separate terrace level later; one screen was quicker.
+- **Title screen:** "SAMMY THE OPOSSUM" / "ZOMBIE HUNTER" (still marked working title, owner question 3), tagline "HE DOESN'T FUCK AROUND WITH ZOMBIES.", level name "SHEEP MEADOW, AFTER DARK". Browser tab unchanged.
+- **Voice:** tutorial prompts keep the control hint first, then a deadpan line ("X: TAIL-WHIP. SMACK THE DEAD BASTARDS."). Arena banner "BETHESDA TERRACE. NOBODY LEAVES.", exit "EXIT OPEN. GO.", pause "THE DEAD CAN FUCKING WAIT.", level clear "THE PARK IS A LITTLE LESS DEAD." Start, resume and play-again lines stay plain so they're clear.
+- **Tests:** 63 game-rule tests (2 new: palette on the 9-bit grid with gore colours reserved; every title, quip, prompt and banner fits and uses only letters the font has) and 51 browser checks, all passing.

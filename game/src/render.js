@@ -31,9 +31,17 @@
   for (const m of S.ASSET_MANIFEST) if (m.key.startsWith('bg:')) BG[m.key] = m;
   function drawBackground(ctx, camX) {
     if (!sprite(ctx, 'bg:sky', 0, 0, BG['bg:sky'].y, 1)) {
+      // Night sky: flat bands, a checkerboard dither row at each seam, stars, and a dithered full moon (light from the top-left).
       const bands = [K.sky0, K.sky1, K.sky2, K.sky3, K.sky4];
       bands.forEach((c, i) => R(ctx, c, 0, i * 28, W, 28));
       R(ctx, K.sky4, 0, 140, W, 84);
+      for (let i = 1; i < bands.length; i++) dither(ctx, bands[i - 1], 0, i * 28, W, 2);
+      for (let i = 0; i < 46; i++) {
+        const sx = Math.floor(rnd(i + 401) * W), sy = 18 + Math.floor(rnd(i + 733) * 70);
+        R(ctx, K.star, sx, sy, 1, 1);
+        if (rnd(i + 57) > 0.85) { R(ctx, K.sky2, sx - 1, sy, 1, 1); R(ctx, K.sky2, sx + 1, sy, 1, 1); R(ctx, K.sky2, sx, sy - 1, 1, 1); R(ctx, K.sky2, sx, sy + 1, 1, 1); }
+      }
+      drawMoon(ctx, 52, 50, 13);
     }
     // Placeholder shapes stay inside each band's rows, like real art would.
     tiled(ctx, 'bg:skyline', camX, (ox, y, w, h) => {
@@ -42,6 +50,10 @@
         const bx = ox + i * 32;
         R(ctx, K.skyline, bx, y + h - bh, bw, bh);
         if (rnd(i + 3) > 0.6) R(ctx, K.skyline, bx + bw / 2 - 1, y + h - bh - 8, 2, 8);
+        // Lit windows: a few warm squares per building, on a 4 px grid.
+        for (let wy = y + h - bh + 4; wy < y + h - 4; wy += 5) for (let wx = bx + 3; wx < bx + bw - 3; wx += 4) {
+          if (rnd(wx * 7 + wy * 13 + i) > 0.82) R(ctx, K.window, wx, wy, 2, 2);
+        }
       }
     });
     tiled(ctx, 'bg:treeline', camX, (ox, y, w, h) => {
@@ -56,9 +68,36 @@
       for (let i = 0; i < w / 22; i++) {
         const r = 4 + Math.floor(rnd(i + 55) * 8);
         R(ctx, K.bushes, ox + i * 22, y + 12 - r, 20, r);
+        if (rnd(i + 17) > 0.6) R(ctx, [K.leaf0, K.leaf1, K.leaf2][i % 3], ox + i * 22 + 6, y + 14 - r, 1, 1); // autumn leaf
       }
       R(ctx, K.bushes, ox, y + 8, w, h - 8);
     });
+  }
+  // Checkerboard of colour c over a rectangle (the 16-bit way to blend two colours).
+  function dither(ctx, c, x, y, w, h) {
+    ctx.fillStyle = c;
+    for (let yy = 0; yy < h; yy++) for (let xx = (yy + y + x) & 1; xx < w; xx += 2) ctx.fillRect(x + xx, y + yy, 1, 1);
+  }
+  // Full moon: pale disc, dithered shadow edge on the lower right, a few craters, a faint dithered halo.
+  function drawMoon(ctx, cx, cy, r) {
+    for (let y = -r - 3; y <= r + 3; y++) for (let x = -r - 3; x <= r + 3; x++) {
+      const d = Math.sqrt(x * x + y * y);
+      let c = null;
+      if (d <= r) c = (x + y > r * 0.9 && ((x + y) & 1)) ? K.moonMid : K.moon;
+      else if (d <= r + 3 && ((x + y) & 1) === 0 && d > r + 1) c = K.sky2;
+      if (c) R(ctx, c, cx + x, cy + y, 1, 1);
+    }
+    R(ctx, K.moonCrater, cx - 5, cy - 3, 4, 3); R(ctx, K.moonCrater, cx + 3, cy + 2, 3, 3);
+    R(ctx, K.moonCrater, cx - 1, cy + 6, 2, 2); R(ctx, K.moonMid, cx + 4, cy - 6, 2, 2);
+  }
+  // Amber lamp glow: a dithered halo that thins out with distance. Never see-through pixels.
+  function lampGlow(ctx, cx, cy) {
+    for (let y = -14; y <= 14; y++) for (let x = -16; x <= 16; x++) {
+      const d = Math.sqrt(x * x + y * y * 1.3), px = cx + x, py = cy + y;
+      if (d < 5) { if ((px + py) & 1) R(ctx, K.lampGlow, px, py, 1, 1); }
+      else if (d < 10) { if (((px + py) & 1) && (py & 1)) R(ctx, K.lampHalo, px, py, 1, 1); }
+      else if (d < 15) { if ((px & 3) === 0 && (py & 3) === (px & 4 ? 2 : 0)) R(ctx, K.lampDeep, px, py, 1, 1); }
+    }
   }
   function tiled(ctx, key, camX, fallback) {
     const b = BG[key], m = S.images[key];
@@ -70,16 +109,39 @@
   }
 
   // ---------- world ----------
+  // The last screen (the gauntlet arena) is Bethesda Terrace: stone floor instead of grass and earth.
   function drawGround(ctx, s, x0, x1) {
+    const A = s.level.arena;
     for (const g of s.level.ground) {
-      const a = Math.max(g.x0, x0), b = Math.min(g.x1, x1);
-      if (a >= b) continue;
-      R(ctx, K.dirt, a, G, b - a, H - G);
-      R(ctx, K.grass, a, G, b - a, 4);
-      for (let x = Math.floor(a / 8) * 8; x < b; x += 8) {
-        if (rnd(x) > 0.5) R(ctx, K.grass, x + 2, G - 2, 2, 2);
-        if (rnd(x + 1) > 0.7) R(ctx, K.dirtDark, x + 3, G + 10 + Math.floor(rnd(x + 2) * 18), 3, 2);
+      const a = Math.max(g.x0, x0), b = Math.min(g.x1, Math.min(x1, A.x0));
+      if (a < b) {
+        R(ctx, K.dirt, a, G, b - a, H - G);
+        R(ctx, K.grass, a, G, b - a, 4);
+        for (let x = Math.floor(a / 8) * 8; x < b; x += 8) {
+          if (rnd(x) > 0.5) R(ctx, K.grass, x + 2, G - 2, 2, 2);
+          if (rnd(x + 1) > 0.7) R(ctx, K.dirtDark, x + 3, G + 10 + Math.floor(rnd(x + 2) * 18), 3, 2);
+          if (rnd(x + 5) > 0.82) R(ctx, [K.leaf0, K.leaf1, K.leaf2][x % 3], x + 5, G + 1, 2, 1);           // fallen leaves
+          if (rnd(x + 9) > 0.8) { R(ctx, K.stoneLight, x + 1, G + 6 + Math.floor(rnd(x + 3) * 8), 1, 2); }  // wet glint
+        }
       }
+      // Bethesda Terrace: rain-slick stone slabs.
+      const sa = Math.max(g.x0, x0, A.x0), sb = Math.min(g.x1, x1);
+      if (sa < sb) {
+        R(ctx, K.stoneMid, sa, G, sb - sa, H - G);
+        R(ctx, K.stoneLight, sa, G, sb - sa, 2);
+        for (let row = 0; row < 3; row++) {
+          const y = G + 2 + row * 10;
+          R(ctx, K.stone, sa, y + 9, sb - sa, 1);
+          for (let x = Math.floor(sa / 24) * 24 + (row & 1) * 12; x < sb; x += 24) if (x >= sa) R(ctx, K.stone, x, y, 1, 9);
+        }
+        for (let x = Math.floor(sa / 8) * 8; x < sb; x += 8) if (rnd(x + 21) > 0.7) dither(ctx, K.stoneLight, x + 2, G + 4, 1, 4 + Math.floor(rnd(x) * 6));
+      }
+    }
+    // Lamp reflections on the wet ground: short vertical dithered amber streaks under each lamp.
+    for (const p of s.level.platforms) if (p.kind === 'lamp') {
+      const lx = p.x + p.w / 2;
+      if (lx < x0 || lx > x1) continue;
+      for (let i = -1; i <= 1; i++) for (let y = G + 3; y < G + 20 - Math.abs(i) * 8; y += 2) R(ctx, i ? K.lampHalo : K.lampGlow, lx + i * 3 + ((y >> 1) & 1), y, 1, 1);
     }
     for (const w of s.level.water) {
       R(ctx, K.water, w.x0, w.y, w.x1 - w.x0, H - w.y);
@@ -88,7 +150,43 @@
     }
   }
 
+  // Bethesda Terrace backdrop for the arena (decoration only; nothing here is solid):
+  // an arcade wall with arches, a balustrade on top, and the angel fountain in the middle.
+  function drawTerrace(ctx, A) {
+    const x0 = A.x0, x1 = A.x1, wallTop = 140;
+    R(ctx, K.stoneMid, x0, wallTop, x1 - x0, G - wallTop);
+    R(ctx, K.stoneLight, x0, wallTop, x1 - x0, 2);
+    for (let ax = x0 + 12; ax + 28 <= x1; ax += 44) {                // arches: dark openings with round tops
+      R(ctx, K.arch, ax + 4, wallTop + 14, 20, G - wallTop - 14);
+      R(ctx, K.arch, ax + 6, wallTop + 11, 16, 3); R(ctx, K.arch, ax + 9, wallTop + 9, 10, 2);
+      R(ctx, K.stoneLight, ax + 2, wallTop + 14, 2, G - wallTop - 14); // pillar highlight, light from the left
+      dither(ctx, K.stone, ax + 4, G - 6, 20, 6);
+    }
+    R(ctx, K.stoneLight, x0, 124, x1 - x0, 3);                         // balustrade rail
+    for (let bx = x0 + 2; bx < x1; bx += 6) { R(ctx, K.stoneMid, bx, 127, 3, 13); R(ctx, K.stoneLight, bx, 128, 1, 10); }
+    R(ctx, K.stone, x0, 138, x1 - x0, 2);
+    // Angel fountain: wide basin, column, upper bowl, angel with spread wings.
+    const cx = Math.round((x0 + x1) / 2);
+    R(ctx, K.stone, cx - 3, 112, 6, G - 112);                          // column
+    R(ctx, K.stoneLight, cx - 3, 112, 1, G - 124);
+    R(ctx, K.stone, cx - 16, 132, 32, 4); R(ctx, K.stoneLight, cx - 16, 132, 32, 1); R(ctx, K.stone, cx - 10, 136, 20, 3); // upper bowl
+    for (let y = 137; y < G - 12; y += 2) { R(ctx, K.waterHi, cx - 15 + (y & 2), y, 1, 1); R(ctx, K.waterHi, cx + 14 - (y & 2), y, 1, 1); } // spill
+    R(ctx, K.arch, cx - 4, 92, 8, 20);                                // angel body
+    R(ctx, K.arch, cx - 2, 86, 4, 5);                                 // head
+    R(ctx, K.arch, cx - 18, 90, 14, 4); R(ctx, K.arch, cx - 14, 94, 10, 4); R(ctx, K.arch, cx - 9, 98, 5, 4); // wings
+    R(ctx, K.arch, cx + 4, 90, 14, 4); R(ctx, K.arch, cx + 4, 94, 10, 4); R(ctx, K.arch, cx + 4, 98, 5, 4);
+    R(ctx, K.arch, cx + 3, 80, 2, 12);                                // raised arm
+    R(ctx, K.stoneLight, cx - 18, 90, 14, 1); R(ctx, K.stoneLight, cx - 2, 86, 1, 5); R(ctx, K.stoneLight, cx - 4, 92, 1, 20); R(ctx, K.stoneLight, cx + 3, 80, 1, 10); // moonlit edges
+    R(ctx, K.stoneMid, cx - 48, G - 12, 96, 12);                       // lower basin
+    R(ctx, K.stoneLight, cx - 48, G - 12, 96, 2);
+    R(ctx, K.water, cx - 44, G - 10, 88, 3);
+    dither(ctx, K.waterHi, cx - 44, G - 10, 88, 1);
+    R(ctx, K.stone, cx - 48, G - 2, 96, 2);
+  }
+
   function drawStatic(ctx, s) {
+    const A = s.level.arena;
+    if (A.x1 > s.cam.x - 16 && A.x0 < s.cam.x + W + 16) drawTerrace(ctx, A);
     for (const b of s.level.solids) {
       if (b.kind === 'rock') { R(ctx, K.rock, b.x, b.y, b.w, b.h); R(ctx, K.grey, b.x + 3, b.y + 2, b.w - 10, 3); }
       else if (b.kind === 'fence') { R(ctx, K.fence, b.x, b.y, b.w, b.h); R(ctx, K.fence, b.x - 6, b.y + 6, b.w + 12, 3); R(ctx, K.fence, b.x - 6, b.y + 15, b.w + 12, 3); }
@@ -98,6 +196,7 @@
         R(ctx, K.bench, p.x, p.y, p.w, 4); R(ctx, K.bench, p.x, p.y - 10, p.w, 3);
         R(ctx, K.dark, p.x + 2, p.y + 4, 3, G - p.y - 4); R(ctx, K.dark, p.x + p.w - 5, p.y + 4, 3, G - p.y - 4);
       } else if (p.kind === 'lamp') {
+        lampGlow(ctx, p.x + p.w / 2, p.y + 6);
         R(ctx, K.pole, p.x + p.w / 2 - 2, p.y + 4, 4, G - p.y - 4);
         R(ctx, K.pole, p.x, p.y, p.w, 4); R(ctx, K.lamp, p.x + 4, p.y + 4, p.w - 8, 3);
       }
@@ -107,7 +206,6 @@
       R(ctx, cp.active ? K.umbrella : K.lampOff, cp.x + 2, G - 40, 12, 8);
       S.drawText(ctx, cp.id, cp.x + 3, G - 39, K.black);
     }
-    const A = s.level.arena;
     if (s.arena.state !== 'idle') {
       R(ctx, K.fence, A.x0, 128, 8, G - 128);
       for (let y = 136; y < G; y += 14) R(ctx, K.fence, A.x0, y, 14, 3);
@@ -341,18 +439,26 @@
       title1: 'BUTTONS: MOVE, JUMP, WHIP, PLAY POSSUM', title2: 'PAUSE BUTTON: RESTART AND MUTE',
       start: 'TAP JUMP TO START', again: 'TAP JUMP TO PLAY AGAIN', paused: 'TAP PLAY TO RESUME',
     },
+    // Deadpan, profane, on purpose (owner rule, CLAUDE.md "Tone").
+    title: {
+      name: 'SAMMY THE OPOSSUM', hunter: 'ZOMBIE HUNTER',
+      tag1: 'CENTRAL PARK. NIGHT. EVERY HUMAN IS A ZOMBIE.', tag2: "HE DOESN'T FUCK AROUND WITH ZOMBIES.",
+      level: 'LEVEL 1: SHEEP MEADOW, AFTER DARK',
+    },
+    quips: { paused: 'THE DEAD CAN FUCKING WAIT.', clear: 'THE PARK IS A LITTLE LESS DEAD.', end: "THAT'S THE PROTOTYPE. GO WASH YOUR PAWS." },
   };
-  function panel(ctx, x, y, w, h) { R(ctx, K.black, x - 1, y - 1, w + 2, h + 2); R(ctx, K.hud, x, y, w, h); R(ctx, K.sky1, x, y, w, 2); }
+  function panel(ctx, x, y, w, h) { R(ctx, K.black, x - 1, y - 1, w + 2, h + 2); R(ctx, K.hud, x, y, w, h); R(ctx, K.hudHi, x, y, w, 2); }
 
   function drawTitle(ctx, s) {
     drawBackground(ctx, (s.titleT || 0) * 20);
     R(ctx, K.dirt, 0, G, W, H - G); R(ctx, K.grass, 0, G, W, 4);
     panel(ctx, 40, 24, 240, 150);
-    S.drawTextCentered(ctx, 'SAMMY', W / 2, 34, K.sammy, 5, K.black);
-    S.drawTextCentered(ctx, '(WORKING TITLE)', W / 2, 64, K.grey);
-    S.drawTextCentered(ctx, 'SAMMY THE OPOSSUM WAKES UP IN CENTRAL PARK.', W / 2, 78, K.white);
-    S.drawTextCentered(ctx, 'NO MEMORY. AND EVERY HUMAN IS A ZOMBIE.', W / 2, 86, K.white);
-    S.drawTextCentered(ctx, 'LEVEL 1: SHEEP MEADOW', W / 2, 100, K.umbrella);
+    S.drawTextCentered(ctx, S.TEXT.title.name, W / 2, 31, K.sammy, 3, K.black);
+    S.drawTextCentered(ctx, S.TEXT.title.hunter, W / 2, 50, K.heart, 4, K.black);
+    S.drawTextCentered(ctx, '(WORKING TITLE)', W / 2, 73, K.grey);
+    S.drawTextCentered(ctx, S.TEXT.title.tag1, W / 2, 83, K.white);
+    S.drawTextCentered(ctx, S.TEXT.title.tag2, W / 2, 91, K.lamp);
+    S.drawTextCentered(ctx, S.TEXT.title.level, W / 2, 103, K.umbrella);
     const t = S.TEXT[S.touchActive ? 'touch' : 'keys'];
     S.drawTextCentered(ctx, t.title1, W / 2, 116, K.white);
     S.drawTextCentered(ctx, t.title2, W / 2, 124, K.white);
@@ -377,7 +483,8 @@
     ];
     rows.forEach((r, i) => { S.drawText(ctx, r[0], 76, 76 + i * 12, K.white); S.drawText(ctx, String(r[1]), 220, 76 + i * 12, K.umbrella); });
     if (s.clearT > 1.5 && Math.floor(s.clearT * 2) % 2 === 0) S.drawTextCentered(ctx, S.TEXT[S.touchActive ? 'touch' : 'keys'].again, W / 2, 152, K.nose);
-    S.drawTextCentered(ctx, 'END OF THE PROTOTYPE LEVEL', W / 2, 164, K.grey);
+    S.drawTextCentered(ctx, S.TEXT.quips.clear, W / 2, 66, K.white);
+    S.drawTextCentered(ctx, S.TEXT.quips.end, W / 2, 164, K.grey);
   }
 
   S.render = function (ctx, s) {
@@ -406,7 +513,8 @@
       // With touch buttons held sideways, the box also holds the RESTART and MUTE buttons (layout.js menuPanel).
       const mp = S.touchActive && S.touchMenuPanel;
       if (mp) panel(ctx, mp.x0, mp.y0, mp.x1 - mp.x0, mp.y1 - mp.y0); else panel(ctx, 100, 80, 120, 50);
-      S.drawTextCentered(ctx, 'PAUSED', W / 2, 90, K.white, 2, K.black);
+      S.drawTextCentered(ctx, 'PAUSED', W / 2, 88, K.white, 2, K.black);
+      S.drawTextCentered(ctx, S.TEXT.quips.paused, W / 2, 102, K.lamp);
       S.drawTextCentered(ctx, S.TEXT[S.touchActive ? 'touch' : 'keys'].paused, W / 2, 112, K.grey);
     }
     if (s.mode === 'clear') drawClear(ctx, s);

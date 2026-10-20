@@ -590,7 +590,7 @@
     if (a.state === 'idle' && p.x >= A.trigger && p.state !== 'ko') {
       a.state = 'fight'; a.wave = 0; a.timer = 0.6;
       music(s, 'arena');
-      effect(s, 'text', (A.x0 + A.x1) / 2, 60, 1.2, { text: 'ZOMBIE GAUNTLET!' });
+      effect(s, 'text', (A.x0 + A.x1) / 2, 60, 1.2, { text: 'BETHESDA TERRACE. NOBODY LEAVES.' });
     } else if (a.state === 'fight') {
       if (a.timer > 0) {
         a.timer -= DT;
@@ -601,7 +601,7 @@
           a.wave += 1;
           if (a.wave >= C.gauntlet.waves.length) {
             a.state = 'open'; sfx(s, 'sfx-gate-open'); music(s, 'level');
-            effect(s, 'text', A.gateX, 120, 1.5, { text: 'EXIT OPEN!' });
+            effect(s, 'text', A.gateX, 120, 1.5, { text: 'EXIT OPEN. GO.' });
           } else a.timer = C.gauntlet.waveDelay;
         }
       }

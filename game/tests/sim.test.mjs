@@ -1352,3 +1352,37 @@ test('README art: three self-contained pixel-art SVGs with a title and descripti
   assert.equal(C.lid.hits, 3, 'the lid blocks 3 hits');
   assert.equal(C.cart.spillCount, 3, 'the cart spills 3 hot dogs');  // (two whips tipping the cart is checked by the cart tests: upright -> rocking -> tipping)
 });
+
+test('night look: every palette colour is on the 9-bit grid, and the HUD and panels stand out from the night sky', () => {
+  const K = S.PAL;
+  const grid = new Set([0, 36, 72, 108, 144, 180, 216, 252]);
+  for (const [k, v] of Object.entries(K)) {
+    assert.match(v, /^#[0-9a-f]{6}$/, k);
+    for (let i = 1; i < 7; i += 2) assert.ok(grid.has(parseInt(v.slice(i, i + 2), 16)), `${k} ${v} is on the 9-bit grid`);
+  }
+  for (const k of ['moon', 'star', 'window', 'lampGlow', 'lampHalo', 'stone', 'stoneMid', 'stoneLight', 'leaf0', 'blood', 'ichor']) assert.ok(K[k], 'night colour ' + k);
+  assert.notEqual(K.hud, K.sky0, 'HUD bar is not the same colour as the top of the sky');
+  assert.notEqual(K.hudHi, K.hud, 'panel highlight stripe shows');
+  const lum = (v) => parseInt(v.slice(1, 3), 16) + parseInt(v.slice(3, 5), 16) + parseInt(v.slice(5, 7), 16);
+  assert.ok(lum(K.grass) > lum(K.trees), 'walking lane is lighter than the trees behind it');
+  // Gore colours are reserved: nothing else may use them.
+  const reserved = new Set(['blood0', 'blood', 'bloodHi', 'ichor0', 'ichor', 'ichorHi']);
+  for (const [k, v] of Object.entries(K)) if (!reserved.has(k)) for (const r of reserved) assert.notEqual(v, K[r], `${k} does not reuse gore colour ${r}`);
+});
+
+test('voice: title, quips, prompts and arena banners fit their boxes', () => {
+  const T = S.TEXT.title;
+  assert.equal(T.name, 'SAMMY THE OPOSSUM'); assert.equal(T.hunter, 'ZOMBIE HUNTER');
+  assert.ok(S.textWidth(T.name, 3) <= 232 && S.textWidth(T.hunter, 4) <= 232, 'big title lines fit the title panel');
+  for (const k of ['tag1', 'tag2', 'level']) assert.ok(S.textWidth(T[k]) <= 232, k + ' fits the title panel');
+  assert.ok(S.textWidth(S.TEXT.quips.paused) <= 118, 'pause quip fits the pause box');
+  for (const k of ['clear', 'end']) assert.ok(S.textWidth(S.TEXT.quips[k]) <= 196, k + ' fits the level-clear box');
+  for (const pr of S.LEVEL1.prompts) for (const t of [pr.text, pr.touch].filter(Boolean)) {
+    assert.ok(S.textWidth(t) + 8 <= C.screenW - 8, t);
+    for (const ch of t) assert.ok(S.GLYPHS[ch.toUpperCase()], `"${ch}" in "${t}" is in the font`);
+  }
+  // The exit banner is centred on the gate near the arena's right edge, so it must stay narrow enough to show.
+  const A = S.LEVEL1.arena, src = fs.readFileSync(path.join(here, '..', 'src', 'sim.js'), 'utf8');
+  const exit = (src.match(/A\.gateX, 120, [\d.]+, \{ text: '([^']+)' \}/) || [])[1];
+  assert.ok(exit && A.gateX + S.textWidth(exit) / 2 <= A.x1, 'exit banner stays on screen: ' + exit);
+});
