@@ -2,12 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- No pinch or double-tap zoom: a stray pinch mid-game would break play, and the game already scales to fill the screen. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <!-- "Add to Home Screen" on a phone opens the game full screen, without the browser's bars. -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sammy">
+  <meta name="theme-color" content="#000000">
   <title>Sammy (placeholder prototype)</title>
   <style>
-    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; overscroll-behavior: none; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; overscroll-behavior: none;
+      touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+      -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     /* main.js sets the canvas size and position (src/layout.js does the maths) so its pixels line up with the screen's. */
-    #screen { position: absolute; left: 0; top: 0; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+    #screen { position: absolute; left: 0; top: 0; image-rendering: pixelated; image-rendering: crisp-edges; display: block; touch-action: none; }
     /* On-screen touch buttons (src/touch.js places them; src/layout.js does the maths). Hidden unless on a touch screen. */
     #touch-controls { position: fixed; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 2; }
     #touch-controls.on { display: block; }
@@ -15,7 +24,14 @@
       -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
     .tbtn canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
     .tbtn.hide { display: none; }
-    #test-result { z-index: 3; position: absolute; left: 0; top: 0; margin: 0; color: #0f0; font: 10px monospace; white-space: pre-wrap; max-width: 100%; }
+    /* "Turn your phone sideways" message (src/phone.js), over everything while the phone is upright. */
+    #sideways { position: fixed; left: 0; top: 0; width: 100%; height: 100%; background: #000; display: none; z-index: 4; touch-action: none; }
+    #sideways.on { display: block; }
+    #sideways canvas { position: absolute; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+    #sideways button { position: absolute; margin: 0; padding: 0; border: 0; background: transparent; color: transparent; font-size: 1px;
+      cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+    #sideways button:focus-visible { outline: 2px solid #fcd824; }
+    #test-result { z-index: 5; position: absolute; left: 0; top: 0; margin: 0; color: #0f0; font: 10px monospace; white-space: pre-wrap; max-width: 100%; }
   </style>
 </head>
 <body>
@@ -35,6 +51,7 @@
   <script src="src/input.js"></script>
   <script src="src/layout.js"></script>
   <script src="src/touch.js"></script>
+  <script src="src/phone.js"></script>
   <script src="src/main.js"></script>
 </body>
 </html>

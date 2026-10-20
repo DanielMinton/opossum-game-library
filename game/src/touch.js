@@ -21,6 +21,8 @@
     right: ['#....', '##...', '###..', '####.', '#####', '####.', '###..', '##...', '#....'],
     pause: ['##.##', '##.##', '##.##', '##.##', '##.##', '##.##', '##.##'],
     play: ['#....', '##...', '###..', '####.', '###..', '##...', '#....'],
+    full: ['###.###', '#.....#', '#.....#', '.......', '#.....#', '#.....#', '###.###'],
+    unfull: ['.#...#.', '.#...#.', '##...##', '.......', '##...##', '.#...#.', '.#...#.'],
   };
   // name -> what it does. press: one-shot button; hold: also held while the finger stays down.
   const BUTTONS = {
@@ -31,6 +33,8 @@
     pause: { label: 'Pause', color: 'menu', icon: 'pause', press: 'start' },
     restart: { label: 'Restart the level', color: 'menu', text: 'RESTART', press: 'restart', menu: true },
     mute: { label: 'Sound on or off', color: 'menu', text: 'MUTE', press: 'mute', menu: true },
+    // Full screen works on the finger lifting (browsers only allow it then); shown only where the browser can do it.
+    full: { label: 'Full screen on or off', color: 'menu', icon: 'full' },
   };
 
   const R = (g, col, x, y, w, h) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
@@ -79,7 +83,7 @@
     }
     body(g, 0, 0, w, h, COLORS[B.color], down);
     const text = name === 'mute' && extra.muted ? 'UNMUTE' : B.text;
-    const ic = name === 'pause' && extra.paused ? 'play' : B.icon;
+    const ic = name === 'pause' && extra.paused ? 'play' : name === 'full' && extra.fullscreen ? 'unfull' : B.icon;
     const s = 2;
     const ih = ic ? iconH(ic, s) : 0, th = text ? 5 : 0, gap = ic && text ? 3 : 0;
     let y = Math.round((h - base - (ih + gap + th)) / 2) + lift;
@@ -89,26 +93,31 @@
   // Buttons are always solid, even where one dips over the picture: they only ever cover the plain dirt strip at its
   // bottom corners (layout.js), and a see-through button showed a seam where the picture's edge crossed it.
 
+  // Shared with phone.js (the "turn your phone sideways" card uses the same pixel-art look).
+  S.pixelArt = { body, COLORS };
+
   // input: from S.createInput. canvas: the game screen (tapping it on the title screen starts the game).
   // forced: ?touch=1. onChange: called when the buttons appear or disappear (main.js then re-fits the screen).
+  // fullscreen: { available, toggle } (phone.js); without it the FULL SCREEN button stays hidden.
   S.createTouch = function (opts) {
-    const input = opts.input, forced = !!opts.forced;
+    const input = opts.input, forced = !!opts.forced, fs = opts.fullscreen || {};
     const coarse = () => !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
     const root = document.createElement('div');
     root.id = 'touch-controls';
     document.body.appendChild(root);
-    // Reads the notch / rounded-corner margins the browser reports (all 0 on screens without them).
+    // Reads the notch / rounded-corner / home-bar margins the browser reports (all 0 on screens without them).
+    // Outside the buttons' box, so it works with the buttons hidden too (the picture keeps clear of notches either way).
     const probe = document.createElement('div');
     probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;' +
       'padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
-    root.appendChild(probe);
+    document.body.appendChild(probe);
 
     const els = {}, down = {}; // down[name] = true while pushed in
-    let mode = 'title', muted = false, padDir = { left: false, right: false };
+    let mode = 'title', muted = false, fullOn = false, padDir = { left: false, right: false };
     const pointers = new Map(); // pointerId -> { name, dir }
     for (const name in BUTTONS) {
       const el = document.createElement('div');
-      el.className = 'tbtn tbtn-' + name + (BUTTONS[name].menu || name === 'pause' ? ' hide' : '');
+      el.className = 'tbtn tbtn-' + name + (BUTTONS[name].menu || name === 'pause' || name === 'full' ? ' hide' : '');
       el.setAttribute('role', 'button'); el.setAttribute('aria-label', BUTTONS[name].label);
       const cv = document.createElement('canvas');
       el.appendChild(cv); root.appendChild(el);
@@ -122,7 +131,7 @@
     function redraw(name) {
       const cv = els[name].cv;
       if (!cv.width) return;
-      drawButton(cv, name, !!down[name], { left: padDir.left, right: padDir.right, muted, paused: mode === 'paused' });
+      drawButton(cv, name, !!down[name], { left: padDir.left, right: padDir.right, muted, paused: mode === 'paused', fullscreen: fullOn });
       els[name].el.classList.toggle('down', name === 'pad' ? padDir.left || padDir.right : !!down[name]);
     }
     // Left or right from where the finger is on the pad. Near the middle line it keeps the current direction,
@@ -162,7 +171,12 @@
       const d = dirAt(e, p.dir);
       if (d !== p.dir) { p.dir = d; input.press(d); sync(); }
     }
-    function onUp(e) { if (pointers.delete(e.pointerId)) sync(); }
+    function onUp(e) {
+      const p = pointers.get(e.pointerId);
+      if (!pointers.delete(e.pointerId)) return;
+      sync();
+      if (p.name === 'full' && e.type === 'pointerup' && fs.toggle) fs.toggle();
+    }
     function releaseAll() { pointers.clear(); input.releaseAll('touch'); sync(); }
     window.addEventListener('blur', releaseAll);
     document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
@@ -196,6 +210,7 @@
       place(L) {
         for (const name in BUTTONS) {
           const c = L.controls[name], { el, cv } = els[name];
+          if (name === 'full') el.classList.toggle('hide', !c || !fs.available);
           if (!c) continue;
           el.style.left = c.x + 'px'; el.style.top = c.y + 'px'; el.style.width = c.w + 'px'; el.style.height = c.h + 'px';
           if (cv.width !== c.artW || cv.height !== c.artH) { cv.width = c.artW; cv.height = c.artH; }
@@ -217,6 +232,8 @@
         }
         if (!!isMuted !== muted) { muted = !!isMuted; redraw('mute'); }
       },
+      // The FULL SCREEN button shows "leave full screen" while on.
+      setFullscreen(on) { if (!!on !== fullOn) { fullOn = !!on; redraw('full'); } },
       held: () => input.held(),
       elements: els,
       releaseAll,

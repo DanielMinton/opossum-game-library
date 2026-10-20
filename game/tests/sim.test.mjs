@@ -796,6 +796,19 @@ function checkTouchLayout(name, L, w, h, dpr, safe = {}) {
       assert.ok(g.y0 >= 128, `${name}: ${n} keeps clear of the HUD`);
     }
   }
+  // FULL SCREEN button: next to PAUSE, off the picture, clear of notches, touching no other button (menu ones included).
+  const fb = c.full;
+  assert.ok(fb, `${name}: has a full-screen button`);
+  assert.ok(fb.x >= (safe.left || 0) && fb.y >= (safe.top || 0) && fb.x + fb.w <= w - (safe.right || 0) + 1e-9 && fb.y + fb.h <= h - (safe.bottom || 0) + 1e-9, `${name}: full-screen button on screen, clear of notches`);
+  assert.equal(fb.over, false, `${name}: full-screen button off the picture`);
+  assert.ok(Math.min(fb.w, fb.h) >= 44 - 1e-9, `${name}: full-screen button big enough`);
+  for (const n of Object.keys(c).filter((n) => n !== 'full')) {
+    const b = c[n];
+    assert.ok(fb.x + fb.w <= b.x + 1e-9 || b.x + b.w <= fb.x + 1e-9 || fb.y + fb.h <= b.y + 1e-9 || b.y + b.h <= fb.y + 1e-9, `${name}: full-screen button and ${n} don't overlap`);
+  }
+  // The picture stays clear of notches, rounded corners and the home bar.
+  assert.ok(f.cssLeft >= (safe.left || 0) - 1e-9 && f.cssTop >= (safe.top || 0) - 1e-9 && f.cssLeft + f.cssW <= w - (safe.right || 0) + 1e-9 &&
+    f.cssTop + f.cssH <= h - (safe.bottom || 0) + 1e-9, `${name}: picture clear of notches`);
   for (let i = 0; i < play.length; i++) for (let j = i + 1; j < play.length; j++) {
     const a = c[play[i]], b = c[play[j]];
     assert.ok(a.x + a.w <= b.x + 1e-9 || b.x + b.w <= a.x + 1e-9 || a.y + a.h <= b.y + 1e-9 || b.y + b.h <= a.y + 1e-9, `${name}: ${play[i]} and ${play[j]} don't overlap`);
@@ -879,4 +892,77 @@ test('touch wording: every touch prompt and screen line fits on the screen', () 
   assert.ok(S.LEVEL1.prompts.filter((p) => p.touch).length >= 3, 'move/jump, whip and possum prompts have touch wording');
   for (const mode of ['keys', 'touch']) for (const k in S.TEXT[mode]) assert.ok(S.textWidth(S.TEXT[mode][k]) <= 232, `${mode}.${k} fits in the title panel`);
   assert.equal(S.TEXT.touch.start, 'TAP JUMP TO START');
+});
+
+// ---------- notches, rounded corners and the home bar (safe areas) ----------
+// Typical margins phones report (CSS px). iPhones: notch or Dynamic Island + home bar; Pixel: a camera hole in one corner.
+const SAFE = {
+  'iPhone 15 landscape': [852, 393, 3, { left: 59, right: 59, bottom: 21 }],
+  'iPhone 15 portrait': [393, 852, 3, { top: 59, bottom: 34 }],
+  'iPhone SE landscape': [667, 375, 2, {}],
+  'Pixel 7 landscape (camera on the left)': [915, 412, 2.625, { left: 32 }],
+  'Pixel 7 portrait': [412, 915, 2.625, { top: 32 }],
+  'iPad landscape': [1180, 820, 2, { bottom: 20 }],
+  'iPad portrait': [820, 1180, 2, { top: 24, bottom: 20 }],
+};
+
+test('notches: without the buttons, the picture keeps clear of notches and the home bar, centred in the space left', () => {
+  // iPhone 15 sideways: the home bar takes 21 px at the bottom, so x5 (373 px tall) no longer fits in 372: x4.
+  const i15 = fitFor(852, 393, 3, { safe: { left: 59, right: 59, bottom: 21 } });
+  assert.equal(i15.scale, 4);
+  near(i15.cssTop, Math.round((372 * 3 - 896) / 2) / 3, 'centred above the home bar');
+  for (const [name, [w, h, dpr, safe]] of Object.entries(SAFE)) {
+    const f = fitFor(w, h, dpr, { safe });
+    assert.ok(f.cssLeft >= (safe.left || 0) - 1e-9 && f.cssTop >= (safe.top || 0) - 1e-9 && f.cssLeft + f.cssW <= w - (safe.right || 0) + 1e-9 &&
+      f.cssTop + f.cssH <= h - (safe.bottom || 0) + 1e-9, name + ': clear of notches');
+    assert.ok(Number.isInteger(Math.round(f.cssLeft * dpr * 1e6) / 1e6) && Number.isInteger(Math.round(f.cssTop * dpr * 1e6) / 1e6), name + ': whole real pixels');
+    // Centred in the notch-free part (to within one real pixel).
+    const midX = ((safe.left || 0) + w - (safe.right || 0)) / 2, midY = ((safe.top || 0) + h - (safe.bottom || 0)) / 2;
+    assert.ok(Math.abs(f.cssLeft + f.cssW / 2 - midX) <= 1 / dpr + 1e-9 && Math.abs(f.cssTop + f.cssH / 2 - midY) <= 1 / dpr + 1e-9, name + ': centred');
+  }
+  // A camera hole on one side only: the picture moves over, away from it.
+  const px = fitFor(915, 412, 2.625, { safe: { left: 32 } });
+  assert.ok(px.cssLeft > fitFor(915, 412, 2.625).cssLeft, 'Pixel 7: picture moves away from the camera');
+  // Computers report no margins: exactly as before.
+  for (const [w, h, dpr] of [[1920, 1080, 1], [1366, 768, 1], [1440, 900, 2]]) {
+    assert.deepEqual(fitFor(w, h, dpr, { safe: { top: 0, right: 0, bottom: 0, left: 0 } }), fitFor(w, h, dpr));
+  }
+});
+
+test('notches: with the touch buttons on, the picture and every button keep clear of them on every phone and tablet', () => {
+  for (const [name, [w, h, dpr, safe]] of Object.entries(SAFE)) {
+    const L = touchFor(w, h, dpr, safe);
+    checkTouchLayout(name + ' with notch margins', L, w, h, dpr, safe);
+    for (const n of ['restart', 'mute']) {
+      const r = L.controls[n];
+      assert.ok(r.x >= (safe.left || 0) && r.y >= (safe.top || 0) && r.x + r.w <= w - (safe.right || 0) + 1e-9 && r.y + r.h <= h - (safe.bottom || 0) + 1e-9, `${name}: ${n} clear of notches`);
+    }
+  }
+});
+
+test('sideways message: shown only upright, only with the touch buttons on, until put away', () => {
+  assert.equal(S.isPortrait(393, 852), true); assert.equal(S.isPortrait(852, 393), false); assert.equal(S.isPortrait(500, 500), false);
+  const ask = (viewW, viewH, touch, dismissed) => S.needsSidewaysPrompt({ viewW, viewH, touch, dismissed });
+  assert.equal(ask(393, 852, true, false), true, 'upright phone with touch buttons');
+  assert.equal(ask(820, 1180, true, false), true, 'upright tablet with touch buttons');
+  assert.equal(ask(852, 393, true, false), false, 'sideways phone');
+  assert.equal(ask(393, 852, true, true), false, 'after PLAY UPRIGHT ANYWAY');
+  assert.equal(ask(393, 852, false, false), false, 'a narrow computer window (no touch buttons)');
+  for (const [w, h] of [[1920, 1080], [1366, 768], [1440, 900]]) assert.equal(ask(w, h, false, false), false, 'computer');
+});
+
+test('sideways message: the card is big, sharp, centred and clear of notches on every upright screen', () => {
+  const card = (w, h, dpr, safe) => S.promptLayout({ viewW: w, viewH: h, dpr, safe, artW: 168, artH: 126, maxW: 520 });
+  for (const [name, w, h, dpr, safe] of [['iPhone SE', 375, 667, 2, {}], ['iPhone 15', 393, 852, 3, { top: 59, bottom: 34 }],
+    ['Pixel 7', 412, 915, 2.625, { top: 32 }], ['iPad', 820, 1180, 2, { top: 24, bottom: 20 }], ['tiny', 200, 300, 1, {}]]) {
+    const L = card(w, h, dpr, safe);
+    assert.ok(Number.isInteger(L.k) && L.k >= 1, name + ': whole real pixels per card pixel');
+    for (const v of [L.dev.x, L.dev.y, L.dev.w, L.dev.h]) assert.ok(Number.isInteger(v), name + ': on whole real pixels');
+    assert.ok(L.x >= (safe.left || 0) - 1e-9 && L.y >= (safe.top || 0) - 1e-9 && L.x + L.w <= w - (safe.right || 0) + 1e-9 && L.y + L.h <= h - (safe.bottom || 0) + 1e-9, name + ': on screen, clear of notches');
+    assert.ok(L.w <= 520 + 1e-9, name + ': not oversized');
+    // Phones: most of the width. Tablets: capped at 520 points so it isn't huge (still at least 400).
+    if (name !== 'tiny') assert.ok(L.w >= Math.min(w * 0.75, 400), `${name}: big enough (${L.w.toFixed(0)} of ${w})`);
+  }
+  assert.equal(card(393, 852, 3, {}).k, 6);
+  assert.equal(card(375, 667, 2, {}).k, 4);
 });

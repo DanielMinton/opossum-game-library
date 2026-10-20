@@ -18,6 +18,9 @@
 //  6. Touch buttons (?test=touch&touch=1) at a sideways phone (852x393) in both the source and built game, and an
 //     upright phone (393x852): real touch events on the real buttons start the game, move, jump higher when held,
 //     tail-whip, pause, mute and restart, two fingers at once work, and every way of lifting a finger lets go.
+//  7. Phone layout: upright with touch buttons, the "turn your phone sideways" message shows, keeps the game paused
+//     and PLAY UPRIGHT ANYWAY puts it away; sideways and on computers it never shows, and computers show no
+//     full-screen button. Hiding the page or leaving the window pauses the game (keys and touch).
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import os from 'node:os';
@@ -115,9 +118,14 @@ for (const [label, file] of [['source game (game/index.html)', path.join(gameDir
   check(label + ': every hurt/K.O./play-dead/pause/mute screen draws without errors', r.ok && r.renderSweep >= 27, 'states drawn: ' + r.renderSweep);
   const k = runPage(file, 'test=keys');
   check(label + ': real key presses start the game and move Sammy', k.ok, `mode ${k.mode}, x ${k.x}, errors ${JSON.stringify(k.errors)}`);
+  check(label + ': hiding the page or leaving the window pauses the game and lets go of keys (no auto-resume)',
+    k.hiddenPauses && k.staysPaused && k.resumes && k.blurPauses, JSON.stringify({ hidden: k.hiddenPauses, stays: k.staysPaused, resumes: k.resumes, blur: k.blurPauses }));
   const t = runPage(file, 'test=touch&touch=1', ['--window-size=852,393', '--force-device-scale-factor=3']);
   check(label + ': touch buttons on a sideways phone play the game (move, jump, whip, pause, mute, restart)', t.ok,
     `checks ${JSON.stringify(t.checks)}, errors ${JSON.stringify(t.errors)}`);
+  check(label + ': sideways phone: no "turn your phone sideways" message, full-screen button shown, leaving the page pauses',
+    t.checks && t.checks.promptOnLoad === false && t.checks.fullButton && t.fit && t.fit.fullscreenAvailable && t.checks.blurPauses && t.checks.hiddenPauses,
+    JSON.stringify({ prompt: t.checks && t.checks.promptOnLoad, full: t.checks && t.checks.fullButton, blur: t.checks && t.checks.blurPauses, hidden: t.checks && t.checks.hiddenPauses }));
   // Real art in assets/ (if any) must all load, at the right size.
   check(label + ': every real art file loads with no size warnings', r.assets && r.assets.loaded.length === r.assets.tried && r.assets.warnings.length === 0,
     `tried ${r.assets && r.assets.tried}, loaded ${JSON.stringify(r.assets && r.assets.loaded)}, warnings ${JSON.stringify(r.assets && r.assets.warnings)}`);
@@ -170,8 +178,9 @@ for (const [label, w, h, dpr, minFill] of [['landscape phone 852x393, 3 real px 
   check(`${label}: canvas is x${want.scale} (${want.cssW.toFixed(1)}x${want.cssH.toFixed(1)}) and centred, as layout.js works out`,
     r.ok && f.scale === want.scale && close(rect.w, want.cssW) && close(rect.h, want.cssH) && close(rect.x, want.cssLeft) && close(rect.y, want.cssTop),
     `got ${JSON.stringify(f)}`);
-  check(`${label}: no touch buttons shown (not a touch screen)`, r.fit && r.fit.touch === false && Object.keys(f.buttons || {}).length === 0,
-    `touch ${f.touch}, buttons ${JSON.stringify(f.buttons)}`);
+  check(`${label}: no touch buttons, full-screen button or "turn sideways" message (not a touch screen)`,
+    r.fit && r.fit.touch === false && Object.keys(f.buttons || {}).length === 0 && f.promptVisible === false,
+    `touch ${f.touch}, buttons ${JSON.stringify(f.buttons)}, message ${f.promptVisible}`);
   check(`${label}: game fills at least ${minFill * 100}% of the screen height, nothing cut off, page doesn't scroll`,
     rect.h / h >= minFill && rect.x >= 0 && rect.y >= 0 && rect.x + rect.w <= w + 0.01 && rect.y + rect.h <= h + 0.01 && f.scrollW <= w && f.scrollH <= h,
     `height ${(rect.h / h * 100).toFixed(1)}%, page ${f.scrollW}x${f.scrollH}`);
@@ -196,6 +205,14 @@ for (const [label, w, h, dpr, minFill] of [['landscape phone 852x393, 3 real px 
 }
 fs.rmSync(fitTmp, { recursive: true, force: true });
 
+// 7: computers never show the message or any button, even in a tall narrow window.
+for (const [w, h, dpr] of [[1920, 1080, 1], [1440, 900, 2], [500, 900, 1]]) {
+  const r = runPage(path.join(gameDir, 'index.html'), 'test=shot&frames=60', ['--window-size=' + w + ',' + h, '--force-device-scale-factor=' + dpr]);
+  const f = r.fit || {};
+  check(`computer ${w}x${h}: no "turn sideways" message, no touch or full-screen buttons`, r.ok && f.touch === false && f.promptVisible === false &&
+    Object.keys(f.buttons || {}).length === 0, `touch ${f.touch}, message ${f.promptVisible}, buttons ${JSON.stringify(f.buttons)}`);
+}
+
 // 6: touch buttons on an upright phone: the picture at the top, every button below it, and the game plays.
 {
   const t = runPage(path.join(gameDir, 'index.html'), 'test=touch&touch=1', ['--window-size=393,852', '--force-device-scale-factor=3']);
@@ -203,6 +220,14 @@ fs.rmSync(fitTmp, { recursive: true, force: true });
   check('upright phone 393x852: touch buttons sit below the picture and play the game', t.ok &&
     ['pad', 'jump', 'whip', 'possum', 'pause'].every((n) => b[n] && b[n].y >= bottom - 0.01 && b[n].y + b[n].h <= 852.01),
     `buttons ${JSON.stringify(b)}, picture bottom ${bottom}, checks ${JSON.stringify(t.checks)}, errors ${JSON.stringify(t.errors)}`);
+  const c = t.checks || {};
+  check('upright phone 393x852: "turn your phone sideways" shows over the buttons and keeps the game paused',
+    c.promptOnLoad && c.promptKeepsPaused && c.promptButtonOnTop, JSON.stringify({ shown: c.promptOnLoad, paused: c.promptKeepsPaused, onTop: c.promptButtonOnTop }));
+  check('upright phone 393x852: PLAY UPRIGHT ANYWAY (at least 48x48 points) puts the message away; the game stays paused until PLAY',
+    c.promptButtonBig && c.promptDismissed && c.stillPausedAfterDismiss, JSON.stringify({ big: c.promptButtonBig, gone: c.promptDismissed, paused: c.stillPausedAfterDismiss }));
+  const u = runPage(path.join(gameDir, 'index.html'), 'test=shot&frames=60&touch=1&upright=1', ['--window-size=393,852', '--force-device-scale-factor=3']);
+  check('upright phone 393x852 with ?upright=1: no message (screenshots of upright play)', u.ok && u.fit && u.fit.promptVisible === false && u.fit.buttons.pad,
+    JSON.stringify(u.fit && { message: u.fit.promptVisible }));
 }
 
 if (shots) {
@@ -210,6 +235,7 @@ if (shots) {
   const src = path.join(gameDir, 'index.html');
   for (const [n, q] of [['title', 'frames=1&title=1'], ['level', 'frames=1060'], ['arena', 'frames=2700'], ['clear', 'frames=3265']]) screenshot(src, 'test=shot&' + q, path.join(shots, n + '.png'));
   for (const [n, q] of [['touch-phone-level', 'frames=1060'], ['touch-phone-paused', 'frames=1060&paused=1']]) screenshot(src, 'test=shot&touch=1&' + q, path.join(shots, n + '.png'), ['--window-size=852,393', '--force-device-scale-factor=3']);
+  for (const [n, q] of [['touch-upright-message', 'frames=1060'], ['touch-upright-play', 'frames=1060&upright=1']]) screenshot(src, 'test=shot&touch=1&' + q, path.join(shots, n + '.png'), ['--window-size=393,852', '--force-device-scale-factor=3']);
   screenshot(path.join(tmp, 'game', 'index.html'), 'test=shot&frames=120', path.join(shots, 'real-art-test.png'));
   screenshot(path.join(tmp, 'game', 'index.html'), 'test=shot&frames=1&title=1', path.join(shots, 'real-art-title.png'));
   console.log('Screenshots written to ' + shots);

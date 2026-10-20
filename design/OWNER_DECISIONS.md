@@ -56,3 +56,4 @@ To answer, edit this file, or just tell Claude (for example, "go with the sugges
 ### 12. How should phones be held?
 - **Suggested:** sideways (landscape) only. If a phone is held upright, show a friendly "turn your phone sideways" message.
 - **Why it matters:** the game screen is wider than it is tall, like a TV. Upright, it would be tiny with the touch buttons crowded below it. Supporting upright play means a different layout to design and test.
+- **What the game does now (2026-10-19):** the suggestion. Held upright, a "TURN YOUR PHONE SIDEWAYS" message shows and the game waits; a "PLAY UPRIGHT ANYWAY" button lets people play upright if they prefer. This is still your call: say "sideways only" (we remove the button), "both" (we keep it as it is), or "upright too" (we drop the message).

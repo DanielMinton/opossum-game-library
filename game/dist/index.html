@@ -2,12 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- No pinch or double-tap zoom: a stray pinch mid-game would break play, and the game already scales to fill the screen. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <!-- "Add to Home Screen" on a phone opens the game full screen, without the browser's bars. -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sammy">
+  <meta name="theme-color" content="#000000">
   <title>Sammy (placeholder prototype)</title>
   <style>
-    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; overscroll-behavior: none; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; overscroll-behavior: none;
+      touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+      -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     /* main.js sets the canvas size and position (src/layout.js does the maths) so its pixels line up with the screen's. */
-    #screen { position: absolute; left: 0; top: 0; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+    #screen { position: absolute; left: 0; top: 0; image-rendering: pixelated; image-rendering: crisp-edges; display: block; touch-action: none; }
     /* On-screen touch buttons (src/touch.js places them; src/layout.js does the maths). Hidden unless on a touch screen. */
     #touch-controls { position: fixed; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 2; }
     #touch-controls.on { display: block; }
@@ -15,7 +24,14 @@
       -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
     .tbtn canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
     .tbtn.hide { display: none; }
-    #test-result { z-index: 3; position: absolute; left: 0; top: 0; margin: 0; color: #0f0; font: 10px monospace; white-space: pre-wrap; max-width: 100%; }
+    /* "Turn your phone sideways" message (src/phone.js), over everything while the phone is upright. */
+    #sideways { position: fixed; left: 0; top: 0; width: 100%; height: 100%; background: #000; display: none; z-index: 4; touch-action: none; }
+    #sideways.on { display: block; }
+    #sideways canvas { position: absolute; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+    #sideways button { position: absolute; margin: 0; padding: 0; border: 0; background: transparent; color: transparent; font-size: 1px;
+      cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+    #sideways button:focus-visible { outline: 2px solid #fcd824; }
+    #test-result { z-index: 5; position: absolute; left: 0; top: 0; margin: 0; color: #0f0; font: 10px monospace; white-space: pre-wrap; max-width: 100%; }
   </style>
 </head>
 <body>
@@ -1863,8 +1879,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       keyHeld[a] = true;
     });
     target.addEventListener('keyup', (e) => { const a = KEYS[e.code]; if (a) keyHeld[a] = false; });
-    target.addEventListener('blur', () => { for (const k in keyHeld) keyHeld[k] = false; });
-    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.hidden) for (const k in keyHeld) keyHeld[k] = false; });
+    // Leaving the page (another window, app or tab) lets go of every key and forgets presses not yet used.
+    const letGo = () => { for (const k in keyHeld) keyHeld[k] = false; pending.clear(); };
+    target.addEventListener('blur', letGo);
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.hidden) letGo(); });
 
     function readPad() {
       const out = {};
@@ -1911,10 +1929,13 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 (function (S) {
   // view: available size in CSS px; dpr: real pixels per CSS px; game: native size in game pixels.
   // reserveTop/Bottom/Left/Right: CSS px kept free (for on-screen buttons). Default 0.
+  // safe: { top, right, bottom, left } CSS px the screen's notch, rounded corners or home bar take (optional);
+  // kept free as well, so the picture never goes under them.
   // maxScale: never bigger than this (optional).
   S.computeFit = function computeFit(o) {
-    const dpr = o.dpr > 0 ? o.dpr : 1;
-    const rt = o.reserveTop || 0, rb = o.reserveBottom || 0, rl = o.reserveLeft || 0, rr = o.reserveRight || 0;
+    const dpr = o.dpr > 0 ? o.dpr : 1, sf = o.safe || {};
+    const rt = (o.reserveTop || 0) + (sf.top || 0), rb = (o.reserveBottom || 0) + (sf.bottom || 0);
+    const rl = (o.reserveLeft || 0) + (sf.left || 0), rr = (o.reserveRight || 0) + (sf.right || 0);
     // Available area in device pixels (never negative).
     const availW = Math.max(0, (o.viewW - rl - rr) * dpr);
     const availH = Math.max(0, (o.viewH - rt - rb) * dpr);
@@ -1969,6 +1990,9 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     const edge = (inset) => Math.max(m, Math.ceil((inset || 0) * dpr) + Math.round(6 * dpr));
     const eL = edge(sf.left), eR = edge(sf.right), eT = edge(sf.top), eB = edge(sf.bottom);
     const size = (n) => ({ w: art[n][0] * k, h: art[n][1] * k });
+    // The notch-free part of the screen (real px): the picture stays inside it.
+    const sL = Math.ceil((sf.left || 0) * dpr), sR = Math.ceil((sf.right || 0) * dpr);
+    const sT = Math.ceil((sf.top || 0) * dpr), sB = Math.ceil((sf.bottom || 0) * dpr);
 
     // The action buttons at the bottom right. bottom: real px from the screen's bottom edge to the lowest button.
     // 'wide': JUMP in the corner, WHIP to its left (a little higher), POSSUM above JUMP.
@@ -1997,11 +2021,13 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       const q = inGame(r, pic);
       return !q || S.TOUCH_CORNERS.some((z) => q.x0 >= z.x0 - 1e-9 && q.x1 <= z.x1 + 1e-9 && q.y0 >= z.y0 - 1e-9 && q.y1 <= z.y1 + 1e-9);
     };
+    // Centred in the notch-free part of the screen.
     const picAt = (s, top) => {
       const w = gw * s, h = gh * s;
-      return { s, w, h, x: Math.max(0, Math.round((DW - w) / 2)), y: top == null ? Math.max(0, Math.round((DH - h) / 2)) : top };
+      return { s, w, h, x: Math.max(sL, Math.round(sL + (DW - sL - sR - w) / 2)), y: top == null ? Math.max(sT, Math.round(sT + (DH - sT - sB - h) / 2)) : top };
     };
-    const maxScale = S.computeFit({ viewW: o.viewW, viewH: o.viewH, dpr, gameW: gw, gameH: gh }).scale;
+    const inSafe = (p) => p.x >= sL && p.y >= sT && p.x + p.w <= DW - sR && p.y + p.h <= DH - sB;
+    const maxScale = S.computeFit({ viewW: o.viewW, viewH: o.viewH, dpr, gameW: gw, gameH: gh, safe: sf }).scale;
     let pic = null, c = null;
 
     if (!portrait) {
@@ -2016,13 +2042,13 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       search: for (let s = maxScale; s >= 1; s--) {
         // Picture heights to try: centred first, then nudged up a little at a time towards the top edge, so the
         // picture stays as close to centred as the corner rule allows.
-        const centre = picAt(s).y, topMin = Math.ceil((sf.top || 0) * dpr), tops = [centre];
+        const centre = picAt(s).y, topMin = sT, tops = [centre];
         for (let t = centre - k; t > topMin; t -= k) tops.push(t);
         if (topMin !== centre) tops.push(topMin);
         for (const top of tops) {
           for (const arrange of ['wide', 'stacked']) {
             const cand = picAt(s, top), cc = place(eB, arrange);
-            if (cc.possum.y < eT) continue;
+            if (cc.possum.y < eT || !inSafe(cand)) continue;
             if (!['pad', 'jump', 'whip', 'possum'].every((n) => allowed(cc[n], cand))) continue;
             const spot = pauseSpots(cc).find((p) => allowed(p, cand) && !(p.y + p.h > cc.possum.y - g && p.x + p.w > cc.possum.x - g));
             if (!spot) continue;
@@ -2039,8 +2065,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       const clusterTop = Math.min(c.pad.y, c.whip.y, c.possum.y);
       const P = size('pause');
       const below = P.h + 2 * g + (DH - clusterTop);    // room the buttons need under the picture (real px)
-      const top = Math.ceil((sf.top || 0) * dpr);
-      const f = S.computeFit({ viewW: o.viewW, viewH: o.viewH, dpr, gameW: gw, gameH: gh, reserveTop: top / dpr, reserveBottom: below / dpr });
+      const f = S.computeFit({ viewW: o.viewW, viewH: o.viewH, dpr, gameW: gw, gameH: gh, reserveTop: sT / dpr, reserveBottom: below / dpr,
+        reserveLeft: sL / dpr, reserveRight: sR / dpr });
       pic = picAt(f.scale, Math.round(f.cssTop * dpr));
       c.pause = Object.assign({ x: DW - eR - P.w, y: pic.y + pic.h + g }, P);
     }
@@ -2070,6 +2096,23 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       };
     }
 
+    // FULL SCREEN button (same size as PAUSE), in the first free spot next to PAUSE: below it, the other PAUSE spots,
+    // left of it, above it. It must keep off the picture entirely, clear of notches, and not touch
+    // any other button (RESTART and MUTE included). It never makes the picture smaller; if no spot is free it is left out.
+    {
+      const F = size('pause'), p = c.pause;
+      const spots = [{ x: p.x, y: p.y + p.h + g }, { x: p.x - g - F.w, y: p.y }, { x: p.x, y: p.y - g - F.h }, { x: p.x + p.w + g, y: p.y }];
+      if (!portrait) {
+        spots.splice(1, 0, { x: DW - eR - F.w, y: eT }, { x: eL, y: eT });
+        spots.push({ x: eL, y: c.pad.y - g - F.h });
+      }
+      const others = Object.keys(c).map((n) => c[n]);
+      const clear = (r) => others.every((o2) => r.x + r.w + g <= o2.x || o2.x + o2.w + g <= r.x || r.y + r.h + g <= o2.y || o2.y + o2.h + g <= r.y);
+      const spot = spots.map((s) => Object.assign(s, F)).find((r) => r.x >= eL && r.y >= eT && r.x + r.w <= DW - eR && r.y + r.h <= DH - eB &&
+        !inGame(r, pic) && clear(r));
+      if (spot) c.full = spot;
+    }
+
     const controls = {};
     for (const n in c) {
       const r = c[n];
@@ -2082,6 +2125,28 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         deviceW: pic.w, deviceH: pic.h, overflows: pic.w > DW || pic.h > DH },
       controls,
     };
+  };
+
+  // ---------- "turn your phone sideways" message ----------
+  // Shown only with the touch buttons on, on a screen taller than it is wide, until the player picks "play upright anyway".
+  S.isPortrait = (viewW, viewH) => viewH > viewW;
+  S.needsSidewaysPrompt = (o) => !!(o.touch && !o.dismissed && S.isPortrait(o.viewW, o.viewH));
+
+  // Where the message's pixel-art card goes: artW x artH card pixels, each k x k real pixels (whole numbers, so it is as
+  // sharp as the game), as big as fits in 92% of the notch-free width and 80% of its height (and no wider than maxW CSS
+  // px, if given), centred in it.
+  // o: { viewW, viewH, dpr, artW, artH, safe, maxW }. Returns { k, x, y, w, h } (CSS px) and dev (the same in real px).
+  S.promptLayout = function promptLayout(o) {
+    const dpr = o.dpr > 0 ? o.dpr : 1, sf = o.safe || {};
+    const sL = Math.ceil((sf.left || 0) * dpr), sR = Math.ceil((sf.right || 0) * dpr);
+    const sT = Math.ceil((sf.top || 0) * dpr), sB = Math.ceil((sf.bottom || 0) * dpr);
+    const aw = Math.max(0, Math.round(o.viewW * dpr) - sL - sR), ah = Math.max(0, Math.round(o.viewH * dpr) - sT - sB);
+    let k = Math.floor(Math.min(aw * 0.92 / o.artW, ah * 0.8 / o.artH));
+    if (o.maxW > 0) k = Math.min(k, Math.floor(o.maxW * dpr / o.artW));
+    k = Math.max(1, k);
+    const w = o.artW * k, h = o.artH * k;
+    const x = Math.max(sL, Math.round(sL + (aw - w) / 2)), y = Math.max(sT, Math.round(sT + (ah - h) / 2));
+    return { k, x: x / dpr, y: y / dpr, w: w / dpr, h: h / dpr, dev: { x, y, w, h } };
   };
 })(globalThis.SAMMY = globalThis.SAMMY || {});
 
@@ -2109,6 +2174,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     right: ['#....', '##...', '###..', '####.', '#####', '####.', '###..', '##...', '#....'],
     pause: ['##.##', '##.##', '##.##', '##.##', '##.##', '##.##', '##.##'],
     play: ['#....', '##...', '###..', '####.', '###..', '##...', '#....'],
+    full: ['###.###', '#.....#', '#.....#', '.......', '#.....#', '#.....#', '###.###'],
+    unfull: ['.#...#.', '.#...#.', '##...##', '.......', '##...##', '.#...#.', '.#...#.'],
   };
   // name -> what it does. press: one-shot button; hold: also held while the finger stays down.
   const BUTTONS = {
@@ -2119,6 +2186,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     pause: { label: 'Pause', color: 'menu', icon: 'pause', press: 'start' },
     restart: { label: 'Restart the level', color: 'menu', text: 'RESTART', press: 'restart', menu: true },
     mute: { label: 'Sound on or off', color: 'menu', text: 'MUTE', press: 'mute', menu: true },
+    // Full screen works on the finger lifting (browsers only allow it then); shown only where the browser can do it.
+    full: { label: 'Full screen on or off', color: 'menu', icon: 'full' },
   };
 
   const R = (g, col, x, y, w, h) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
@@ -2167,7 +2236,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     }
     body(g, 0, 0, w, h, COLORS[B.color], down);
     const text = name === 'mute' && extra.muted ? 'UNMUTE' : B.text;
-    const ic = name === 'pause' && extra.paused ? 'play' : B.icon;
+    const ic = name === 'pause' && extra.paused ? 'play' : name === 'full' && extra.fullscreen ? 'unfull' : B.icon;
     const s = 2;
     const ih = ic ? iconH(ic, s) : 0, th = text ? 5 : 0, gap = ic && text ? 3 : 0;
     let y = Math.round((h - base - (ih + gap + th)) / 2) + lift;
@@ -2177,26 +2246,31 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   // Buttons are always solid, even where one dips over the picture: they only ever cover the plain dirt strip at its
   // bottom corners (layout.js), and a see-through button showed a seam where the picture's edge crossed it.
 
+  // Shared with phone.js (the "turn your phone sideways" card uses the same pixel-art look).
+  S.pixelArt = { body, COLORS };
+
   // input: from S.createInput. canvas: the game screen (tapping it on the title screen starts the game).
   // forced: ?touch=1. onChange: called when the buttons appear or disappear (main.js then re-fits the screen).
+  // fullscreen: { available, toggle } (phone.js); without it the FULL SCREEN button stays hidden.
   S.createTouch = function (opts) {
-    const input = opts.input, forced = !!opts.forced;
+    const input = opts.input, forced = !!opts.forced, fs = opts.fullscreen || {};
     const coarse = () => !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
     const root = document.createElement('div');
     root.id = 'touch-controls';
     document.body.appendChild(root);
-    // Reads the notch / rounded-corner margins the browser reports (all 0 on screens without them).
+    // Reads the notch / rounded-corner / home-bar margins the browser reports (all 0 on screens without them).
+    // Outside the buttons' box, so it works with the buttons hidden too (the picture keeps clear of notches either way).
     const probe = document.createElement('div');
     probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;' +
       'padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
-    root.appendChild(probe);
+    document.body.appendChild(probe);
 
     const els = {}, down = {}; // down[name] = true while pushed in
-    let mode = 'title', muted = false, padDir = { left: false, right: false };
+    let mode = 'title', muted = false, fullOn = false, padDir = { left: false, right: false };
     const pointers = new Map(); // pointerId -> { name, dir }
     for (const name in BUTTONS) {
       const el = document.createElement('div');
-      el.className = 'tbtn tbtn-' + name + (BUTTONS[name].menu || name === 'pause' ? ' hide' : '');
+      el.className = 'tbtn tbtn-' + name + (BUTTONS[name].menu || name === 'pause' || name === 'full' ? ' hide' : '');
       el.setAttribute('role', 'button'); el.setAttribute('aria-label', BUTTONS[name].label);
       const cv = document.createElement('canvas');
       el.appendChild(cv); root.appendChild(el);
@@ -2210,7 +2284,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     function redraw(name) {
       const cv = els[name].cv;
       if (!cv.width) return;
-      drawButton(cv, name, !!down[name], { left: padDir.left, right: padDir.right, muted, paused: mode === 'paused' });
+      drawButton(cv, name, !!down[name], { left: padDir.left, right: padDir.right, muted, paused: mode === 'paused', fullscreen: fullOn });
       els[name].el.classList.toggle('down', name === 'pad' ? padDir.left || padDir.right : !!down[name]);
     }
     // Left or right from where the finger is on the pad. Near the middle line it keeps the current direction,
@@ -2250,7 +2324,12 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       const d = dirAt(e, p.dir);
       if (d !== p.dir) { p.dir = d; input.press(d); sync(); }
     }
-    function onUp(e) { if (pointers.delete(e.pointerId)) sync(); }
+    function onUp(e) {
+      const p = pointers.get(e.pointerId);
+      if (!pointers.delete(e.pointerId)) return;
+      sync();
+      if (p.name === 'full' && e.type === 'pointerup' && fs.toggle) fs.toggle();
+    }
     function releaseAll() { pointers.clear(); input.releaseAll('touch'); sync(); }
     window.addEventListener('blur', releaseAll);
     document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
@@ -2284,6 +2363,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       place(L) {
         for (const name in BUTTONS) {
           const c = L.controls[name], { el, cv } = els[name];
+          if (name === 'full') el.classList.toggle('hide', !c || !fs.available);
           if (!c) continue;
           el.style.left = c.x + 'px'; el.style.top = c.y + 'px'; el.style.width = c.w + 'px'; el.style.height = c.h + 'px';
           if (cv.width !== c.artW || cv.height !== c.artH) { cv.width = c.artW; cv.height = c.artH; }
@@ -2305,11 +2385,163 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         }
         if (!!isMuted !== muted) { muted = !!isMuted; redraw('mute'); }
       },
+      // The FULL SCREEN button shows "leave full screen" while on.
+      setFullscreen(on) { if (!!on !== fullOn) { fullOn = !!on; redraw('full'); } },
       held: () => input.held(),
       elements: els,
       releaseAll,
     };
     if (forced || coarse()) { api.active = true; S.touchActive = true; root.classList.add('on'); }
+    return api;
+  };
+})(globalThis.SAMMY = globalThis.SAMMY || {});
+
+// ---- src/phone.js ----
+// Phone and tablet page behaviour: the "turn your phone sideways" message, full screen, and guards against
+// accidental zooming, scrolling and long-press menus. main.js decides when the message shows (layout.js maths).
+(function (S) {
+  const K = S.PAL;
+  const R = (g, col, x, y, w, h) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+  // A curved arrow turning to the right (drawn at 2x with a dark shadow, like the button icons).
+  const TURN = [
+    '...#####.....',
+    '.##.....##...',
+    '#.........#..',
+    '#.........#..',
+    '#.......#####',
+    '#........###.',
+    '..........#..',
+  ];
+
+  // The message card, in card pixels (each one k x k real pixels on screen; layout.js S.promptLayout).
+  const CARD_W = 168, CARD_H = 126;
+  const BTN_TEXT = 'PLAY UPRIGHT ANYWAY';
+  const BTN = { w: 0, h: 16, x: 0, y: 100 };
+  BTN.w = S.textWidth(BTN_TEXT) + 16; BTN.x = Math.round((CARD_W - BTN.w) / 2);
+
+  function drawCard(g, down) {
+    const W = CARD_W, H = CARD_H;
+    g.clearRect(0, 0, W, H);
+    // The same box as the game's PAUSED and title panels: black edge, dark blue, a lighter blue band on top.
+    R(g, K.black, 0, 0, W, H); R(g, K.hud, 1, 1, W - 2, H - 2); R(g, K.sky1, 1, 1, W - 2, 2);
+    // Upright phone (grey, dim) -> arrow -> sideways phone showing a tiny bit of the game.
+    const y0 = 16;
+    const ux = 39, uy = y0;                                // upright phone, 16 x 28
+    R(g, K.black, ux - 1, uy - 1, 18, 30); R(g, K.sammyDark, ux, uy, 16, 28); R(g, K.grey, ux + 1, uy, 14, 1);
+    R(g, K.dark, ux + 2, uy + 3, 12, 20); R(g, K.dark, ux + 6, uy + 1, 4, 1); R(g, K.dark, ux + 7, uy + 25, 2, 1);
+    drawBitmap(g, TURN, 64, y0 + 4, K.umbrella, 2);
+    const sx = 98, sy = y0 + 6;                            // sideways phone, 30 x 16
+    R(g, K.black, sx - 1, sy - 1, 32, 18); R(g, K.sammy, sx, sy, 30, 16); R(g, K.white, sx + 1, sy, 28, 1);
+    R(g, K.sky1, sx + 3, sy + 2, 24, 8); R(g, K.sky2, sx + 3, sy + 7, 24, 2);
+    R(g, K.trees, sx + 3, sy + 9, 24, 1); R(g, K.grass, sx + 3, sy + 10, 24, 1); R(g, K.dirt, sx + 3, sy + 11, 24, 3);
+    R(g, K.sammy, sx + 9, sy + 8, 4, 2); R(g, K.nose, sx + 13, sy + 9, 1, 1);                  // Sammy
+    R(g, K.jogger, sx + 19, sy + 6, 2, 4); R(g, K.band, sx + 19, sy + 6, 2, 1);                 // a zombie
+    R(g, K.sammyDark, sx + 1, sy + 7, 1, 2);               // button on the side
+    // Words.
+    S.drawTextCentered(g, 'TURN YOUR PHONE', W / 2, 56, K.white, 2, K.black);
+    S.drawTextCentered(g, 'SIDEWAYS', W / 2, 70, K.umbrella, 2, K.black);
+    S.drawTextCentered(g, 'THE GAME FITS BEST THIS WAY', W / 2, 88, K.grey);
+    // The button (same pixel-art button as the touch controls).
+    S.pixelArt.body(g, BTN.x, BTN.y, BTN.w, BTN.h, S.pixelArt.COLORS.menu, down);
+    S.drawText(g, BTN_TEXT, BTN.x + 8, BTN.y + 4 + (down ? 2 : 0), K.white, 1, K.black);
+  }
+  function drawBitmap(g, rows, x, y, col, s) {
+    for (let pass = 0; pass < 2; pass++) {
+      const c = pass ? col : K.black, o = pass ? 0 : 1;
+      rows.forEach((row, r) => { for (let i = 0; i < row.length; i++) if (row[i] === '#') R(g, c, x + i * s + o, y + r * s + o, s, s); });
+    }
+  }
+
+  // opts: { onDismiss, onFullscreenChange, dismissed (start with the message already put away, ?upright=1) }
+  S.createPhone = function (opts) {
+    const doc = document, root = doc.documentElement;
+
+    // ---------- "turn your phone sideways" message ----------
+    const box = doc.createElement('div');
+    box.id = 'sideways';
+    box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', 'Turn your phone sideways to play');
+    const cv = doc.createElement('canvas');
+    cv.width = CARD_W; cv.height = CARD_H;
+    const btn = doc.createElement('button');
+    btn.type = 'button'; btn.textContent = 'Play upright anyway'; btn.setAttribute('data-tap-ok', '');
+    box.appendChild(cv); box.appendChild(btn);
+    doc.body.appendChild(box);
+    drawCard(cv.getContext('2d'), false);
+
+    let dismissed = !!opts.dismissed;
+    try { if (sessionStorage.getItem('sammy-upright') === '1') dismissed = true; } catch (e) { /* storage blocked: ask again next visit */ }
+    const press = (on) => drawCard(cv.getContext('2d'), on);
+    const dismiss = () => {
+      if (dismissed) return;
+      dismissed = true; press(false);
+      try { sessionStorage.setItem('sammy-upright', '1'); } catch (e) { /* storage blocked: fine for this visit */ }
+      if (opts.onDismiss) opts.onDismiss();
+    };
+    btn.addEventListener('pointerdown', (e) => { e.preventDefault(); press(true); });
+    btn.addEventListener('pointerleave', () => press(false));
+    btn.addEventListener('pointercancel', () => press(false));
+    btn.addEventListener('pointerup', dismiss);
+    btn.addEventListener('click', dismiss); // keyboard and screen readers
+
+    // ---------- full screen ----------
+    const fsAvailable = !!(doc.fullscreenEnabled || doc.webkitFullscreenEnabled) &&
+      !!(root.requestFullscreen || root.webkitRequestFullscreen);
+    const isFullscreen = () => !!(doc.fullscreenElement || doc.webkitFullscreenElement);
+    const quiet = (p) => { if (p && p.catch) p.catch(() => {}); };
+    function lockSideways() {
+      try { if (screen.orientation && screen.orientation.lock) quiet(screen.orientation.lock('landscape')); } catch (e) { /* not allowed here */ }
+    }
+    function toggleFullscreen() {
+      try {
+        if (isFullscreen()) { quiet((doc.exitFullscreen || doc.webkitExitFullscreen).call(doc)); return; }
+        const req = root.requestFullscreen || root.webkitRequestFullscreen;
+        const p = req.call(root, { navigationUI: 'hide' });
+        if (p && p.then) p.then(lockSideways, () => {}); else lockSideways();
+      } catch (e) { /* the browser said no */ }
+    }
+    const fsChanged = () => { if (opts.onFullscreenChange) opts.onFullscreenChange(isFullscreen()); };
+    doc.addEventListener('fullscreenchange', fsChanged);
+    doc.addEventListener('webkitfullscreenchange', fsChanged);
+
+    // ---------- no accidental zoom, scroll or long-press menu ----------
+    // Pinch zoom on iPhone (Safari ignores the page's "no zoom" setting).
+    const stop = (e) => { if (e.cancelable) e.preventDefault(); };
+    for (const t of ['gesturestart', 'gesturechange', 'gestureend']) doc.addEventListener(t, stop, { passive: false });
+    // Two-finger moves (pinch) and double-tap zoom. Taps on the message's button are left alone.
+    doc.addEventListener('touchmove', (e) => { if (e.touches && e.touches.length > 1) stop(e); }, { passive: false });
+    let lastEnd = -1e9;
+    doc.addEventListener('touchend', (e) => {
+      const ok = e.target && e.target.closest && e.target.closest('[data-tap-ok]');
+      if (!ok && e.timeStamp - lastEnd < 350) stop(e);
+      lastEnd = e.timeStamp;
+    }, { passive: false });
+    // Long-press menus ("save image", "copy") on the game, the buttons and the message: blocked for fingers only,
+    // so right-click on a computer works as before.
+    let lastPointer = 'mouse';
+    window.addEventListener('pointerdown', (e) => { lastPointer = e.pointerType || 'mouse'; }, true);
+    doc.addEventListener('contextmenu', (e) => { if (lastPointer !== 'mouse') e.preventDefault(); });
+
+    const api = {
+      promptVisible: false,
+      get dismissed() { return dismissed; },
+      // Show or hide the message; layout: { viewW, viewH, dpr, safe } for placing the card.
+      showPrompt(on, o) {
+        api.promptVisible = !!on;
+        box.classList.toggle('on', !!on);
+        if (!on) return;
+        const L = S.promptLayout({ viewW: o.viewW, viewH: o.viewH, dpr: o.dpr, safe: o.safe, artW: CARD_W, artH: CARD_H, maxW: 520 });
+        Object.assign(cv.style, { left: L.x + 'px', top: L.y + 'px', width: L.w + 'px', height: L.h + 'px' });
+        // The tap area covers the drawn button and is at least 48 x 48 points.
+        const u = L.w / CARD_W, bw = Math.max(48, BTN.w * u), bh = Math.max(48, BTN.h * u);
+        Object.assign(btn.style, { left: (L.x + (BTN.x + BTN.w / 2) * u - bw / 2) + 'px', top: (L.y + (BTN.y + BTN.h / 2) * u - bh / 2) + 'px',
+          width: bw + 'px', height: bh + 'px' });
+        api.promptLayout = L;
+      },
+      promptButton: btn,
+      fullscreenAvailable: fsAvailable,
+      isFullscreen,
+      toggleFullscreen,
+    };
     return api;
   };
 })(globalThis.SAMMY = globalThis.SAMMY || {});
@@ -2327,8 +2559,32 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   window.addEventListener('error', (e) => errors.push(String(e.message || e)));
 
   const input = S.createInput(window);
+  const state = S.newGame();
+  window.__SAMMY_STATE = state;
+  const audio = S.createAudio();
+  // Phone page behaviour (phone.js): the "turn your phone sideways" message, full screen, no accidental zoom.
+  // ?upright=1 starts with the message already put away (for screenshots of upright play).
+  const phone = S.createPhone({
+    dismissed: params.get('upright') === '1',
+    onDismiss: () => fit(),
+    onFullscreenChange: (on) => { touch.setFullscreen(on); fit(); },
+  });
   // On-screen buttons for phones and tablets (touch.js). Off on desktops; ?touch=1 forces them on.
-  const touch = S.createTouch({ input, canvas, forced: params.get('touch') === '1', onChange: () => fit() });
+  const touch = S.createTouch({ input, canvas, forced: params.get('touch') === '1', onChange: () => fit(),
+    fullscreen: { available: phone.fullscreenAvailable, toggle: phone.toggleFullscreen } });
+
+  // Pause straight away (only during play), through the normal pause path so the music pauses too.
+  // Used when the page is hidden or loses focus, and while the "turn your phone sideways" message is up.
+  function pauseNow() {
+    if (state.mode !== 'playing') return;
+    const inp = S.makeInput(); inp.pressed.start = true;
+    S.update(state, inp);
+    drainEvents();
+  }
+  // Phone locked, app or tab switched, or another window clicked: pause (never resume by itself).
+  // Held keys and touch buttons are let go by input.js and touch.js.
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pauseNow(); });
+  window.addEventListener('blur', pauseNow);
 
   // Whole-number scaling in the screen's real pixels keeps every game pixel a sharp square (maths in layout.js).
   // With touch buttons on, layout.js also places the buttons and may move or shrink the picture to keep them clear of it.
@@ -2338,16 +2594,25 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     const useVV = vv && Math.abs((vv.scale || 1) - 1) < 0.01;
     const viewW = useVV ? vv.width : window.innerWidth, viewH = useVV ? vv.height : window.innerHeight;
     const dpr = window.devicePixelRatio || 1;
-    const opts = { viewW, viewH, dpr, gameW: C.screenW, gameH: C.screenH };
-    const L = touch.active ? S.touchLayout(Object.assign({ safe: touch.safe() }, opts)) : null;
+    // Notch, rounded-corner and home-bar margins: the picture and every button keep clear of them.
+    const safe = touch.safe();
+    const opts = { viewW, viewH, dpr, gameW: C.screenW, gameH: C.screenH, safe };
+    const L = touch.active ? S.touchLayout(opts) : null;
     const f = L ? L.fit : S.computeFit(opts);
     canvas.style.width = f.cssW + 'px'; canvas.style.height = f.cssH + 'px';
     canvas.style.left = f.cssLeft + 'px'; canvas.style.top = f.cssTop + 'px';
     if (L) touch.place(L);
-    window.__SAMMY_FIT = Object.assign({ viewW, viewH, touch: touch.active }, f);
+    // Upright with touch buttons: "turn your phone sideways" (until the player picks "play upright anyway").
+    const prompt = S.needsSidewaysPrompt({ viewW, viewH, touch: touch.active, dismissed: phone.dismissed });
+    const wasUp = phone.promptVisible;
+    phone.showPrompt(prompt, { viewW, viewH, dpr, safe });
+    if (prompt && !wasUp) { touch.releaseAll(); pauseNow(); }
+    window.__SAMMY_FIT = Object.assign({ viewW, viewH, touch: touch.active, safe, prompt }, f);
   }
   window.addEventListener('resize', fit);
   window.addEventListener('orientationchange', fit);
+  // Rotating can report the new size a moment late on some phones; check again shortly after.
+  window.addEventListener('orientationchange', () => setTimeout(fit, 300));
   if (window.visualViewport) window.visualViewport.addEventListener('resize', fit);
   // Browser zoom or moving the window to another screen changes the real-pixel ratio; re-fit and watch the new one.
   (function watchDpr() {
@@ -2361,9 +2626,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   })();
   fit();
 
-  const state = S.newGame();
-  window.__SAMMY_STATE = state;
-  const audio = S.createAudio();
   // Browsers only allow sound after the player does something. On phones a finger counts only when it lifts
   // (pointerup / touchend), so listen to those too. The touch buttons' events reach the window as well.
   let unlocks = 0;
@@ -2406,6 +2668,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     last = now;
     acc += dt;
     if (state.mode === 'title') state.titleT = (state.titleT || 0) + dt;
+    if (phone.promptVisible) pauseNow(); // a key on a tablet could still start the game behind the message
     while (acc >= C.step) {
       const inp = input.poll();
       if (inp.mute) state.muted = audio.toggleMute();
@@ -2423,7 +2686,13 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     const b = canvas.getBoundingClientRect();
     const de = document.documentElement;
     return Object.assign({}, window.__SAMMY_FIT, { rect: { x: b.x, y: b.y, w: b.width, h: b.height },
-      scrollW: de.scrollWidth, scrollH: de.scrollHeight, buttons: buttonReport() });
+      scrollW: de.scrollWidth, scrollH: de.scrollHeight, buttons: buttonReport(), promptVisible: promptShown(),
+      fullscreenAvailable: phone.fullscreenAvailable });
+  }
+  // Whether the "turn your phone sideways" message is really on screen.
+  function promptShown() {
+    const b = document.getElementById('sideways').getBoundingClientRect();
+    return phone.promptVisible && b.width > 0 && b.height > 0;
   }
   // Where each touch button really is on the page (shown ones only).
   function buttonReport() {
@@ -2451,6 +2720,23 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     } catch (e) { errors.push(String(e && e.stack || e)); }
     const r = { test: 'keys', fit: fitReport(), mode: state.mode, x: Math.round(state.player.x), airborne: !state.player.grounded, errors, sounds: { loaded: S.soundReport.loaded, plays: S.soundPlays } };
     r.ok = r.mode === 'playing' && r.x > state.level.start.x + 50 && r.airborne && errors.length === 0;
+    // Auto-pause: the page going hidden (phone locked, tab switched) pauses play and lets go of held keys;
+    // coming back does not resume by itself; Enter resumes.
+    try {
+      key('keydown', 'ArrowRight'); run(2);
+      Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+      r.hiddenPauses = state.mode === 'paused' && !input.held().right;
+      delete document.hidden; delete document.visibilityState;
+      document.dispatchEvent(new Event('visibilitychange'));
+      run(10); r.staysPaused = state.mode === 'paused';
+      key('keyup', 'ArrowRight'); key('keydown', 'Enter'); key('keyup', 'Enter'); run(2);
+      r.resumes = state.mode === 'playing';
+      window.dispatchEvent(new Event('blur')); r.blurPauses = state.mode === 'paused';
+      key('keydown', 'Enter'); key('keyup', 'Enter'); run(2);
+    } catch (e) { errors.push(String(e && e.stack || e)); }
+    r.ok = r.ok && r.hiddenPauses && r.staysPaused && r.resumes && r.blurPauses && state.mode === 'playing' && !r.fit.promptVisible && errors.length === 0;
     out.textContent = JSON.stringify(r);
     requestAnimationFrame(loop); // keep running normally afterwards
   }
@@ -2481,7 +2767,26 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       const f = finger('jump'); for (let i = 0; i < 70; i++) { if (i === hold) f.up(); run(1); top = Math.min(top, p.y); }
       run(30); return Math.round(y0 - top);
     };
+    const portrait = S.isPortrait(window.__SAMMY_FIT.viewW, window.__SAMMY_FIT.viewH);
     try {
+      // Upright: the "turn your phone sideways" message is up, covers the buttons and keeps the game paused.
+      // Sideways: it never shows.
+      c.promptOnLoad = promptShown();
+      if (portrait) {
+        run(2);
+        input.press('start'); run(3);
+        c.promptKeepsPaused = state.mode === 'paused';
+        const btn = phone.promptButton, b = btn.getBoundingClientRect();
+        c.promptButtonBig = b.width >= 48 && b.height >= 48;
+        const top = document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2);
+        c.promptButtonOnTop = top === btn;
+        const ev = (t) => btn.dispatchEvent(new PointerEvent(t, { pointerId: 50, pointerType: 'touch', bubbles: true, cancelable: true,
+          clientX: b.x + b.width / 2, clientY: b.y + b.height / 2 }));
+        ev('pointerdown'); run(1); ev('pointerup'); run(2);
+        c.promptDismissed = !promptShown() && phone.dismissed;
+        c.stillPausedAfterDismiss = state.mode === 'paused'; // never un-pauses by itself
+        state.mode = 'title'; run(2);
+      }
       // On the title screen PAUSE is hidden (it would only start the game), and so is the pause menu.
       c.visibleOnTitle = ['pad', 'jump', 'whip', 'possum'].every((n) => buttonReport()[n]) && !buttonReport().pause && !buttonReport().restart;
       run(5);
@@ -2511,12 +2816,17 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       // Every way a finger can be lost clears what it held.
       let f = finger('pad', 0.9); run(1); f.cancel(); c.cancelClears = noneHeld();
       f = finger('jump'); run(1); f.lost(); c.lostCaptureClears = noneHeld();
+      // Leaving the page lets go of every button and pauses (it never resumes by itself); PLAY resumes.
       finger('pad', 0.9); finger('whip'); run(1); window.dispatchEvent(new Event('blur')); c.blurClears = noneHeld();
+      c.blurPauses = state.mode === 'paused'; run(5); tap('pause'); c.resumeAfterBlur = state.mode === 'playing';
       finger('possum'); run(1);
       Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
       document.dispatchEvent(new Event('visibilitychange'));
-      delete document.hidden;
+      delete document.hidden; delete document.visibilityState;
       c.hiddenClears = noneHeld();
+      c.hiddenPauses = state.mode === 'paused';
+      run(5); tap('pause'); c.resumeAfterHidden = state.mode === 'playing';
       run(5);
       // Pause shows RESTART and MUTE; MUTE toggles sound; RESTART goes back to the start.
       tap('pause');
@@ -2530,7 +2840,11 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       run(2); c.tapPictureStarts = state.mode === 'playing';
     } catch (e) { errors.push(String(e && e.stack || e)); }
     const r = { test: 'touch', fit: fitReport(), mode: state.mode, checks: c, errors };
-    r.ok = c.visibleOnTitle && c.jumpStarts && c.pauseShownInPlay && c.soundUnlocked && c.movedRight > 50 && c.slideLeft && c.releasedPad &&
+    const fullOk = phone.fullscreenAvailable ? !!buttonReport().full : !buttonReport().full;
+    c.fullButton = !!buttonReport().full;
+    r.ok = (portrait ? c.promptOnLoad && c.promptKeepsPaused && c.promptButtonBig && c.promptButtonOnTop && c.promptDismissed &&
+      c.stillPausedAfterDismiss : !c.promptOnLoad) && fullOk && c.blurPauses && c.resumeAfterBlur && c.hiddenPauses && c.resumeAfterHidden &&
+      c.visibleOnTitle && c.jumpStarts && c.pauseShownInPlay && c.soundUnlocked && c.movedRight > 50 && c.slideLeft && c.releasedPad &&
       c.holdRise > c.tapRise + 10 && c.moveAndJump && c.whip && c.cancelClears && c.lostCaptureClears && c.blurClears &&
       c.hiddenClears && c.paused && c.muted && c.unmuted && c.restarted && c.tapPictureStarts && errors.length === 0;
     out.textContent = JSON.stringify(r);

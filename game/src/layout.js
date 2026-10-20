@@ -4,10 +4,13 @@
 (function (S) {
   // view: available size in CSS px; dpr: real pixels per CSS px; game: native size in game pixels.
   // reserveTop/Bottom/Left/Right: CSS px kept free (for on-screen buttons). Default 0.
+  // safe: { top, right, bottom, left } CSS px the screen's notch, rounded corners or home bar take (optional);
+  // kept free as well, so the picture never goes under them.
   // maxScale: never bigger than this (optional).
   S.computeFit = function computeFit(o) {
-    const dpr = o.dpr > 0 ? o.dpr : 1;
-    const rt = o.reserveTop || 0, rb = o.reserveBottom || 0, rl = o.reserveLeft || 0, rr = o.reserveRight || 0;
+    const dpr = o.dpr > 0 ? o.dpr : 1, sf = o.safe || {};
+    const rt = (o.reserveTop || 0) + (sf.top || 0), rb = (o.reserveBottom || 0) + (sf.bottom || 0);
+    const rl = (o.reserveLeft || 0) + (sf.left || 0), rr = (o.reserveRight || 0) + (sf.right || 0);
     // Available area in device pixels (never negative).
     const availW = Math.max(0, (o.viewW - rl - rr) * dpr);
     const availH = Math.max(0, (o.viewH - rt - rb) * dpr);
@@ -62,6 +65,9 @@
     const edge = (inset) => Math.max(m, Math.ceil((inset || 0) * dpr) + Math.round(6 * dpr));
     const eL = edge(sf.left), eR = edge(sf.right), eT = edge(sf.top), eB = edge(sf.bottom);
     const size = (n) => ({ w: art[n][0] * k, h: art[n][1] * k });
+    // The notch-free part of the screen (real px): the picture stays inside it.
+    const sL = Math.ceil((sf.left || 0) * dpr), sR = Math.ceil((sf.right || 0) * dpr);
+    const sT = Math.ceil((sf.top || 0) * dpr), sB = Math.ceil((sf.bottom || 0) * dpr);
 
     // The action buttons at the bottom right. bottom: real px from the screen's bottom edge to the lowest button.
     // 'wide': JUMP in the corner, WHIP to its left (a little higher), POSSUM above JUMP.
@@ -90,11 +96,13 @@
       const q = inGame(r, pic);
       return !q || S.TOUCH_CORNERS.some((z) => q.x0 >= z.x0 - 1e-9 && q.x1 <= z.x1 + 1e-9 && q.y0 >= z.y0 - 1e-9 && q.y1 <= z.y1 + 1e-9);
     };
+    // Centred in the notch-free part of the screen.
     const picAt = (s, top) => {
       const w = gw * s, h = gh * s;
-      return { s, w, h, x: Math.max(0, Math.round((DW - w) / 2)), y: top == null ? Math.max(0, Math.round((DH - h) / 2)) : top };
+      return { s, w, h, x: Math.max(sL, Math.round(sL + (DW - sL - sR - w) / 2)), y: top == null ? Math.max(sT, Math.round(sT + (DH - sT - sB - h) / 2)) : top };
     };
-    const maxScale = S.computeFit({ viewW: o.viewW, viewH: o.viewH, dpr, gameW: gw, gameH: gh }).scale;
+    const inSafe = (p) => p.x >= sL && p.y >= sT && p.x + p.w <= DW - sR && p.y + p.h <= DH - sB;
+    const maxScale = S.computeFit({ viewW: o.viewW, viewH: o.viewH, dpr, gameW: gw, gameH: gh, safe: sf }).scale;
     let pic = null, c = null;
 
     if (!portrait) {
@@ -109,13 +117,13 @@
       search: for (let s = maxScale; s >= 1; s--) {
         // Picture heights to try: centred first, then nudged up a little at a time towards the top edge, so the
         // picture stays as close to centred as the corner rule allows.
-        const centre = picAt(s).y, topMin = Math.ceil((sf.top || 0) * dpr), tops = [centre];
+        const centre = picAt(s).y, topMin = sT, tops = [centre];
         for (let t = centre - k; t > topMin; t -= k) tops.push(t);
         if (topMin !== centre) tops.push(topMin);
         for (const top of tops) {
           for (const arrange of ['wide', 'stacked']) {
             const cand = picAt(s, top), cc = place(eB, arrange);
-            if (cc.possum.y < eT) continue;
+            if (cc.possum.y < eT || !inSafe(cand)) continue;
             if (!['pad', 'jump', 'whip', 'possum'].every((n) => allowed(cc[n], cand))) continue;
             const spot = pauseSpots(cc).find((p) => allowed(p, cand) && !(p.y + p.h > cc.possum.y - g && p.x + p.w > cc.possum.x - g));
             if (!spot) continue;
@@ -132,8 +140,8 @@
       const clusterTop = Math.min(c.pad.y, c.whip.y, c.possum.y);
       const P = size('pause');
       const below = P.h + 2 * g + (DH - clusterTop);    // room the buttons need under the picture (real px)
-      const top = Math.ceil((sf.top || 0) * dpr);
-      const f = S.computeFit({ viewW: o.viewW, viewH: o.viewH, dpr, gameW: gw, gameH: gh, reserveTop: top / dpr, reserveBottom: below / dpr });
+      const f = S.computeFit({ viewW: o.viewW, viewH: o.viewH, dpr, gameW: gw, gameH: gh, reserveTop: sT / dpr, reserveBottom: below / dpr,
+        reserveLeft: sL / dpr, reserveRight: sR / dpr });
       pic = picAt(f.scale, Math.round(f.cssTop * dpr));
       c.pause = Object.assign({ x: DW - eR - P.w, y: pic.y + pic.h + g }, P);
     }
@@ -163,6 +171,23 @@
       };
     }
 
+    // FULL SCREEN button (same size as PAUSE), in the first free spot next to PAUSE: below it, the other PAUSE spots,
+    // left of it, above it. It must keep off the picture entirely, clear of notches, and not touch
+    // any other button (RESTART and MUTE included). It never makes the picture smaller; if no spot is free it is left out.
+    {
+      const F = size('pause'), p = c.pause;
+      const spots = [{ x: p.x, y: p.y + p.h + g }, { x: p.x - g - F.w, y: p.y }, { x: p.x, y: p.y - g - F.h }, { x: p.x + p.w + g, y: p.y }];
+      if (!portrait) {
+        spots.splice(1, 0, { x: DW - eR - F.w, y: eT }, { x: eL, y: eT });
+        spots.push({ x: eL, y: c.pad.y - g - F.h });
+      }
+      const others = Object.keys(c).map((n) => c[n]);
+      const clear = (r) => others.every((o2) => r.x + r.w + g <= o2.x || o2.x + o2.w + g <= r.x || r.y + r.h + g <= o2.y || o2.y + o2.h + g <= r.y);
+      const spot = spots.map((s) => Object.assign(s, F)).find((r) => r.x >= eL && r.y >= eT && r.x + r.w <= DW - eR && r.y + r.h <= DH - eB &&
+        !inGame(r, pic) && clear(r));
+      if (spot) c.full = spot;
+    }
+
     const controls = {};
     for (const n in c) {
       const r = c[n];
@@ -175,5 +200,27 @@
         deviceW: pic.w, deviceH: pic.h, overflows: pic.w > DW || pic.h > DH },
       controls,
     };
+  };
+
+  // ---------- "turn your phone sideways" message ----------
+  // Shown only with the touch buttons on, on a screen taller than it is wide, until the player picks "play upright anyway".
+  S.isPortrait = (viewW, viewH) => viewH > viewW;
+  S.needsSidewaysPrompt = (o) => !!(o.touch && !o.dismissed && S.isPortrait(o.viewW, o.viewH));
+
+  // Where the message's pixel-art card goes: artW x artH card pixels, each k x k real pixels (whole numbers, so it is as
+  // sharp as the game), as big as fits in 92% of the notch-free width and 80% of its height (and no wider than maxW CSS
+  // px, if given), centred in it.
+  // o: { viewW, viewH, dpr, artW, artH, safe, maxW }. Returns { k, x, y, w, h } (CSS px) and dev (the same in real px).
+  S.promptLayout = function promptLayout(o) {
+    const dpr = o.dpr > 0 ? o.dpr : 1, sf = o.safe || {};
+    const sL = Math.ceil((sf.left || 0) * dpr), sR = Math.ceil((sf.right || 0) * dpr);
+    const sT = Math.ceil((sf.top || 0) * dpr), sB = Math.ceil((sf.bottom || 0) * dpr);
+    const aw = Math.max(0, Math.round(o.viewW * dpr) - sL - sR), ah = Math.max(0, Math.round(o.viewH * dpr) - sT - sB);
+    let k = Math.floor(Math.min(aw * 0.92 / o.artW, ah * 0.8 / o.artH));
+    if (o.maxW > 0) k = Math.min(k, Math.floor(o.maxW * dpr / o.artW));
+    k = Math.max(1, k);
+    const w = o.artW * k, h = o.artH * k;
+    const x = Math.max(sL, Math.round(sL + (aw - w) / 2)), y = Math.max(sT, Math.round(sT + (ah - h) / 2));
+    return { k, x: x / dpr, y: y / dpr, w: w / dpr, h: h / dpr, dev: { x, y, w, h } };
   };
 })(globalThis.SAMMY = globalThis.SAMMY || {});

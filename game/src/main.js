@@ -10,8 +10,32 @@
   window.addEventListener('error', (e) => errors.push(String(e.message || e)));
 
   const input = S.createInput(window);
+  const state = S.newGame();
+  window.__SAMMY_STATE = state;
+  const audio = S.createAudio();
+  // Phone page behaviour (phone.js): the "turn your phone sideways" message, full screen, no accidental zoom.
+  // ?upright=1 starts with the message already put away (for screenshots of upright play).
+  const phone = S.createPhone({
+    dismissed: params.get('upright') === '1',
+    onDismiss: () => fit(),
+    onFullscreenChange: (on) => { touch.setFullscreen(on); fit(); },
+  });
   // On-screen buttons for phones and tablets (touch.js). Off on desktops; ?touch=1 forces them on.
-  const touch = S.createTouch({ input, canvas, forced: params.get('touch') === '1', onChange: () => fit() });
+  const touch = S.createTouch({ input, canvas, forced: params.get('touch') === '1', onChange: () => fit(),
+    fullscreen: { available: phone.fullscreenAvailable, toggle: phone.toggleFullscreen } });
+
+  // Pause straight away (only during play), through the normal pause path so the music pauses too.
+  // Used when the page is hidden or loses focus, and while the "turn your phone sideways" message is up.
+  function pauseNow() {
+    if (state.mode !== 'playing') return;
+    const inp = S.makeInput(); inp.pressed.start = true;
+    S.update(state, inp);
+    drainEvents();
+  }
+  // Phone locked, app or tab switched, or another window clicked: pause (never resume by itself).
+  // Held keys and touch buttons are let go by input.js and touch.js.
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pauseNow(); });
+  window.addEventListener('blur', pauseNow);
 
   // Whole-number scaling in the screen's real pixels keeps every game pixel a sharp square (maths in layout.js).
   // With touch buttons on, layout.js also places the buttons and may move or shrink the picture to keep them clear of it.
@@ -21,16 +45,25 @@
     const useVV = vv && Math.abs((vv.scale || 1) - 1) < 0.01;
     const viewW = useVV ? vv.width : window.innerWidth, viewH = useVV ? vv.height : window.innerHeight;
     const dpr = window.devicePixelRatio || 1;
-    const opts = { viewW, viewH, dpr, gameW: C.screenW, gameH: C.screenH };
-    const L = touch.active ? S.touchLayout(Object.assign({ safe: touch.safe() }, opts)) : null;
+    // Notch, rounded-corner and home-bar margins: the picture and every button keep clear of them.
+    const safe = touch.safe();
+    const opts = { viewW, viewH, dpr, gameW: C.screenW, gameH: C.screenH, safe };
+    const L = touch.active ? S.touchLayout(opts) : null;
     const f = L ? L.fit : S.computeFit(opts);
     canvas.style.width = f.cssW + 'px'; canvas.style.height = f.cssH + 'px';
     canvas.style.left = f.cssLeft + 'px'; canvas.style.top = f.cssTop + 'px';
     if (L) touch.place(L);
-    window.__SAMMY_FIT = Object.assign({ viewW, viewH, touch: touch.active }, f);
+    // Upright with touch buttons: "turn your phone sideways" (until the player picks "play upright anyway").
+    const prompt = S.needsSidewaysPrompt({ viewW, viewH, touch: touch.active, dismissed: phone.dismissed });
+    const wasUp = phone.promptVisible;
+    phone.showPrompt(prompt, { viewW, viewH, dpr, safe });
+    if (prompt && !wasUp) { touch.releaseAll(); pauseNow(); }
+    window.__SAMMY_FIT = Object.assign({ viewW, viewH, touch: touch.active, safe, prompt }, f);
   }
   window.addEventListener('resize', fit);
   window.addEventListener('orientationchange', fit);
+  // Rotating can report the new size a moment late on some phones; check again shortly after.
+  window.addEventListener('orientationchange', () => setTimeout(fit, 300));
   if (window.visualViewport) window.visualViewport.addEventListener('resize', fit);
   // Browser zoom or moving the window to another screen changes the real-pixel ratio; re-fit and watch the new one.
   (function watchDpr() {
@@ -44,9 +77,6 @@
   })();
   fit();
 
-  const state = S.newGame();
-  window.__SAMMY_STATE = state;
-  const audio = S.createAudio();
   // Browsers only allow sound after the player does something. On phones a finger counts only when it lifts
   // (pointerup / touchend), so listen to those too. The touch buttons' events reach the window as well.
   let unlocks = 0;
@@ -89,6 +119,7 @@
     last = now;
     acc += dt;
     if (state.mode === 'title') state.titleT = (state.titleT || 0) + dt;
+    if (phone.promptVisible) pauseNow(); // a key on a tablet could still start the game behind the message
     while (acc >= C.step) {
       const inp = input.poll();
       if (inp.mute) state.muted = audio.toggleMute();
@@ -106,7 +137,13 @@
     const b = canvas.getBoundingClientRect();
     const de = document.documentElement;
     return Object.assign({}, window.__SAMMY_FIT, { rect: { x: b.x, y: b.y, w: b.width, h: b.height },
-      scrollW: de.scrollWidth, scrollH: de.scrollHeight, buttons: buttonReport() });
+      scrollW: de.scrollWidth, scrollH: de.scrollHeight, buttons: buttonReport(), promptVisible: promptShown(),
+      fullscreenAvailable: phone.fullscreenAvailable });
+  }
+  // Whether the "turn your phone sideways" message is really on screen.
+  function promptShown() {
+    const b = document.getElementById('sideways').getBoundingClientRect();
+    return phone.promptVisible && b.width > 0 && b.height > 0;
   }
   // Where each touch button really is on the page (shown ones only).
   function buttonReport() {
@@ -134,6 +171,23 @@
     } catch (e) { errors.push(String(e && e.stack || e)); }
     const r = { test: 'keys', fit: fitReport(), mode: state.mode, x: Math.round(state.player.x), airborne: !state.player.grounded, errors, sounds: { loaded: S.soundReport.loaded, plays: S.soundPlays } };
     r.ok = r.mode === 'playing' && r.x > state.level.start.x + 50 && r.airborne && errors.length === 0;
+    // Auto-pause: the page going hidden (phone locked, tab switched) pauses play and lets go of held keys;
+    // coming back does not resume by itself; Enter resumes.
+    try {
+      key('keydown', 'ArrowRight'); run(2);
+      Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+      r.hiddenPauses = state.mode === 'paused' && !input.held().right;
+      delete document.hidden; delete document.visibilityState;
+      document.dispatchEvent(new Event('visibilitychange'));
+      run(10); r.staysPaused = state.mode === 'paused';
+      key('keyup', 'ArrowRight'); key('keydown', 'Enter'); key('keyup', 'Enter'); run(2);
+      r.resumes = state.mode === 'playing';
+      window.dispatchEvent(new Event('blur')); r.blurPauses = state.mode === 'paused';
+      key('keydown', 'Enter'); key('keyup', 'Enter'); run(2);
+    } catch (e) { errors.push(String(e && e.stack || e)); }
+    r.ok = r.ok && r.hiddenPauses && r.staysPaused && r.resumes && r.blurPauses && state.mode === 'playing' && !r.fit.promptVisible && errors.length === 0;
     out.textContent = JSON.stringify(r);
     requestAnimationFrame(loop); // keep running normally afterwards
   }
@@ -164,7 +218,26 @@
       const f = finger('jump'); for (let i = 0; i < 70; i++) { if (i === hold) f.up(); run(1); top = Math.min(top, p.y); }
       run(30); return Math.round(y0 - top);
     };
+    const portrait = S.isPortrait(window.__SAMMY_FIT.viewW, window.__SAMMY_FIT.viewH);
     try {
+      // Upright: the "turn your phone sideways" message is up, covers the buttons and keeps the game paused.
+      // Sideways: it never shows.
+      c.promptOnLoad = promptShown();
+      if (portrait) {
+        run(2);
+        input.press('start'); run(3);
+        c.promptKeepsPaused = state.mode === 'paused';
+        const btn = phone.promptButton, b = btn.getBoundingClientRect();
+        c.promptButtonBig = b.width >= 48 && b.height >= 48;
+        const top = document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2);
+        c.promptButtonOnTop = top === btn;
+        const ev = (t) => btn.dispatchEvent(new PointerEvent(t, { pointerId: 50, pointerType: 'touch', bubbles: true, cancelable: true,
+          clientX: b.x + b.width / 2, clientY: b.y + b.height / 2 }));
+        ev('pointerdown'); run(1); ev('pointerup'); run(2);
+        c.promptDismissed = !promptShown() && phone.dismissed;
+        c.stillPausedAfterDismiss = state.mode === 'paused'; // never un-pauses by itself
+        state.mode = 'title'; run(2);
+      }
       // On the title screen PAUSE is hidden (it would only start the game), and so is the pause menu.
       c.visibleOnTitle = ['pad', 'jump', 'whip', 'possum'].every((n) => buttonReport()[n]) && !buttonReport().pause && !buttonReport().restart;
       run(5);
@@ -194,12 +267,17 @@
       // Every way a finger can be lost clears what it held.
       let f = finger('pad', 0.9); run(1); f.cancel(); c.cancelClears = noneHeld();
       f = finger('jump'); run(1); f.lost(); c.lostCaptureClears = noneHeld();
+      // Leaving the page lets go of every button and pauses (it never resumes by itself); PLAY resumes.
       finger('pad', 0.9); finger('whip'); run(1); window.dispatchEvent(new Event('blur')); c.blurClears = noneHeld();
+      c.blurPauses = state.mode === 'paused'; run(5); tap('pause'); c.resumeAfterBlur = state.mode === 'playing';
       finger('possum'); run(1);
       Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
       document.dispatchEvent(new Event('visibilitychange'));
-      delete document.hidden;
+      delete document.hidden; delete document.visibilityState;
       c.hiddenClears = noneHeld();
+      c.hiddenPauses = state.mode === 'paused';
+      run(5); tap('pause'); c.resumeAfterHidden = state.mode === 'playing';
       run(5);
       // Pause shows RESTART and MUTE; MUTE toggles sound; RESTART goes back to the start.
       tap('pause');
@@ -213,7 +291,11 @@
       run(2); c.tapPictureStarts = state.mode === 'playing';
     } catch (e) { errors.push(String(e && e.stack || e)); }
     const r = { test: 'touch', fit: fitReport(), mode: state.mode, checks: c, errors };
-    r.ok = c.visibleOnTitle && c.jumpStarts && c.pauseShownInPlay && c.soundUnlocked && c.movedRight > 50 && c.slideLeft && c.releasedPad &&
+    const fullOk = phone.fullscreenAvailable ? !!buttonReport().full : !buttonReport().full;
+    c.fullButton = !!buttonReport().full;
+    r.ok = (portrait ? c.promptOnLoad && c.promptKeepsPaused && c.promptButtonBig && c.promptButtonOnTop && c.promptDismissed &&
+      c.stillPausedAfterDismiss : !c.promptOnLoad) && fullOk && c.blurPauses && c.resumeAfterBlur && c.hiddenPauses && c.resumeAfterHidden &&
+      c.visibleOnTitle && c.jumpStarts && c.pauseShownInPlay && c.soundUnlocked && c.movedRight > 50 && c.slideLeft && c.releasedPad &&
       c.holdRise > c.tapRise + 10 && c.moveAndJump && c.whip && c.cancelClears && c.lostCaptureClears && c.blurClears &&
       c.hiddenClears && c.paused && c.muted && c.unmuted && c.restarted && c.tapPictureStarts && errors.length === 0;
     out.textContent = JSON.stringify(r);

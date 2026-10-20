@@ -66,6 +66,13 @@ Gamepads have not been tested by a real person yet.
 
 **Phones and tablets:** looking great and playing well on mobile as well as desktop is a **major priority**. Two steps are done: the game is bigger and sharper on phones and tablets (held sideways, in our checks it fills 90–95% of an iPhone's height instead of under 60%; with the touch buttons on, iPhones with a notch get a picture one step smaller, about 76% of the height, to make room for them), and it now has **on-screen touch buttons**. They appear only on touch screens, never on a normal computer. Sideways, they sit in the black space beside the picture and may just cover the brown dirt strip at its bottom corners (never the top bar or the grass where Sammy and the zombies walk); upright, below it. The whole level can be played by touch in our automatic checks, but **nobody has tried it on a real phone yet**, and phones still need the game put on a website to open it. See the roadmap below.
 
+**Phone layout (step 3, done):**
+- **Hold it sideways.** If a phone or tablet with touch buttons is held upright, a "TURN YOUR PHONE SIDEWAYS" message appears and the game waits, paused. Turn the phone and the message goes away; the game stays on the pause screen until you tap play. If you'd rather play upright, tap **PLAY UPRIGHT ANYWAY** (it won't ask again until you close the page). This is the suggested answer to owner question 12; it's still your call.
+- **Full screen:** on Android phones and tablets, a blue full-screen button (four corners) sits next to the pause button. It hides the browser's bars and tries to keep the screen sideways. iPhones don't allow this button. Instead, once the game is on a website: open it in Safari, tap **Share**, then **Add to Home Screen**. Opened from the home screen, it fills the whole screen.
+- **Notches and rounded corners:** the picture and every button keep clear of the notch, the camera hole, rounded corners and the iPhone's home bar.
+- **No accidental zoom, scrolling or text selection** while playing (pinch and double-tap zoom are turned off; the game already scales itself to fill the screen).
+- **Auto-pause (computers too):** if the page is hidden (phone locked, another app or tab) or you click into another window, the game pauses and lets go of any held buttons. It never un-pauses by itself.
+
 ## What's in level 1
 
 Level 1, **Sheep Meadow**, is 12 screens long. A fast run takes about 1 minute; a first try takes about 3–5 minutes.
@@ -102,6 +109,7 @@ These drawings were made for this page only. They are not the game's art. In the
 - A complete, playable level 1 with placeholder art and sound.
 - The first real art: **Sammy's run animation**.
 - Bigger, sharper scaling on phones and tablets, and **on-screen touch buttons** (shown only on touch screens).
+- The phone layout: a "turn your phone sideways" message, a full-screen button (Android), room for notches, no accidental zoom, and auto-pause when you leave the page.
 - An automatic art and sound loader: put a correctly named file into `assets/`, run the scanner, and it replaces its placeholder.
 - Checks for art files (size, colors, see-through pixels).
 - A shareable build (`game/dist/`: the game page plus an `assets/` folder with the cleared real art) with license rules and a credits list.
@@ -109,7 +117,7 @@ These drawings were made for this page only. They are not the game's art. In the
 - Design docs, templates and worked examples for every kind of art and sound.
 
 **Next:**
-1. **Desktop and mobile (major priority):** the game now fills phone and tablet screens crisply, and has on-screen touch buttons (both done). Still to do: the phone layout (a "turn your phone sideways" message, full screen, notches), and tests on real phones. The plan is in [design/DECISIONS.md](design/DECISIONS.md).
+1. **Desktop and mobile (major priority):** the game now fills phone and tablet screens crisply, has on-screen touch buttons, and has the phone layout (sideways message, full screen, notches, no accidental zoom, auto-pause). Still to do: a check that sound starts on the first tap, and tests on real phones (the game must be put on a website first). The plan is in [design/DECISIONS.md](design/DECISIONS.md).
 2. **You (the owner) answer the open questions** in **[design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)**. There are 12, each with a suggested answer. Examples: the final title, how gory it gets, who makes the art and music, and what goes in the first release.
 3. You review the draft style guide, [design/STYLE_GUIDE.md](design/STYLE_GUIDE.md).
 4. Real art and sound arrive, starting with the most important files ("Tier 1") in [design/ASSET_REQUEST_CHECKLIST.md](design/ASSET_REQUEST_CHECKLIST.md).
@@ -224,8 +232,8 @@ node tests/browser-smoke.mjs
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | **44 game-rule tests:** every move, enemy and item in level 1, a full autopilot run, the screen-size and touch-button maths, and the art, sound and license checks. |
-| `node tests/browser-smoke.mjs` | **33 browser checks:** opens the game in a hidden Chromium browser, plays the whole level in both the normal and the shareable copy, presses real keys, taps the real touch buttons at phone sizes, draws every screen, loads test art and sound, checks the picture is big and sharp at a phone size and a laptop size, and checks the touch buttons stay hidden on a computer. Needs Chrome, Edge or another Chromium browser. |
+| `node --test tests/sim.test.mjs` | **48 game-rule tests:** every move, enemy and item in level 1, a full autopilot run, the screen-size, notch, touch-button and "turn sideways" message maths, and the art, sound and license checks. |
+| `node tests/browser-smoke.mjs` | **43 browser checks:** opens the game in a hidden Chromium browser, plays the whole level in both the normal and the shareable copy, presses real keys, taps the real touch buttons at phone sizes, draws every screen, loads test art and sound, checks the picture is big and sharp at a phone size and a laptop size, checks the "turn your phone sideways" message (upright only) and auto-pause, and checks the touch buttons and the message stay hidden on a computer. Needs Chrome, Edge or another Chromium browser. |
 | `?test=full` | Open `game/index.html`, click the address bar, type `?test=full` at the very end and press Enter. The game then plays itself ("autopilot") so you can watch a full run. |
 
 If you changed the game's code, run the build (see [Building a shareable copy](#building-a-shareable-copy)) before the browser check. Otherwise the check fails and asks you to run `node tools/build.mjs`.

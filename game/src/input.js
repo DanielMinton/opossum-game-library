@@ -26,8 +26,10 @@
       keyHeld[a] = true;
     });
     target.addEventListener('keyup', (e) => { const a = KEYS[e.code]; if (a) keyHeld[a] = false; });
-    target.addEventListener('blur', () => { for (const k in keyHeld) keyHeld[k] = false; });
-    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.hidden) for (const k in keyHeld) keyHeld[k] = false; });
+    // Leaving the page (another window, app or tab) lets go of every key and forgets presses not yet used.
+    const letGo = () => { for (const k in keyHeld) keyHeld[k] = false; pending.clear(); };
+    target.addEventListener('blur', letGo);
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.hidden) letGo(); });
 
     function readPad() {
       const out = {};
