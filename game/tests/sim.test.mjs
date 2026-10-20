@@ -1243,11 +1243,11 @@ function checkTouchLayout(name, L, w, h, dpr, safe = {}) {
   assert.ok(c.pad.x + c.pad.w <= w / 2 && ['jump', 'whip', 'possum'].every((n) => c[n].x >= w / 2), `${name}: pad left, actions right`);
   // Pause menu: sideways, RESTART and MUTE sit over the picture under the PAUSED panel; upright, they sit in the empty
   // band below the picture (the small picture stays visible) without touching PAUSE. Always side by side.
-  assert.ok(c.mute.x >= c.restart.x + c.restart.w, `${name}: RESTART and MUTE side by side`);
+  assert.ok(c.mute.x >= c.restart.x + c.restart.w && c.gore.x >= c.mute.x + c.mute.w && c.gore.y === c.mute.y, `${name}: RESTART, MUTE and GORE side by side`);
   if (L.orientation === 'landscape') {
     assert.ok(c.restart.y >= f.cssTop + 131 * s && c.restart.y + c.restart.h <= f.cssTop + f.cssH + 1e-9, `${name}: pause menu under the panel`);
   } else {
-    for (const n of ['restart', 'mute']) {
+    for (const n of ['restart', 'mute', 'gore']) {
       const r = c[n], p = c.pause;
       assert.ok(r.y >= f.cssTop + f.cssH - 1e-9, `${name}: ${n} below the picture`);
       assert.ok(r.x >= 0 && r.x + r.w <= w + 1e-9, `${name}: ${n} on screen`);
@@ -1279,7 +1279,7 @@ test('touch layout: thumb-sized buttons that cover only the bottom corners, at t
     if (L.orientation === 'portrait') { assert.equal(mp, null); continue; }
     const s = L.fit.scale / dpr, gx = (v) => (v - L.fit.cssLeft) / s, gy = (v) => (v - L.fit.cssTop) / s;
     assert.ok(mp.x0 >= 1 && mp.x1 <= C.screenW - 1 && mp.y1 <= C.screenH - 1 && mp.x0 <= 100 && mp.x1 >= 220 && mp.y0 === 80, name + ' menu panel');
-    for (const n of ['restart', 'mute']) {
+    for (const n of ['restart', 'mute', 'gore']) {
       const r = L.controls[n];
       assert.ok(gx(r.x) >= mp.x0 && gx(r.x + r.w) <= mp.x1 && gy(r.y + r.h) <= mp.y1, `${name}: ${n} inside the PAUSED box`);
     }
@@ -1359,7 +1359,7 @@ test('notches: with the touch buttons on, the picture and every button keep clea
   for (const [name, [w, h, dpr, safe]] of Object.entries(SAFE)) {
     const L = touchFor(w, h, dpr, safe);
     checkTouchLayout(name + ' with notch margins', L, w, h, dpr, safe);
-    for (const n of ['restart', 'mute']) {
+    for (const n of ['restart', 'mute', 'gore']) {
       const r = L.controls[n];
       assert.ok(r.x >= (safe.left || 0) && r.y >= (safe.top || 0) && r.x + r.w <= w - (safe.right || 0) + 1e-9 && r.y + r.h <= h - (safe.bottom || 0) + 1e-9, `${name}: ${n} clear of notches`);
     }
@@ -1562,7 +1562,7 @@ test('night look: every palette colour is on the 9-bit grid, and the HUD and pan
   const lum = (v) => parseInt(v.slice(1, 3), 16) + parseInt(v.slice(3, 5), 16) + parseInt(v.slice(5, 7), 16);
   assert.ok(lum(K.grass) > lum(K.trees), 'walking lane is lighter than the trees behind it');
   // Gore colours are reserved: nothing else may use them.
-  const reserved = new Set(['blood0', 'blood', 'bloodHi', 'ichor0', 'ichor', 'ichorHi']);
+  const reserved = new Set(['blood0', 'blood', 'bloodHi', 'ichor0', 'ichor', 'ichorHi', 'bone', 'meat']);
   for (const [k, v] of Object.entries(K)) if (!reserved.has(k)) for (const r of reserved) assert.notEqual(v, K[r], `${k} does not reuse gore colour ${r}`);
 });
 
@@ -1581,4 +1581,70 @@ test('voice: title, quips, prompts and arena banners fit their boxes', () => {
   const A = S.LEVEL1.arena, src = fs.readFileSync(path.join(here, '..', 'src', 'sim.js'), 'utf8');
   const exit = (src.match(/A\.gateX, 120, [\d.]+, \{ text: '([^']+)' \}/) || [])[1];
   assert.ok(exit && A.gateX + S.textWidth(exit) / 2 <= A.x1, 'exit banner stays on screen: ' + exit);
+});
+
+// ---------- gore setting (drawing only) ----------
+// A pretend drawing surface that records every colour drawn with.
+function colorCtx() {
+  const used = new Set();
+  return new Proxy({}, {
+    get: (o, k) => (k === 'used' ? used : k in o ? o[k] : () => {}),
+    set: (o, k, v) => { if (k === 'fillStyle') used.add(String(v).toLowerCase()); o[k] = v; return true; },
+  });
+}
+// Zombies going down in every style, plus every gore effect, shaking and frozen.
+function goreScene(s) {
+  const p = s.player, y = G - 20;
+  const jog = s.enemies.find((e) => e.type === 'jogger'), ven = s.enemies.find((e) => e.type === 'vendor');
+  const demo = [[jog, 'pop'], [Object.assign({}, jog, { id: 'j2' }), 'sliced'], [ven, 'deflate'], [Object.assign({}, ven, { id: 'v2' }), 'sliced']];
+  demo.forEach(([e, style], i) => {
+    Object.assign(e, { x: p.x + 30 + i * 30, y: G, face: -1, state: 'defeat', t: 0.2, anim: 'defeat', animT: 0.2, defeatStyle: style });
+    if (!s.enemies.includes(e)) s.enemies.push(e);
+  });
+  s.effects.push({ kind: 'blood', x: p.x + 20, y, t: 0.1, life: 0.8, n: 10, dir: 1, power: 1 },
+    { kind: 'chunk', x: p.x + 40, y, t: 0.1, life: 0.8, dir: 1 }, { kind: 'ichor', x: p.x + 60, y, t: 0.1, life: 0.6, n: 6 },
+    { kind: 'sparks', x: p.x + 20, y, t: 0.05, life: 0.15, dir: -1 });
+  s.shake = 0.2; s.hitstop = 0.05;
+}
+
+test('gore setting: low never draws a drop of blood, guts or ichor; full does', () => {
+  const was = S.gore;
+  const gore = new Set(Object.values(S.GORE_COLORS).map((c) => c.toLowerCase()));
+  for (const g of ['full', 'low']) {
+    S.setGore(g);
+    const s = start(); goreScene(s);
+    const ctx = colorCtx();
+    S.render(ctx, s);
+    const red = [...ctx.used].filter((c) => gore.has(c));
+    if (g === 'low') assert.deepEqual(red, [], 'low gore drew gore colours: ' + red.join(', '));
+    else assert.ok(red.length >= 3, 'full gore draws blood, guts and ichor colours: ' + red.join(', '));
+  }
+  S.setGore(was);
+});
+
+test('gore setting: picked from ?gore=, else what the browser remembered, else full; blocked storage is fine', () => {
+  assert.equal(S.pickGore('low', null), 'low');
+  assert.equal(S.pickGore('full', 'low'), 'full', '?gore=full wins over the remembered choice');
+  assert.equal(S.pickGore(null, 'low'), 'low');
+  assert.equal(S.pickGore('banana', 'junk'), 'full');
+  assert.equal(S.setGore('nonsense'), 'full'); assert.equal(S.setGore('low'), 'low'); S.setGore('full');
+  const mem = {}, store = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); } };
+  assert.equal(S.readGorePref(store), 'full');
+  assert.equal(S.writeGorePref(store, 'low'), true); assert.equal(mem['sammy.gore'], 'low');
+  assert.equal(S.readGorePref(store), 'low');
+  const blocked = { getItem() { throw new Error('SecurityError'); }, setItem() { throw new Error('QuotaExceeded'); } };
+  assert.equal(S.readGorePref(blocked), 'full'); assert.equal(S.writeGorePref(blocked, 'low'), false);
+  assert.equal(S.readGorePref(null), 'full'); assert.equal(S.writeGorePref(undefined, 'low'), false);
+});
+
+test('gore setting: the rules never read it, G is not a game button, and the game plays the same either way', () => {
+  assert.ok(!/S\.gore|GorePref/.test(fs.readFileSync(path.join(src, 'sim.js'), 'utf8')), 'sim.js must not read the gore setting');
+  assert.ok(!('gore' in S.makeInput().pressed) && !('gore' in S.makeInput().held));
+  const run = (g) => {
+    S.setGore(g); const s = start();
+    step(s, { held: { right: true, attack: true } }, 240);
+    return JSON.stringify([s.player.x, s.player.y, s.stats, s.enemies.map((e) => [e.x, e.state])]);
+  };
+  assert.equal(run('full'), run('low'));
+  S.setGore('full');
 });

@@ -131,5 +131,6 @@
     leaf0: '#fcb400', leaf1: '#d86c00', leaf2: '#b44800',
     // Reserved for gore only (STYLE_GUIDE "Reserved colours")
     blood0: '#480000', blood: '#900000', bloodHi: '#b40024', ichor0: '#486c00', ichor: '#90d800', ichorHi: '#d8fc48',
+    bone: '#fcd8b4', meat: '#d86c6c',
   };
 })(globalThis.SAMMY = globalThis.SAMMY || {});

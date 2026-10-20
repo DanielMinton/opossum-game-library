@@ -9,6 +9,16 @@
   const errors = [];
   window.addEventListener('error', (e) => errors.push(String(e.message || e)));
 
+  // Gore setting (render.js; drawing only): ?gore=low|full, else what this browser remembered, else full.
+  let store = null;
+  try { store = window.localStorage; } catch (e) { /* blocked storage: the setting just isn't remembered */ }
+  S.setGore(S.pickGore(params.get('gore'), S.readGorePref(store)));
+  S.goreNote = 0;
+  function toggleGore() {
+    S.writeGorePref(store, S.setGore(S.gore === 'low' ? 'full' : 'low'));
+    S.goreNote = 90; // frames of "GORE: LOW" feedback on screen
+  }
+
   const input = S.createInput(window);
   const state = S.newGame();
   window.__SAMMY_STATE = state;
@@ -126,6 +136,8 @@
     while (acc >= C.step) {
       const inp = input.poll();
       if (inp.mute) state.muted = audio.toggleMute();
+      if (inp.gore) toggleGore();
+      if (S.goreNote > 0) S.goreNote--;
       S.update(state, inp);
       drainEvents();
       acc -= C.step;
@@ -283,10 +295,11 @@
       c.hiddenPauses = state.mode === 'paused';
       run(5); tap('pause'); c.resumeAfterHidden = state.mode === 'playing';
       run(5);
-      // Pause shows RESTART and MUTE; MUTE toggles sound; RESTART goes back to the start.
+      // Pause shows RESTART, MUTE and GORE; MUTE toggles sound, GORE full/low gore; RESTART goes back to the start.
       tap('pause');
       c.paused = state.mode === 'paused' && !!buttonReport().restart && !!buttonReport().mute;
       tap('mute'); c.muted = state.muted === true; tap('mute'); c.unmuted = state.muted === false;
+      { const g0 = S.gore; tap('gore'); c.goreToggles = S.gore !== g0 && !!buttonReport().gore; tap('gore'); c.goreBack = S.gore === g0; }
       tap('restart');
       c.restarted = state.mode === 'playing' && state.player.x === state.level.start.x && !buttonReport().restart; // a new player object
       // Tapping the picture on the title screen starts the game too.
@@ -301,7 +314,7 @@
       c.stillPausedAfterDismiss : !c.promptOnLoad) && fullOk && c.blurPauses && c.resumeAfterBlur && c.hiddenPauses && c.resumeAfterHidden &&
       c.visibleOnTitle && c.jumpStarts && c.pauseShownInPlay && c.soundUnlocked && c.movedRight > 50 && c.slideLeft && c.releasedPad &&
       c.holdRise > c.tapRise + 10 && c.moveAndJump && c.whip && c.cancelClears && c.lostCaptureClears && c.blurClears &&
-      c.hiddenClears && c.paused && c.muted && c.unmuted && c.restarted && c.tapPictureStarts && errors.length === 0;
+      c.hiddenClears && c.paused && c.muted && c.unmuted && c.goreToggles && c.goreBack && c.restarted && c.tapPictureStarts && errors.length === 0;
     out.textContent = JSON.stringify(r);
     requestAnimationFrame(loop);
   }
@@ -468,10 +481,39 @@
     state.projectiles.push({ x: p.x + 20, y: p.y - 20, vx: 0, vy: 0, t: 0.1, life: 1 });
     for (const k of ['spark', 'dust', 'splat', 'splash', 'sparkle', 'bang', 'text']) state.effects.push({ kind: k, x: p.x, y: p.y - 10, t: 0.05, life: 1, text: 'TEST' });
     state.arena.state = 'fight'; state.arena.wave = 1; draw('effects-arena');
+    // Gore: every defeat style and gore effect, early and late in its life, with full and low gore, shaking and frozen.
+    const goreWas = S.gore;
+    goreDemo(p.x + 40);
+    for (const g of ['full', 'low']) {
+      S.setGore(g);
+      for (const t of [0.05, 0.35]) {
+        for (const e of state.enemies) if (e.state === 'defeat') e.t = t;
+        for (const f of state.effects) f.t = Math.min(t, f.life);
+        state.shake = 0.2; state.hitstop = 0.05; draw('gore-' + g + '-' + t);
+      }
+    }
+    state.shake = 0; state.hitstop = 0; S.setGore(goreWas);
     state.mode = 'paused'; draw('paused');
     state.muted = true; draw('muted');
     state.mode = 'title'; draw('title');
     return drawn;
+  }
+
+  // Puts zombies going down in every defeat style, plus every gore effect, near x (render sweep and ?goredemo=T shots).
+  function goreDemo(x, t) {
+    t = t || 0.2;
+    const styles = [['jogger', 'pop'], ['jogger', 'sliced'], ['vendor', 'deflate'], ['vendor', 'sliced']];
+    styles.forEach(([type, style], i) => {
+      const e = state.enemies.find((q) => q.type === type && !q.goreDemo && q.state !== 'dead') ||
+        Object.assign({}, state.enemies.find((q) => q.type === type), { id: 'demo' + i });
+      if (!e.type) return;
+      Object.assign(e, { goreDemo: true, x: x + i * 36, y: C.groundY, face: -1, state: 'defeat', t, anim: 'defeat', animT: t, defeatStyle: style });
+      if (!state.enemies.includes(e)) state.enemies.push(e);
+    });
+    const y = C.groundY - 20;
+    state.effects.push({ kind: 'blood', x: x + 36, y, t, life: 0.8, n: 10, dir: 1, power: 1 },
+      { kind: 'chunk', x: x + 108, y, t, life: 0.8, dir: 1 }, { kind: 'ichor', x: x + 72, y, t, life: 0.6, n: 6 },
+      { kind: 'sparks', x: x + 30, y: y + 4, t: Math.min(t, 0.1), life: 0.15, dir: -1 });
   }
 
   // ?test=full: autopilot plays the level; ?test=shot&frames=N: stop after N frames for a screenshot.
@@ -515,6 +557,7 @@
       } else {
         result.ok = errors.length === 0;
       }
+      if (params.has('goredemo')) goreDemo(state.player.x + 30, parseFloat(params.get('goredemo')) || 0.2);
       if (params.has('title')) state.mode = 'title';
       if (params.has('paused')) state.mode = 'paused';
       touch.update(state, state.muted);

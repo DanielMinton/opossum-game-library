@@ -360,3 +360,11 @@ All **Proposed (reversible)**.
 - **Top bar:** a chainsaw icon and an orange fuel gauge (red and blinking under a quarter) appear while carrying it; ZOMBIES moved right to make room.
 - **Sounds (beeps until real files arrive):** `sfx-chainsaw-start` (picked up), `sfx-chainsaw-rev` (loops while revving, stops on pause, K.O., restart and level clear), `sfx-chainsaw-cut`, `sfx-gore-splat` (every kill). Folders are ready in `assets/audio/sfx/`.
 - **Art (placeholders until real files arrive):** Sammy with the chainsaw needs idle, run and rev strips (64×48 cells like the tail-whip, so the saw fits), plus a pickup strip and a top-bar icon in `assets/items/item-powerup-chainsaw/`. Until then the game draws a placeholder saw in his paws. Templates are in `templates/art-templates/`.
+
+### Gore and the low-gore setting (builder 2)
+
+All **Proposed (reversible)**.
+
+- **Gore:** zombies bleed. Every hit sprays red drops that land as smears on the path; chainsaw kills cut the zombie in half at the waist (top half slides off and drops, cut faces drip, a pool spreads), throw out lumps and a bit of bone, and shake the screen. Whip kills keep the old jokes: the jogger's head pops off (now with a short neck squirt), the vendor deflates. Each death gets a short deadpan line ("POP.", "PFFFT.", "RIIIP.", "WELL, SHIT.", "FUCK ME."). Placeholder drawing only; real art can replace it later.
+- **Low-gore setting:** `?gore=low`, the **G** key, or the **GORE** button in the touch pause menu switch to low gore: grey puffs and dust instead of blood and guts, and chainsawed zombies sink into the ground instead of splitting. The game plays exactly the same either way (only the drawing changes). The browser remembers the choice; full gore is the default. The pause box shows "G: GORE FULL/LOW" on keyboards.
+- **Touch pause menu:** RESTART, MUTE and GORE now sit side by side (`game/src/layout.js`).

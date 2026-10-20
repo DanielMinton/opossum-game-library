@@ -139,16 +139,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 
     lid: { hits: 3 },          // item-powerup-trash-lid-shield ABILITY.md
 
-    chainsaw: {                // Stage B (Proposed): pickup on screen 11; WHIP button (held) revs it instead of whipping
-      fuel: 20,                // seconds of revving in a full tank
-      carryDrain: 0.25,        // fuel per second used just carrying it (not revving); revving uses 1 per second
-      reach: 28,               // cutting box in front of Sammy's feet point, px
-      tick: 0.12,              // one cut every this many seconds while revving
-      damage: 1,               // per cut (joggers and vendors have 2 hp: two cuts)
-      slow: 0.6,               // run speed while revving
-      slashTime: 0.2,          // a quick tap still revs (and cuts) this long
-    },
-
     gauntlet: { waves: [2, 3, 4], waveDelay: 1.0 },
   };
 
@@ -276,7 +266,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       { type: 'hotdog', x: 1504, y: 140 },   // secret: on top of the screen-5 lamp
       { type: 'lid',    x: 2700, y: 172 },   // optional second lid (TBD in LEVEL.md)
       { type: 'hotdog', x: 3364, y: 140 },   // screen 11 lamp top, before the arena (prototype addition)
-      { type: 'chainsaw', x: 3300, y: G },   // screen 11, on the grass: the chainsaw (Stage B, Proposed)
     ],
 
     // Gauntlet arena = last screen. Camera locks; fences block both sides.
@@ -290,7 +279,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       { x0: 1060, x1: 1160, text: 'GRAB THE TRASH LID: BLOCKS 3 HITS' },
       { x0: 1620, x1: 1760, text: 'WHIP THE CART!' },
       { x0: 1920, x1: 2080, text: 'C: PLAY POSSUM - ZOMBIES LOSE TRACK OF YOU', touch: 'POSSUM BUTTON: PLAY DEAD - ZOMBIES LOSE YOU' },
-      { x0: 3270, x1: 3380, text: "SOMEBODY LEFT A CHAINSAW. HOLD X. FUCK 'EM UP.", touch: "SOMEBODY LEFT A CHAINSAW. HOLD WHIP. FUCK 'EM UP." },
       { x0: 3380, x1: 3520, text: 'THE PARK EXIT IS AHEAD...' },
     ],
   };
@@ -317,8 +305,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   const VEN = 'enemies/enemy-zombie-hot-dog-vendor/';
   const CART = 'props/prop-hot-dog-cart/';
   const LID = 'items/item-powerup-trash-lid-shield/';
-  const SAW = 'items/item-powerup-chainsaw/';
-  const saw = { fw: 64, px: 36 }; // Sammy with the chainsaw: 64x48 cells like tail-whip, so the 28 px saw fits in front
   const ENV = 'environments/environment-central-park-tileset/';
   const cart = { fw: 64, fh: 48, px: 32, py: 47 };
   const small = { fw: 16, fh: 16, px: 8, py: 15 };
@@ -338,9 +324,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     strip('sammy:play-dead', SAM + 'sammy-play-dead-strip-v01.png', 4, 8, 'hold', sam()),
     strip('sammy:ko', SAM + 'sammy-ko-strip-v01.png', 6, 10, 'once', sam()),
     strip('sammy:victory', SAM + 'sammy-victory-strip-v01.png', 4, 8, 'loop', sam()),
-    strip('sammy:chainsaw-idle', SAM + 'sammy-chainsaw-idle-strip-v01.png', 4, 6, 'loop', saw),
-    strip('sammy:chainsaw-run', SAM + 'sammy-chainsaw-run-strip-v01.png', 8, 12, 'loop', saw),
-    strip('sammy:chainsaw-rev', SAM + 'sammy-chainsaw-rev-strip-v01.png', 4, 15, 'loop', saw),
 
     strip('jogger:walk', JOG + 'zombie-jogger-walk-strip-v01.png', 6, 8, 'loop'),
     strip('jogger:attack', JOG + 'zombie-jogger-attack-strip-v01.png', 4, 10, 'once', { hitFrame: 2 }),
@@ -366,9 +349,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     strip('overlay:lid', LID + 'trash-lid-held-overlay-strip-v01.png', 3, 1, 'frame', mid),
     strip('hud:lid', LID + 'hud-icon-trash-lid-v01.png', 1, 1, 'hold', { fw: 16, fh: 16, px: 0, py: 0, feet: false }),
 
-    strip('pickup:chainsaw', SAW + 'chainsaw-pickup-strip-v01.png', 4, 8, 'loop', { fw: 32, fh: 16, px: 16, py: 15 }),
-    strip('hud:chainsaw', SAW + 'hud-icon-chainsaw-v01.png', 1, 1, 'hold', { fw: 16, fh: 16, px: 0, py: 0, feet: false }),
-
     // Parallax bands: y = top row on screen, scroll = speed vs. the camera, fw = loop width.
     // Bands must not overlap (rows 80-143, 144-175, 176-207), as in the tileset ASSET.md.
     strip('bg:sky', ENV + 'central-park-bg-sky-v01.png', 1, 1, 'hold', { fw: 320, fh: 224, px: 0, py: 0, feet: false, y: 0, scroll: 0 }),
@@ -389,8 +369,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     // Extra sounds the prototype uses (see design/DECISIONS.md)
     'sfx-cart-rock', 'sfx-shield-block', 'sfx-shield-break', 'sfx-throw', 'sfx-splat', 'sfx-splash',
     'sfx-checkpoint', 'sfx-gate-open', 'sfx-level-clear', 'sfx-start',
-    // Stage B: chainsaw and gore (sfx-chainsaw-rev loops while the saw revs)
-    'sfx-chainsaw-start', 'sfx-chainsaw-rev', 'sfx-chainsaw-cut', 'sfx-gore-splat',
   ];
   S.SOUND_MANIFEST = SFX_IDS.map((id) => ({ id, kind: 'sfx', dir: 'audio/sfx/' + id + '/' })).concat([
     { id: 'music-level-01-central-park', kind: 'music', dir: 'audio/music/music-level-01-central-park/' },
@@ -501,12 +479,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   function effect(s, kind, x, y, life, extra) {
     s.effects.push(Object.assign({ kind, x, y, t: 0, life }, extra || {}));
   }
-  // Looping sound (the chainsaw's rev): one event when it starts, one when it stops, never every frame.
-  function sawLoop(s, on) {
-    if (!!s.sawLoop === on) return;
-    s.sawLoop = on;
-    s.events.push({ type: 'sfx-loop', id: 'sfx-chainsaw-rev', on });
-  }
 
   S.makeInput = function () {
     return {
@@ -521,7 +493,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       x, y, vx: 0, vy: 0, face: 1, grounded: true, groundKind: 'ground',
       hp: P.maxHp, shield: 0, state: 'normal', t: 0, invuln: 0,
       coyote: 0, buffer: 0, landT: 0, possumCd: 0, possumFlash: 0, hitSet: null,
-      saw: null, // chainsaw while carried: { fuel (seconds), revving, tick (s to next cut), slash (s of tap-rev left) }
       anim: 'idle', animT: 0,
     };
   }
@@ -534,7 +505,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       grounded: true, hp: k.hp, state: isVendor ? 'idle' : 'patrol', t: 0,
       home: def.x, cd: 0, lostT: 0, throwT: 0.5, released: false, attackHit: false,
       confused: false, arena: false, anim: isVendor ? 'idle' : 'walk', animT: 0,
-      defeatStyle: isVendor ? 'deflate' : 'pop', // how it goes down; 'sliced' when the chainsaw does it
     }, extra || {});
   }
   function makeCart(def, idx) {
@@ -566,8 +536,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     s.stats = { time: 0, defeated: 0, hotdogs: 0, hits: 0, kos: 0 };
     s.lastSafeX = L.start.x;
     s.shake = 0;
-    s.hitstop = 0; // seconds of freeze-frame after a chainsaw kill (effects keep playing)
-    sawLoop(s, false);
     s.clearT = 0;
     s.nextId = 1000;
   }
@@ -672,7 +640,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     if (p.hp <= 0) {
       p.hp = 0; p.state = 'ko'; p.t = 0; p.vx = 0; p.shield = 0;
       s.stats.kos += 1;
-      sawLoop(s, false);
       sfx(s, 'sfx-ko');
       music(s, 'stop');
       return 'ko';
@@ -686,30 +653,19 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   }
   S.hurtPlayer = hurtPlayer;
 
-  // opts.source: 'whip' (default), 'chainsaw' or 'cart'. Gore is effect data only; render.js decides how much to show.
-  function damageEnemy(s, e, fromX, opts) {
+  function damageEnemy(s, e, fromX) {
     if (e.state === 'defeat' || e.state === 'dead') return;
-    const saw = !!opts && opts.source === 'chainsaw';
-    const dir = sign(e.x - fromX) || 1;
-    e.hp -= saw ? C.chainsaw.damage : 1;
-    if (!saw) { sfx(s, 'sfx-hit-zombie'); effect(s, 'spark', e.x, e.y - 24, 0.15); }
-    effect(s, 'blood', e.x, e.y - 24, 0.6, { n: saw ? 8 : 4, dir, power: saw ? 2 : 1 });
+    e.hp -= 1;
+    sfx(s, 'sfx-hit-zombie');
+    effect(s, 'spark', e.x, e.y - 24, 0.15);
     if (e.hp <= 0) {
       e.state = 'defeat'; e.t = 0; e.vx = 0; e.confused = false;
-      e.defeatStyle = saw ? 'sliced' : (e.type === 'vendor' ? 'deflate' : 'pop');
       s.stats.defeated += 1;
       sfx(s, 'sfx-zombie-defeat-comedic');
-      sfx(s, 'sfx-gore-splat');
-      effect(s, 'ichor', e.x, e.y - (saw ? 22 : 36), 0.8, { n: saw ? 10 : 6 });
-      if (saw) {
-        for (let i = 0; i < 3; i++) effect(s, 'chunk', e.x, e.y - 30 + i * 8, 0.9, { dir, i });
-        s.hitstop = Math.max(s.hitstop || 0, 0.06);
-        s.shake = Math.max(s.shake, 0.25);
-      }
       return;
     }
     e.state = 'hitreact'; e.t = 0;
-    e.vx = e.type === 'jogger' ? dir * (saw ? 40 : 120) : 0;
+    e.vx = e.type === 'jogger' ? sign(e.x - fromX) * 120 : 0;
   }
 
   function releaseConfused(s) {
@@ -772,10 +728,9 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     }
 
     const canControl = p.state === 'normal' || p.state === 'attack';
-    if (p.saw) updateSaw(s, p, inp, canControl);
     if (canControl) {
       const dir = (h.right ? 1 : 0) - (h.left ? 1 : 0);
-      const slow = (p.state === 'attack' && p.grounded ? 0.3 : 1) * (p.saw && p.saw.revving ? C.chainsaw.slow : 1);
+      const slow = p.state === 'attack' && p.grounded ? 0.3 : 1;
       const target = dir * P.runSpeed * slow;
       const rate = dir !== 0 ? P.accel : P.decel;
       if (p.vx < target) p.vx = Math.min(target, p.vx + rate * DT);
@@ -788,7 +743,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       }
       if (!h.jump && p.vy < -P.jumpCutSpeed) p.vy = -P.jumpCutSpeed;
 
-      if (inp.pressed.attack && p.state === 'normal' && !p.saw) { // with the chainsaw, the same button revs it instead
+      if (inp.pressed.attack && p.state === 'normal') {
         p.state = 'attack'; p.t = 0; p.hitSet = new Set();
         sfx(s, 'sfx-tail-whip');
       } else if (inp.pressed.possum && p.state === 'normal' && p.grounded && p.possumCd <= 0) {
@@ -847,52 +802,11 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     for (const e of s.enemies) {
       if (e.state === 'defeat' || e.state === 'dead' || p.hitSet.has(e.id)) continue;
       const k = e.type === 'vendor' ? C.vendor : C.jogger;
-      if (overlap(r, footBox(e, k.bodyW, k.bodyH))) { p.hitSet.add(e.id); damageEnemy(s, e, p.x, { source: 'whip' }); }
+      if (overlap(r, footBox(e, k.bodyW, k.bodyH))) { p.hitSet.add(e.id); damageEnemy(s, e, p.x); }
     }
     for (const c of s.carts) {
       if (p.hitSet.has(c.id)) continue;
       if (overlap(r, { x: c.x, y: G - C.cart.h, w: C.cart.w, h: C.cart.h })) { p.hitSet.add(c.id); hitCart(s, c); }
-    }
-  }
-
-  // ---------- chainsaw ----------
-  // Holding the attack button revs it (a tap revs for slashTime). Revving burns 1 fuel per second, carrying it burns
-  // carryDrain. While revving it cuts whatever is in reach every `tick` seconds. Empty tank: it's gone, back to the whip.
-  function updateSaw(s, p, inp, canControl) {
-    const K = C.chainsaw, w = p.saw;
-    w.slash = Math.max(0, (w.slash || 0) - DT);
-    if (canControl && inp.pressed.attack) w.slash = K.slashTime;
-    const rev = canControl && (inp.held.attack || w.slash > 0) && w.fuel > 0;
-    if (rev && !w.revving) w.tick = 0; // first cut straight away
-    w.revving = rev;
-    w.fuel = Math.max(0, w.fuel - (rev ? 1 : K.carryDrain) * DT);
-    if (rev) {
-      w.tick -= DT;
-      if (w.tick <= 0) { w.tick += K.tick; sawCut(s, p); }
-    }
-    if (w.fuel <= 0) {
-      p.saw = null;
-      effect(s, 'text', p.x, p.y - 44, 1.2, { text: 'OUT OF GAS. SHIT.' });
-    }
-    sawLoop(s, !!(p.saw && p.saw.revving));
-  }
-
-  function sawCut(s, p) {
-    const K = C.chainsaw;
-    const r = { x: p.face > 0 ? p.x : p.x - K.reach, y: p.y - 24, w: K.reach, h: 18 };
-    s.lastSaw = r;
-    let cut = false;
-    for (const e of s.enemies) {
-      if (e.state === 'defeat' || e.state === 'dead' || e.state === 'spawn') continue;
-      const k = e.type === 'vendor' ? C.vendor : C.jogger;
-      if (overlap(r, footBox(e, k.bodyW, k.bodyH))) { damageEnemy(s, e, p.x, { source: 'chainsaw' }); cut = true; }
-    }
-    for (const c of s.carts) {
-      if ((c.state === 'upright' || c.state === 'rocking') && overlap(r, { x: c.x, y: G - C.cart.h, w: C.cart.w, h: C.cart.h })) { hitCart(s, c); cut = true; }
-    }
-    if (cut) {
-      sfx(s, 'sfx-chainsaw-cut');
-      effect(s, 'sparks', p.x + p.face * Math.round(K.reach * 0.7), p.y - 16, 0.15, { dir: p.face });
     }
   }
 
@@ -1095,10 +1009,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         effect(s, 'sparkle', pk.x, pk.y - 8, 0.3);
         if (pk.type === 'hotdog') { p.hp = Math.min(P.maxHp, p.hp + 1); s.stats.hotdogs += 1; }
         if (pk.type === 'lid') p.shield = C.lid.hits;
-        if (pk.type === 'chainsaw') {
-          p.saw = { fuel: C.chainsaw.fuel, revving: false, tick: 0, slash: 0 };
-          sfx(s, 'sfx-chainsaw-start');
-        }
       }
     }
   }
@@ -1152,7 +1062,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       }
     } else if (a.state === 'open' && p.x >= A.exitX && p.state !== 'ko') {
       s.mode = 'clear'; s.clearT = 0;
-      sawLoop(s, false);
       p.state = 'victory'; p.vx = 0; setAnim(p, 'victory');
       music(s, 'clear');
       sfx(s, 'sfx-level-clear');
@@ -1176,11 +1085,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     if (p.state === 'playdead') return 'play-dead';
     if (p.state === 'getup') return 'get-up';
     if (p.state === 'attack') return 'tail-whip';
-    if (p.saw && p.saw.revving) return 'chainsaw-rev';
     if (!p.grounded) return p.vy < 0 ? 'jump-rise' : 'fall';
     if (p.landT > 0) return 'land';
-    if (Math.abs(p.vx) > 10) return p.saw ? 'chainsaw-run' : 'run';
-    return p.saw ? 'chainsaw-idle' : 'idle';
+    if (Math.abs(p.vx) > 10) return 'run';
+    return 'idle';
   }
 
   function updateEffects(s) {
@@ -1212,10 +1120,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       return;
     }
     // playing
-    if (q.start) { sawLoop(s, false); s.mode = 'paused'; music(s, 'pause'); return; }
+    if (q.start) { s.mode = 'paused'; music(s, 'pause'); return; }
     if (q.restart) { resetLevel(s); music(s, 'level'); return; }
-    // Hit-stop after a chainsaw kill: everything holds still for a few frames; effects (and the shake) keep going.
-    if (s.hitstop > 0) { s.hitstop = Math.max(0, s.hitstop - DT); s.t += DT; updateEffects(s); return; }
     s.t += DT;
     s.stats.time += DT;
     updatePlayer(s, inp);
@@ -1322,6 +1228,28 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     return true;
   }
   S.drawSprite = sprite;
+
+  // ---------- gore setting (drawing only: the game rules never read it) ----------
+  // 'full' = red blood, guts, cut-in-half zombies. 'low' = grey puffs and dust, nobody gets cut in half on screen.
+  // Set by ?gore=low, the G key or the GORE button in the touch pause menu; remembered in the browser (main.js).
+  S.GORE_KEY = 'sammy.gore';
+  S.gore = 'full';
+  S.setGore = function (v) { S.gore = v === 'low' ? 'low' : 'full'; return S.gore; };
+  // storage: localStorage or anything with getItem/setItem. Private windows and blocked storage throw; that's fine.
+  S.readGorePref = function (storage) {
+    try { return storage && storage.getItem(S.GORE_KEY) === 'low' ? 'low' : 'full'; } catch (e) { return 'full'; }
+  };
+  S.writeGorePref = function (storage, v) {
+    if (!storage) return false;
+    try { storage.setItem(S.GORE_KEY, v === 'low' ? 'low' : 'full'); return true; } catch (e) { return false; }
+  };
+  // ?gore=low or ?gore=full wins over the remembered choice.
+  S.pickGore = function (query, stored) { return query === 'low' || query === 'full' ? query : stored === 'low' ? 'low' : 'full'; };
+  // Gore colours (9-bit grid). Kept here, not in S.PAL, so the low setting can promise none of them is ever drawn.
+  const GORE = { blood: '#b40000', bloodDark: '#6c0000', bloodHi: '#fc4848', ichor: '#90d824', ichorDark: '#486c00', bone: '#fcfcd8', meat: '#d86c6c' };
+  S.GORE_COLORS = GORE;
+  const LOWPUFF = ['#d8d8d8', '#909090'];
+  const gravity = 300; // px/s² for flying bits (looks only)
   S.spriteDraws = {};
   S.flashDraws = {};
 
@@ -1456,31 +1384,73 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       R(ctx, K.lid, pk.x - 7, pk.y - 14 + bob, 14, 12); R(ctx, K.lid, pk.x - 5, pk.y - 16 + bob, 10, 16);
       R(ctx, K.lidHi, pk.x - 2, pk.y - 15 + bob, 4, 2);
       S.drawText(ctx, 'LID', pk.x - 5, pk.y - 11 + bob, K.black);
-    } else if (pk.type === 'chainsaw') {
-      if (sprite(ctx, 'pickup:chainsaw', pk.t, pk.x, pk.y, 1)) return;
-      const x = Math.round(pk.x), y = Math.round(pk.y);
-      R(ctx, K.black, x - 15, y - 11, 31, 10);                 // outline
-      R(ctx, K.hotdog, x - 14, y - 10, 11, 8);                 // engine
-      R(ctx, K.dark, x - 12, y - 13, 7, 3);                    // handle
-      R(ctx, K.grey, x - 3, y - 8, 18, 4);                     // bar
-      for (let i = 0; i < 4; i++) R(ctx, K.white, x - 1 + i * 4, y - 9, 2, 1); // teeth
-      if (Math.floor(pk.t * 3) % 2 === 0) R(ctx, K.white, x + 10, y - 7, 2, 1); // glint
     }
   }
 
-  // Enemies and Sammy: real sprite or placeholder first, then the state marks (?, !, BOING…) on top of either.
+  // Enemies and Sammy: real sprite or placeholder first, then the state marks (?, !, gag text…) on top of either.
+  // How a zombie goes down: e.defeatStyle from the rules ('pop' jogger, 'deflate' vendor, 'sliced' by the chainsaw).
+  const defeated = (e) => e.state === 'defeat' || e.state === 'dead';
+  const styleOf = (e) => e.defeatStyle || (e.type === 'vendor' ? 'deflate' : 'pop');
+  const hashId = (id) => { let h = 0; for (const ch of String(id || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
+  // Deadpan one-liners over a zombie as it goes down. Picked from its id, so the same zombie always says the same thing.
+  const GAGS = {
+    pop: ['POP.', 'BOINK.', 'NOPE.'],
+    deflate: ['PFFFT.', 'SAD HISS.', 'FFFFFT.'],
+    sliced: ['RIIIP.', 'WELL, SHIT.', 'HALVSIES.', 'FUCK ME.'],
+    low: ['SHHK.', 'WELL, SHIT.', 'DONE.'],
+  };
+  function gag(ctx, e, style, y) {
+    if (e.t > 0.6) return;
+    const list = GAGS[style === 'sliced' && S.gore === 'low' ? 'low' : style] || GAGS.pop;
+    const txt = list[hashId(e.id) % list.length];
+    S.drawTextCentered(ctx, txt, Math.round(e.x), y - Math.round(e.t * 12), style === 'sliced' && S.gore !== 'low' ? GORE.bloodHi : K.white, 1, K.black);
+  }
+  // Chainsaw kill: the standing pose cut at the waist. Full gore: the top half slides off and falls, red cut faces and
+  // drips. Low gore: no split; the whole zombie sinks into the ground in a grey puff.
+  function drawSliced(ctx, e, drawPose, height) {
+    const x = Math.round(e.x), y = Math.round(e.y), t = e.t, f = e.face || 1;
+    const cut = y - Math.round(height * 0.5);
+    if (S.gore === 'low') {
+      const sink = Math.min(height, Math.round(t * height * 2.2));
+      ctx.save(); ctx.beginPath(); ctx.rect(x - 40, y - 80, 80, 80); ctx.clip();
+      ctx.translate(0, sink); drawPose(); ctx.restore();
+      for (let i = -2; i <= 2; i++) R(ctx, LOWPUFF[i & 1], x + i * (5 + t * 12) - 2, y - 4 - t * 10 - (i & 1) * 3, 4, 4);
+      return;
+    }
+    // Bottom half stays a moment, then buckles.
+    const buckle = Math.round(Math.max(0, t - 0.25) * 40);
+    ctx.save(); ctx.beginPath(); ctx.rect(x - 40, cut, 80, y - cut); ctx.clip();
+    ctx.translate(0, buckle); drawPose(); ctx.restore();
+    R(ctx, GORE.blood, x - 8, cut + buckle, 16, 2);
+    // Top half: slides back off the cut, then falls.
+    const dx = Math.round(-f * (t * 40)), top = Math.min(Math.round(Math.max(0, t - 0.1) ** 2 * gravity), y - cut - 4);
+    ctx.save(); ctx.beginPath(); ctx.rect(x - 40 + dx, cut - 80 + top, 80, 80); ctx.clip();
+    ctx.translate(dx, top); drawPose(); ctx.restore();
+    R(ctx, GORE.bloodHi, x - 8 + dx, cut - 2 + top, 16, 2);
+    // Drips from the bottom half's cut face.
+    for (let i = 0; i < 4; i++) {
+      const dl = Math.min(y - cut - buckle - 2, Math.round(t * 30 + rnd(i + 3) * 6));
+      if (dl > 0) R(ctx, i & 1 ? GORE.bloodDark : GORE.blood, x - 6 + i * 4, cut + buckle + 2, 1, dl);
+    }
+    // Spreading pool.
+    const pool = Math.min(26, Math.round(t * 50));
+    R(ctx, GORE.bloodDark, x - pool / 2, y - 1, pool, 2);
+  }
+
   function drawJogger(ctx, e) {
-    const flash = e.state === 'hitreact';
-    if (!sprite(ctx, 'jogger:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawJoggerPlaceholder(ctx, e, flash);
-    const x = Math.round(e.x), y = Math.round(e.y);
-    if ((e.state === 'defeat' || e.state === 'dead') && e.t < 0.3) S.drawTextCentered(ctx, 'BOING', x, y - 56, K.white, 1, K.black);
+    const flash = e.state === 'hitreact', style = styleOf(e), x = Math.round(e.x), y = Math.round(e.y);
+    if (defeated(e) && style === 'sliced') {
+      drawSliced(ctx, e, () => { if (!sprite(ctx, 'jogger:hit', 0, e.x, e.y, e.face, false, 0)) drawJoggerPlaceholder(ctx, e, false, true); }, 38);
+    } else if (!sprite(ctx, 'jogger:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawJoggerPlaceholder(ctx, e, flash);
+    if (defeated(e)) gag(ctx, e, style, y - 56);
     if (e.state === 'confused') S.drawTextCentered(ctx, '?', x, y - 50, K.white, 2, K.black);
     if (e.state === 'spawn') S.drawTextCentered(ctx, '!', x, y - 50, K.heart, 2, K.black);
   }
 
-  function drawJoggerPlaceholder(ctx, e, flash) {
+  // standing: draw the upright pose even while defeated (the chainsaw cut uses it).
+  function drawJoggerPlaceholder(ctx, e, flash, standing) {
     const x = Math.round(e.x), y = Math.round(e.y), f = e.face;
-    if (e.state === 'defeat' || e.state === 'dead') {
+    if (!standing && defeated(e)) {
       // Placeholder comedy: the head pops off and bounces away, the body sinks into a pile of sweatsuit.
       const t = e.t;
       const sink = Math.min(1, t / 0.5);
@@ -1488,6 +1458,11 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       R(ctx, K.band, x - 10, y - 4, 20, 4);
       const hx = x - f * t * 70, hy = y - 40 - Math.abs(Math.sin(t * 9)) * 24 * (1 - t);
       R(ctx, K.jogger, hx - 4, hy - 8, 8, 8); R(ctx, K.band, hx - 4, hy - 7, 8, 2);
+      // Full gore: the neck stump squirts for a moment.
+      if (S.gore !== 'low' && t < 0.4) {
+        const ny = y - 30 * (1 - sink) - 8;
+        R(ctx, GORE.blood, x - 2, ny - 4 - t * 10, 4, 4); R(ctx, GORE.bloodHi, x - 1, ny - 8 - t * 30, 2, 3);
+      }
       return;
     }
     const lean = e.state === 'attack' && e.t > 0.15 && e.t < 0.32 ? f * 4 : 0;
@@ -1501,17 +1476,18 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   }
 
   function drawVendor(ctx, e) {
-    const flash = e.state === 'hitreact';
-    if (!sprite(ctx, 'vendor:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawVendorPlaceholder(ctx, e, flash);
-    const x = Math.round(e.x), y = Math.round(e.y);
+    const flash = e.state === 'hitreact', style = styleOf(e), x = Math.round(e.x), y = Math.round(e.y);
+    if (defeated(e) && style === 'sliced') {
+      drawSliced(ctx, e, () => { if (!sprite(ctx, 'vendor:hit', 0, e.x, e.y, e.face, false, 0)) drawVendorPlaceholder(ctx, e, false, true); }, 36);
+    } else if (!sprite(ctx, 'vendor:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawVendorPlaceholder(ctx, e, flash);
     if (e.state === 'shrug') S.drawTextCentered(ctx, '?', x, y - 50, K.white, 2, K.black);
-    if (e.state === 'defeat') S.drawTextCentered(ctx, 'PFFFT', x, y - 48, K.white, 1, K.black);
+    if (defeated(e)) gag(ctx, e, style, y - 48);
   }
 
-  function drawVendorPlaceholder(ctx, e, flash) {
+  function drawVendorPlaceholder(ctx, e, flash, standing) {
     const x = Math.round(e.x), y = Math.round(e.y), f = e.face;
     let hgt = 36;
-    if (e.state === 'defeat' || e.state === 'dead') hgt = Math.max(6, 36 * (1 - e.t / C.vendor.defeatTime)); // deflates like a balloon
+    if (!standing && defeated(e)) hgt = Math.max(6, 36 * (1 - e.t / C.vendor.defeatTime)); // deflates like a balloon
     R(ctx, flash ? K.white : K.vendor, x - 10, y - hgt, 20, hgt);
     R(ctx, K.white, x - 8, y - hgt + 14, 16, Math.max(0, hgt - 18)); // apron
     R(ctx, K.hat, x - 7, y - hgt - 5, 14, 5);
@@ -1531,13 +1507,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     if (p.invuln > 0 && p.state !== 'ko' && Math.floor(p.invuln * 15) % 2 === 0) return; // blink while invincible
     const anim = p.anim === 'get-up' ? 'play-dead' : p.anim;
     const flash = p.state === 'hurt';
-    const sawArt = anim.startsWith('chainsaw-');
-    let real = sprite(ctx, 'sammy:' + anim, p.anim === 'get-up' ? p.animT * 2 : p.animT, p.x, p.y, p.face, p.anim === 'get-up', null, flash);
-    // No chainsaw strip yet: plain Sammy (idle or run art, or the placeholder) holding a placeholder saw.
-    if (!real && sawArt) real = sprite(ctx, anim === 'chainsaw-run' ? 'sammy:run' : 'sammy:idle', p.animT, p.x, p.y, p.face, false, null, flash);
+    const real = sprite(ctx, 'sammy:' + anim, p.anim === 'get-up' ? p.animT * 2 : p.animT, p.x, p.y, p.face, p.anim === 'get-up', null, flash);
     if (!real) drawSammyPlaceholder(ctx, s, flash);
-    const lying = p.state === 'playdead' || p.state === 'getup' || p.state === 'ko';
-    if (p.saw && !lying && !(sawArt && S.images['sammy:' + anim])) drawSawPlaceholder(ctx, p, s.t);
     const x = Math.round(p.x), y = Math.round(p.y);
     if (p.state === 'playdead') S.drawTextCentered(ctx, 'Z z', x, y - 26, K.white, 1, K.black);
     if (p.state === 'ko') S.drawTextCentered(ctx, '* * *', x, y - 24 - Math.round(Math.sin(p.t * 8) * 2), K.umbrella, 1, K.black);
@@ -1547,20 +1518,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         R(ctx, K.lid, ox - 3, oy - 7, 6, 14); R(ctx, K.lidHi, ox - 1, oy - 5, 2, 4 - (3 - p.shield));
       }
     }
-  }
-
-  // Placeholder chainsaw in Sammy's paws: engine, handle, 16 px bar reaching 28 px in front (the cutting reach).
-  // Revving: it shudders and the teeth run.
-  function drawSawPlaceholder(ctx, p, t) {
-    const x = Math.round(p.x), f = p.face, rev = p.saw.revving;
-    const y = Math.round(p.y) + (rev ? Math.floor(t * 30) % 2 : 0);
-    const at = (a, w) => (f > 0 ? x + a : x - a - w); // a px in front of the feet point, w wide
-    R(ctx, K.black, at(1, 28), y - 21, 28, 10);
-    R(ctx, K.hotdog, at(2, 10), y - 20, 10, 8);
-    R(ctx, K.dark, at(4, 6), y - 23, 6, 3);
-    R(ctx, K.grey, at(12, 16), y - 18, 16, 4);
-    const run = rev ? Math.floor(t * 40) % 4 : 0;
-    for (let i = 0; i < 4; i++) { R(ctx, K.white, at(12 + ((i * 4 + run) % 16), 2), y - 19, 2, 1); R(ctx, K.white, at(12 + ((i * 4 + 16 - run) % 16), 2), y - 14, 2, 1); }
   }
 
   function drawSammyPlaceholder(ctx, s, flash) {
@@ -1604,6 +1561,53 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       else if (f.kind === 'sparkle') { R(ctx, K.mustard, f.x - 1, f.y - 8 - k * 8, 2, 2); R(ctx, K.white, f.x + 5, f.y - 4 - k * 8, 2, 2); R(ctx, K.white, f.x - 6, f.y - 3 - k * 8, 2, 2); }
       else if (f.kind === 'bang') S.drawTextCentered(ctx, '!', f.x, f.y, K.heart, 2, K.black);
       else if (f.kind === 'text') S.drawTextCentered(ctx, f.text, f.x, Math.round(f.y - k * 10), K.white, 1, K.black);
+      else if (f.kind === 'blood') drawBits(ctx, f, f.n || 6, f.dir || 1, f.power || 1, [GORE.blood, GORE.bloodHi, GORE.bloodDark]);
+      else if (f.kind === 'ichor') drawBits(ctx, f, f.n || 5, f.dir || 0, 0.6, [GORE.ichor, GORE.ichorDark]);
+      else if (f.kind === 'chunk') drawChunks(ctx, f);
+      else if (f.kind === 'sparks') drawSparks(ctx, f);
+    }
+  }
+  // Droplets thrown from a hit, worked out from the effect's age alone (no stored state), landing as flat smears.
+  // Low gore: a few grey puffs drifting up instead.
+  function drawBits(ctx, f, n, dir, power, cols) {
+    const seed = Math.round(f.x * 3 + f.y * 7), t = f.t;
+    if (S.gore === 'low') {
+      if (f.t / f.life > 0.7) return;
+      for (let i = 0; i < Math.min(3, Math.ceil(n / 3)); i++) R(ctx, LOWPUFF[i & 1], f.x + (i - 1) * 5 + dir * t * 20 - 2, f.y - 3 - t * 16 - rnd(seed + i) * 4, 3, 3);
+      return;
+    }
+    for (let i = 0; i < n; i++) {
+      const a = rnd(seed + i * 13), b = rnd(seed + i * 29 + 5);
+      const d = dir || (a < 0.5 ? -1 : 1);
+      const vx = d * (25 + a * 95) * power, vy = -(40 + b * 110) * power;
+      const x = f.x + vx * t, y = f.y + vy * t + gravity * t * t;
+      if (y >= G - 1) R(ctx, cols[2] || cols[1], x - 2, G - 1, 4 + (i % 3), 1); // landed: a smear on the path
+      else R(ctx, cols[i % cols.length], x, y, i % 3 ? 2 : 3, i % 3 ? 2 : 3);
+    }
+  }
+  // Chainsaw kill: lumps of zombie and a bit of bone tumble out in the saw's direction, bouncing once.
+  // Low gore: a dust cloud.
+  function drawChunks(ctx, f) {
+    const t = f.t, dir = f.dir || 1, seed = Math.round(f.x * 5);
+    if (S.gore === 'low') { for (let i = -1; i <= 1; i++) R(ctx, K.grey, f.x + i * (6 + t * 20) - 3, f.y - 6 - t * 12, 6, 5); return; }
+    for (let i = 0; i < 4; i++) {
+      const a = rnd(seed + i * 17), vx = dir * (40 + a * 80), vy = -(90 + rnd(seed + i * 31) * 90);
+      let y = f.y + vy * t + gravity * t * t;
+      const x = f.x + vx * t;
+      if (y > G - 3) y = G - 3 - Math.abs(Math.sin(t * 12)) * 6 * Math.max(0, 1 - t * 2);
+      const col = i === 3 ? GORE.bone : i === 2 ? K.jogger : GORE.meat;
+      R(ctx, col, x - 2, y - 2, i === 3 ? 4 : 5, i === 3 ? 2 : 4);
+      R(ctx, GORE.bloodDark, x - 2, y + 1, 2, 1);
+      R(ctx, GORE.blood, x - dir * 4, y, 2, 1); // trail
+    }
+  }
+  // The saw biting: hot sparks spraying from the blade (same in both gore settings).
+  function drawSparks(ctx, f) {
+    const t = f.t, dir = f.dir || 1, seed = Math.round(f.x * 11 + f.y);
+    for (let i = 0; i < 5; i++) {
+      const a = rnd(seed + i * 7), b = rnd(seed + i * 19);
+      const x = f.x + dir * (10 + a * 50) * t * 3, y = f.y - b * 40 * t * 3 + gravity * t * t;
+      R(ctx, i & 1 ? K.mustard : K.white, x, y, i & 1 ? 2 : 1, 1);
     }
   }
 
@@ -1615,8 +1619,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   function drawHud(ctx, s) {
     const p = s.player;
     // 16 px bar, tall enough for the 16x16 HUD icons. Left to right:
-    // hearts 4-29 | lid icon 34-49, pips 52-61 | PP 66-79, cooldown bar 82-101 | chainsaw icon 104-119, fuel 122-145
-    // | zombies 150 | time 200 | wave 240.
+    // hearts 4-29 | lid icon 34-49, pips 52-61 | PP 66-79, cooldown bar 82-101 | zombies 120 | time 200 | wave 240.
     R(ctx, K.hud, 0, 0, W, 16);
     for (let i = 0; i < C.sammy.maxHp; i++) heart(ctx, 4 + i * 9, 5, i < p.hp);
     if (p.shield > 0) {
@@ -1632,15 +1635,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       const frac = p.state === 'playdead' || p.state === 'getup' ? 0 : 1 - p.possumCd / C.possum.cooldown;
       R(ctx, K.dark, 82, 7, 20, 3); R(ctx, K.nose, 82, 7, Math.round(20 * frac), 3);
     }
-    // Chainsaw: icon and fuel gauge while carried; the gauge goes red and blinks when nearly empty.
-    if (p.saw) {
-      if (!sprite(ctx, 'hud:chainsaw', 0, 104, 0, 1)) { R(ctx, K.hotdog, 105, 5, 7, 6); R(ctx, K.dark, 106, 3, 4, 2); R(ctx, K.grey, 112, 7, 7, 3); }
-      const frac = Math.max(0, Math.min(1, p.saw.fuel / C.chainsaw.fuel));
-      const low = frac < 0.25;
-      R(ctx, K.dark, 122, 7, 24, 3);
-      if (!low || Math.floor(s.t * 6) % 2 === 0) R(ctx, low ? K.heart : K.hotdog, 122, 7, Math.ceil(24 * frac), 3);
-    }
-    S.drawText(ctx, 'ZOMBIES ' + s.stats.defeated, 150, 6, K.white);
+    S.drawText(ctx, 'ZOMBIES ' + s.stats.defeated, 120, 6, K.white);
     const secs = Math.floor(s.stats.time);
     S.drawText(ctx, Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0'), 200, 6, K.white);
     if (s.arena.state === 'fight') S.drawText(ctx, 'WAVE ' + (s.arena.wave + 1) + '/' + C.gauntlet.waves.length, 240, 6, K.umbrella);
@@ -1722,7 +1717,14 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     if (s.mode === 'title') { drawTitle(ctx, s); return; }
     const camX = Math.round(s.cam.x);
     ctx.save();
-    if (s.shake > 0) ctx.translate(Math.round(Math.sin(s.t * 90) * 2), 0);
+    // Screen shake (cart crash, chainsaw kill): bigger the more shake is left. Hitstop (the rules freeze for a few
+    // frames on a chainsaw kill) adds a hard one-pixel judder so the freeze reads as impact, not a stall.
+    const shake = s.shake || 0, hitstop = s.hitstop || 0;
+    if (shake > 0 || hitstop > 0) {
+      const amp = Math.min(4, 2 + shake * 6);
+      const dx = shake > 0 ? Math.round(Math.sin(s.t * 90) * amp) : 0, dy = shake > 0 ? Math.round(Math.cos(s.t * 77) * amp * 0.5) : 0;
+      ctx.translate(dx + (hitstop > 0 ? (Math.floor(hitstop * 120) & 1 ? 1 : -1) : 0), dy);
+    }
     drawBackground(ctx, camX);
     ctx.translate(-camX, 0);
     drawGround(ctx, s, camX - 16, camX + W + 16);
@@ -1745,7 +1747,10 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       if (mp) panel(ctx, mp.x0, mp.y0, mp.x1 - mp.x0, mp.y1 - mp.y0); else panel(ctx, 100, 80, 120, 50);
       S.drawTextCentered(ctx, 'PAUSED', W / 2, 90, K.white, 2, K.black);
       S.drawTextCentered(ctx, S.TEXT[S.touchActive ? 'touch' : 'keys'].paused, W / 2, 112, K.grey);
+      if (!S.touchActive) S.drawTextCentered(ctx, 'G: GORE ' + (S.gore === 'low' ? 'LOW' : 'FULL'), W / 2, 121, K.grey);
     }
+    // A moment of feedback after G or the GORE button (main.js counts it down).
+    if (S.goreNote > 0 && s.mode === 'playing') S.drawTextCentered(ctx, S.gore === 'low' ? 'GORE: LOW. FINE.' : 'GORE: FULL. HELL YES.', W / 2, H - 20, K.white, 1, K.black);
     if (s.mode === 'clear') drawClear(ctx, s);
     if (s.muted) { if (S.touchActive) S.drawText(ctx, 'MUTED', W - 26, 6, K.grey); else S.drawText(ctx, 'MUTED', 4, H - 7, K.grey); }
     watermark(ctx);
@@ -1780,10 +1785,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     'sfx-gate-open': ['triangle', 200, 800, 0.6, 0.3],
     'sfx-level-clear': ['square', 523, 1046, 0.6, 0.25],
     'sfx-start': ['square', 440, 880, 0.2, 0.2],
-    'sfx-chainsaw-start': ['sawtooth', 60, 180, 0.35, 0.25],
-    'sfx-chainsaw-rev': ['sawtooth', 90, 150, 0.06, 0.12], // loop: pitch wobbles between the two Hz, 0.06 s per wobble
-    'sfx-chainsaw-cut': ['noise', 2400, 900, 0.08, 0.2],
-    'sfx-gore-splat': ['noise', 400, 60, 0.25, 0.35],
   };
   const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
   const TRACKS = {
@@ -2139,37 +2140,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       if (sounds()[id] && sounds()[id].length) { playFile(id); return; }
       const d = SFX[id]; if (d && ctx) tone(d[0], d[1], d[2], d[3], d[4]);
     };
-    // Looping sound effects (the chainsaw's rev), started and stopped by 'sfx-loop' events from sim.js.
-    // A real file loops whole; otherwise a buzzing placeholder. Mute silences both (master gain / el.muted).
-    const loops = new Map(); // id -> stop()
-    api.sfxLoop = function (id, on) {
-      try {
-        const stop = loops.get(id);
-        if (!on) { if (stop) { stop(); loops.delete(id); } return; }
-        if (stop) return;
-        const list = sounds()[id];
-        if (list && list.length) {
-          const el = list[0];
-          S.soundPlays[id] = (S.soundPlays[id] || 0) + 1;
-          el.loop = true; el.volume = V.sfxVolume; el.muted = api.muted;
-          try { el.currentTime = 0; } catch (e) { /* not seekable yet */ }
-          quiet(el.play());
-          loops.set(id, () => { el.pause(); el.loop = false; });
-          return;
-        }
-        const d = SFX[id];
-        if (!d || !ctx) return;
-        const o = ctx.createOscillator(), g = ctx.createGain(), lfo = ctx.createOscillator(), depth = ctx.createGain();
-        o.type = d[0] === 'noise' ? 'sawtooth' : d[0];
-        o.frequency.value = (d[1] + d[2]) / 2;
-        lfo.frequency.value = 1 / d[3]; depth.gain.value = (d[2] - d[1]) / 2;
-        lfo.connect(depth); depth.connect(o.frequency);
-        g.gain.value = d[4]; o.connect(g); g.connect(master);
-        o.start(); lfo.start();
-        loops.set(id, () => { try { o.stop(); lfo.stop(); g.disconnect(); } catch (e) { /* already stopped */ } });
-      } catch (e) { /* never let sound break the game */ }
-    };
-    api.loopsPlaying = () => Array.from(loops.keys());
     api.music = function (cmd) {
       if (cmd === 'stop') { stopMusic(); current = null; return; }
       if (cmd === 'pause') { stopMusic(true); return; }
@@ -2207,7 +2177,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     KeyX: 'attack', KeyJ: 'attack',
     KeyC: 'possum', KeyL: 'possum',
     Enter: 'start', Escape: 'start', KeyP: 'start',
-    KeyR: 'restart', KeyM: 'mute',
+    KeyR: 'restart', KeyM: 'mute', KeyG: 'gore',
   };
   // Standard gamepad layout: A/Cross = jump, X/Square = whip, B/Circle or Y/Triangle = Play Possum.
   const PAD = { 0: 'jump', 2: 'attack', 1: 'possum', 3: 'possum', 9: 'start', 8: 'restart', 12: 'jump', 14: 'left', 15: 'right', 13: 'down' };
@@ -2255,6 +2225,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         for (const k in inp.held) inp.held[k] = !!(keyHeld[k] || pad[k] || fromSources(k));
         for (const k of pending) if (k in inp.pressed) inp.pressed[k] = true;
         inp.mute = pending.has('mute');
+        inp.gore = pending.has('gore'); // gore setting: drawing only, so it never reaches the rules' buttons
         pending.clear();
         return inp;
       },
@@ -2330,6 +2301,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       pause: [Math.max(Math.round(a * 0.8), px(44)), Math.max(Math.round(a * 0.7), px(44))],
       restart: [Math.max(Math.round(a * 1.6), 40), Math.max(Math.round(a * 0.75), px(44))],
       mute: [Math.max(Math.round(a * 1.6), 40), Math.max(Math.round(a * 0.75), px(44))],
+      gore: [Math.max(Math.round(a * 1.6), 40), Math.max(Math.round(a * 0.75), px(44))],
     };
     const g = Math.max(2, Math.round(a * 0.2)) * k;   // gap between buttons (real px)
     const m = px(16) * k;                              // margin from the screen edge (real px)
@@ -2417,11 +2389,11 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       c.pause = Object.assign({ x: DW - eR - P.w, y: pic.y + pic.h + g }, P);
     }
 
-    // Pause menu (shown only while paused): RESTART and MUTE side by side.
+    // Pause menu (shown only while paused): RESTART, MUTE and GORE side by side.
     // Sideways: over the picture, under the PAUSED panel. Upright: in the empty band below the picture, on the same
     // row as the PAUSE button (to its left), so the small picture stays visible.
-    const R = size('restart'), Mu = size('mute');
-    const rowW = R.w + g + Mu.w;
+    const R = size('restart'), Mu = size('mute'), Go = size('gore');
+    const rowW = R.w + g + Mu.w + g + Go.w;
     let rowX = Math.round((DW - rowW) / 2), rowY = pic.y + Math.round(140 * pic.s);
     if (portrait) {
       rowY = c.pause.y;
@@ -2430,6 +2402,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     }
     c.restart = Object.assign({ x: rowX, y: rowY }, R);
     c.mute = Object.assign({ x: c.restart.x + R.w + g, y: rowY }, Mu);
+    c.gore = Object.assign({ x: c.mute.x + Mu.w + g, y: rowY }, Go);
     // Sideways, the game draws its PAUSED box big enough to hold RESTART and MUTE too (in game pixels; render.js),
     // so the scene doesn't peek out around the buttons.
     let menuPanel = null;
@@ -2437,8 +2410,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       const gx = (v) => (v - pic.x) / pic.s, gy = (v) => (v - pic.y) / pic.s;
       menuPanel = {
         x0: Math.max(1, Math.min(100, Math.floor(gx(c.restart.x - g)))), y0: 80,
-        x1: Math.min(gw - 1, Math.max(220, Math.ceil(gx(c.mute.x + Mu.w + g)))),
-        y1: Math.min(gh - 1, Math.max(130, Math.ceil(gy(rowY + Math.max(R.h, Mu.h) + g)))),
+        x1: Math.min(gw - 1, Math.max(220, Math.ceil(gx(c.gore.x + Go.w + g)))),
+        y1: Math.min(gh - 1, Math.max(130, Math.ceil(gy(rowY + Math.max(R.h, Mu.h, Go.h) + g)))),
       };
     }
 
@@ -2502,7 +2475,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
 
 // ---- src/touch.js ----
 // On-screen touch buttons for phones and tablets: a left/right pad, JUMP, WHIP, POSSUM and PAUSE
-// (plus RESTART and MUTE while paused). They feed the same buttons as the keyboard (input.js).
+// (plus RESTART, MUTE and GORE while paused). They feed the same buttons as the keyboard (input.js).
 // Shown only on touch screens: when the browser says the main pointer is a finger, on the first touch, or with ?touch=1.
 // Where each button goes is worked out in layout.js (S.touchLayout); this file builds, draws and listens to them.
 (function (S) {
@@ -2536,6 +2509,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     pause: { label: 'Pause', color: 'menu', icon: 'pause', press: 'start' },
     restart: { label: 'Restart the level', color: 'menu', text: 'RESTART', press: 'restart', menu: true },
     mute: { label: 'Sound on or off', color: 'menu', text: 'MUTE', press: 'mute', menu: true },
+    gore: { label: 'Gore full or low', color: 'menu', text: 'GORE', press: 'gore', menu: true },
     // Full screen works on the finger lifting (browsers only allow it then); shown only where the browser can do it.
     full: { label: 'Full screen on or off', color: 'menu', icon: 'full' },
   };
@@ -2585,7 +2559,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       return;
     }
     body(g, 0, 0, w, h, COLORS[B.color], down);
-    const text = name === 'mute' && extra.muted ? 'UNMUTE' : B.text;
+    const text = name === 'mute' && extra.muted ? 'UNMUTE' : name === 'gore' ? (S.gore === 'low' ? 'GORE LOW' : 'GORE FULL') : B.text;
     const ic = name === 'pause' && extra.paused ? 'play' : name === 'full' && extra.fullscreen ? 'unfull' : B.icon;
     const s = 2;
     const ih = ic ? iconH(ic, s) : 0, th = text ? 5 : 0, gap = ic && text ? 3 : 0;
@@ -2616,7 +2590,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     document.body.appendChild(probe);
 
     const els = {}, down = {}; // down[name] = true while pushed in
-    let mode = 'title', muted = false, fullOn = false, padDir = { left: false, right: false };
+    let mode = 'title', muted = false, goreShown = S.gore, fullOn = false, padDir = { left: false, right: false };
     const pointers = new Map(); // pointerId -> { name, dir }
     for (const name in BUTTONS) {
       const el = document.createElement('div');
@@ -2723,17 +2697,18 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         S.touchMenuPanel = L.menuPanel || null;
       },
       // Called every frame: show PAUSE only during play (on the title and level-clear screens it would just start the
-      // game), RESTART and MUTE only while paused, and keep the PAUSE and MUTE pictures current.
+      // game), RESTART, MUTE and GORE only while paused, and keep the PAUSE, MUTE and GORE pictures current.
       update(state, isMuted) {
         if (state.mode !== mode) {
           const wasPaused = mode === 'paused';
           mode = state.mode;
-          for (const n of ['restart', 'mute']) els[n].el.classList.toggle('hide', mode !== 'paused');
+          for (const n of ['restart', 'mute', 'gore']) els[n].el.classList.toggle('hide', mode !== 'paused');
           els.pause.el.classList.toggle('hide', mode !== 'playing' && mode !== 'paused');
           if (wasPaused !== (mode === 'paused')) redraw('pause');
           if (mode !== 'paused') { for (const [id, p] of pointers) if (BUTTONS[p.name].menu) pointers.delete(id); sync(); }
         }
         if (!!isMuted !== muted) { muted = !!isMuted; redraw('mute'); }
+        if (S.gore !== goreShown) { goreShown = S.gore; redraw('gore'); }
       },
       // The FULL SCREEN button shows "leave full screen" while on.
       setFullscreen(on) { if (!!on !== fullOn) { fullOn = !!on; redraw('full'); } },
@@ -2908,6 +2883,16 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   const errors = [];
   window.addEventListener('error', (e) => errors.push(String(e.message || e)));
 
+  // Gore setting (render.js; drawing only): ?gore=low|full, else what this browser remembered, else full.
+  let store = null;
+  try { store = window.localStorage; } catch (e) { /* blocked storage: the setting just isn't remembered */ }
+  S.setGore(S.pickGore(params.get('gore'), S.readGorePref(store)));
+  S.goreNote = 0;
+  function toggleGore() {
+    S.writeGorePref(store, S.setGore(S.gore === 'low' ? 'full' : 'low'));
+    S.goreNote = 90; // frames of "GORE: LOW" feedback on screen
+  }
+
   const input = S.createInput(window);
   const state = S.newGame();
   window.__SAMMY_STATE = state;
@@ -2986,7 +2971,6 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     for (const ev of state.events) {
       if (ev.type === 'sfx') audio.sfx(ev.id);
       else if (ev.type === 'music') audio.music(ev.id);
-      else if (ev.type === 'sfx-loop') audio.sfxLoop(ev.id, ev.on);
     }
     state.events.length = 0;
   }
@@ -3025,6 +3009,8 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     while (acc >= C.step) {
       const inp = input.poll();
       if (inp.mute) state.muted = audio.toggleMute();
+      if (inp.gore) toggleGore();
+      if (S.goreNote > 0) S.goreNote--;
       S.update(state, inp);
       drainEvents();
       acc -= C.step;
@@ -3182,10 +3168,11 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       c.hiddenPauses = state.mode === 'paused';
       run(5); tap('pause'); c.resumeAfterHidden = state.mode === 'playing';
       run(5);
-      // Pause shows RESTART and MUTE; MUTE toggles sound; RESTART goes back to the start.
+      // Pause shows RESTART, MUTE and GORE; MUTE toggles sound, GORE full/low gore; RESTART goes back to the start.
       tap('pause');
       c.paused = state.mode === 'paused' && !!buttonReport().restart && !!buttonReport().mute;
       tap('mute'); c.muted = state.muted === true; tap('mute'); c.unmuted = state.muted === false;
+      { const g0 = S.gore; tap('gore'); c.goreToggles = S.gore !== g0 && !!buttonReport().gore; tap('gore'); c.goreBack = S.gore === g0; }
       tap('restart');
       c.restarted = state.mode === 'playing' && state.player.x === state.level.start.x && !buttonReport().restart; // a new player object
       // Tapping the picture on the title screen starts the game too.
@@ -3200,7 +3187,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       c.stillPausedAfterDismiss : !c.promptOnLoad) && fullOk && c.blurPauses && c.resumeAfterBlur && c.hiddenPauses && c.resumeAfterHidden &&
       c.visibleOnTitle && c.jumpStarts && c.pauseShownInPlay && c.soundUnlocked && c.movedRight > 50 && c.slideLeft && c.releasedPad &&
       c.holdRise > c.tapRise + 10 && c.moveAndJump && c.whip && c.cancelClears && c.lostCaptureClears && c.blurClears &&
-      c.hiddenClears && c.paused && c.muted && c.unmuted && c.restarted && c.tapPictureStarts && errors.length === 0;
+      c.hiddenClears && c.paused && c.muted && c.unmuted && c.goreToggles && c.goreBack && c.restarted && c.tapPictureStarts && errors.length === 0;
     out.textContent = JSON.stringify(r);
     requestAnimationFrame(loop);
   }
@@ -3367,10 +3354,39 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     state.projectiles.push({ x: p.x + 20, y: p.y - 20, vx: 0, vy: 0, t: 0.1, life: 1 });
     for (const k of ['spark', 'dust', 'splat', 'splash', 'sparkle', 'bang', 'text']) state.effects.push({ kind: k, x: p.x, y: p.y - 10, t: 0.05, life: 1, text: 'TEST' });
     state.arena.state = 'fight'; state.arena.wave = 1; draw('effects-arena');
+    // Gore: every defeat style and gore effect, early and late in its life, with full and low gore, shaking and frozen.
+    const goreWas = S.gore;
+    goreDemo(p.x + 40);
+    for (const g of ['full', 'low']) {
+      S.setGore(g);
+      for (const t of [0.05, 0.35]) {
+        for (const e of state.enemies) if (e.state === 'defeat') e.t = t;
+        for (const f of state.effects) f.t = Math.min(t, f.life);
+        state.shake = 0.2; state.hitstop = 0.05; draw('gore-' + g + '-' + t);
+      }
+    }
+    state.shake = 0; state.hitstop = 0; S.setGore(goreWas);
     state.mode = 'paused'; draw('paused');
     state.muted = true; draw('muted');
     state.mode = 'title'; draw('title');
     return drawn;
+  }
+
+  // Puts zombies going down in every defeat style, plus every gore effect, near x (render sweep and ?goredemo=T shots).
+  function goreDemo(x, t) {
+    t = t || 0.2;
+    const styles = [['jogger', 'pop'], ['jogger', 'sliced'], ['vendor', 'deflate'], ['vendor', 'sliced']];
+    styles.forEach(([type, style], i) => {
+      const e = state.enemies.find((q) => q.type === type && !q.goreDemo && q.state !== 'dead') ||
+        Object.assign({}, state.enemies.find((q) => q.type === type), { id: 'demo' + i });
+      if (!e.type) return;
+      Object.assign(e, { goreDemo: true, x: x + i * 36, y: C.groundY, face: -1, state: 'defeat', t, anim: 'defeat', animT: t, defeatStyle: style });
+      if (!state.enemies.includes(e)) state.enemies.push(e);
+    });
+    const y = C.groundY - 20;
+    state.effects.push({ kind: 'blood', x: x + 36, y, t, life: 0.8, n: 10, dir: 1, power: 1 },
+      { kind: 'chunk', x: x + 108, y, t, life: 0.8, dir: 1 }, { kind: 'ichor', x: x + 72, y, t, life: 0.6, n: 6 },
+      { kind: 'sparks', x: x + 30, y: y + 4, t: Math.min(t, 0.1), life: 0.15, dir: -1 });
   }
 
   // ?test=full: autopilot plays the level; ?test=shot&frames=N: stop after N frames for a screenshot.
@@ -3414,6 +3430,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       } else {
         result.ok = errors.length === 0;
       }
+      if (params.has('goredemo')) goreDemo(state.player.x + 30, parseFloat(params.get('goredemo')) || 0.2);
       if (params.has('title')) state.mode = 'title';
       if (params.has('paused')) state.mode = 'paused';
       touch.update(state, state.muted);
