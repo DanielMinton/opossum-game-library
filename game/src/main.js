@@ -220,10 +220,11 @@
       const f = finger('jump'); for (let i = 0; i < 70; i++) { if (i === hold) f.up(); run(1); top = Math.min(top, p.y); }
       run(30); return Math.round(y0 - top);
     };
-    const portrait = S.isPortrait(window.__SAMMY_FIT.viewW, window.__SAMMY_FIT.viewH);
+    // An upright phone (not a tablet: tablets play upright without the message).
+    const portrait = S.needsSidewaysPrompt({ viewW: window.__SAMMY_FIT.viewW, viewH: window.__SAMMY_FIT.viewH, touch: true, dismissed: false });
     try {
-      // Upright: the "turn your phone sideways" message is up, covers the buttons and keeps the game paused.
-      // Sideways: it never shows.
+      // Upright phone: the "turn your phone sideways" message is up, covers the buttons and keeps the game paused.
+      // Sideways, and on tablets: it never shows.
       c.promptOnLoad = promptShown();
       if (portrait) {
         run(2);
@@ -394,10 +395,14 @@
       try {
         c.elementsBefore = audio.status().elements;
         c.armedBeforeTouch = audio.status().armed;
-        // The first touch lands on a touch button (it reaches audio.js through the window).
+        // The first touch lands on a touch button (it reaches audio.js through the window). A finger going down
+        // restarts the engine but primes no sound file (phones don't count it); the finger lifting primes them.
         touch.elements.jump.el.dispatchEvent(new Event('touchstart', { bubbles: true }));
         c.touchButtonTries = unlocks === 1;
         c.silentSample = audio.status().silentPlays >= 1;
+        c.noPrimeOnFingerDown = audio.status().primed === 0 && audio.status().primeEvents === 0;
+        touch.elements.jump.el.dispatchEvent(new Event('touchend', { bubbles: true }));
+        c.primeOnFingerUp = unlocks === 2 && audio.status().primeEvents === 1;
         c.running = await until(() => audio.status().state === 'running');
         await until(() => !audio.status().armed, 500);
         let s = audio.status();
@@ -412,7 +417,7 @@
         c.listensWhileStopped = audio.status().armed;
         hide(false);
         phone.promptButton.dispatchEvent(new Event('touchstart', { bubbles: true }));
-        c.sidewaysButtonTries = unlocks === 2;
+        c.sidewaysButtonTries = unlocks === 3;
         c.runningAfterTap = await until(() => audio.status().state === 'running');
         // Music: playing during play; paused (and staying paused) when the page hides and comes back; plays on unpause.
         input.press('start'); run(3);

@@ -18,12 +18,12 @@
 //  6. Touch buttons (?test=touch&touch=1) at a sideways phone (852x393) in both the source and built game, and an
 //     upright phone (393x852): real touch events on the real buttons start the game, move, jump higher when held,
 //     tail-whip, pause, mute and restart, two fingers at once work, and every way of lifting a finger lets go.
-//  8. Sound on phones (?test=audio, in the temporary copy with the test sounds): every kind of touch tries to start
-//     sound, a refused try is retried, it stops listening once on, restarts after interruptions (not while hidden),
-//     primes every sound file silently, music stays paused while the game is, and mute silences every copy.
-//  7. Phone layout: upright with touch buttons, the "turn your phone sideways" message shows, keeps the game paused
+//  7. Phone layout: an upright phone with touch buttons shows the "turn your phone sideways" message (an upright iPad doesn't), keeps the game paused
 //     and PLAY UPRIGHT ANYWAY puts it away; sideways and on computers it never shows, and computers show no
 //     full-screen button. Hiding the page or leaving the window pauses the game (keys and touch).
+//  8. Sound on phones (?test=audio, in the temporary copy with the test sounds): every kind of touch tries to start
+//     sound, a refused try is retried, it stops listening once on, restarts after interruptions (not while hidden),
+//     primes every sound file silently (only when the finger lifts), music stays paused while the game is, and mute silences every copy.
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import os from 'node:os';
@@ -182,8 +182,8 @@ check('real sounds play through real key presses without errors (start music, ju
   check('sound on phones (pretend engine): restarts after a phone call, the lock screen, the back button or switching windows; never while hidden',
     au.ok && au.fake.interruptTriesAtOnce && au.fake.interruptListensAgain && au.fake.touchAfterInterrupt && au.fake.noTryWhileHidden &&
     au.fake.backOnShow && au.fake.backOnpageshow && au.fake.backOnfocus, JSON.stringify(au.fake || au.errors));
-  check('sound on phones (real engine): a tap on a touch button starts it with a silent sample, primes all 5 files (music + 4 jump copies) silently, then stops listening',
-    au.ok && c.touchButtonTries && c.silentSample && c.running && c.elements === 5 && c.primed === 5 && c.stopsListening && c.noSoundCounted && c.restoredUnmuted,
+  check('sound on phones (real engine): a tap on a touch button starts it with a silent sample, primes all 5 files (music + 4 jump copies) silently when the finger lifts (not when it goes down), then stops listening',
+    au.ok && c.touchButtonTries && c.silentSample && c.noPrimeOnFingerDown && c.primeOnFingerUp && c.running && c.elements === 5 && c.primed === 5 && c.stopsListening && c.noSoundCounted && c.restoredUnmuted,
     JSON.stringify({ c, errors: au.errors }));
   check('sound on phones (real engine): stopped while hidden it keeps listening; a tap on the sideways button restarts it',
     au.ok && c.suspended && c.listensWhileStopped && c.sidewaysButtonTries && c.runningAfterTap, JSON.stringify(c));
@@ -194,7 +194,8 @@ check('real sounds play through real key presses without errors (start music, ju
   const blocked = runPage(tmpGame, 'test=audio&touch=1', ['--window-size=852,393', '--force-device-scale-factor=3']);
   const bs = blocked.status || {};
   check('sound on phones without a real touch (normal browser rule): no errors, sound stays off and it keeps listening for a real tap',
-    blocked.ok && blocked.errors.length === 0 && bs.state !== 'running' && bs.armed === true && blocked.checks.touchButtonTries,
+    blocked.ok && blocked.errors.length === 0 && bs.state !== 'running' && bs.armed === true && blocked.checks.touchButtonTries &&
+      blocked.checks.noPrimeOnFingerDown,
     JSON.stringify({ state: bs.state, armed: bs.armed, primed: bs.primed, errors: blocked.errors }));
 }
 
@@ -260,6 +261,9 @@ for (const [w, h, dpr] of [[1920, 1080, 1], [1440, 900, 2], [500, 900, 1]]) {
   const u = runPage(path.join(gameDir, 'index.html'), 'test=shot&frames=60&touch=1&upright=1', ['--window-size=393,852', '--force-device-scale-factor=3']);
   check('upright phone 393x852 with ?upright=1: no message (screenshots of upright play)', u.ok && u.fit && u.fit.promptVisible === false && u.fit.buttons.pad,
     JSON.stringify(u.fit && { message: u.fit.promptVisible }));
+  const ip = runPage(path.join(gameDir, 'index.html'), 'test=shot&frames=60&touch=1', ['--window-size=820,1180', '--force-device-scale-factor=2']);
+  check('upright tablet 820x1180 (iPad): no "turn your phone sideways" message; plays upright with the touch buttons',
+    ip.ok && ip.fit && ip.fit.promptVisible === false && ip.fit.buttons && ip.fit.buttons.pad, JSON.stringify(ip.fit && { message: ip.fit.promptVisible }));
 }
 
 if (shots) {

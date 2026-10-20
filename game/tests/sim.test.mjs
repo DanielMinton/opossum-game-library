@@ -581,7 +581,16 @@ test('sound scan: picks the newest version, skips .wav masters, and flags misnam
 // ---------- starting sound on phones (audio.js) ----------
 // A pretend sound engine and pretend <audio> elements, so the steps can be checked without a browser.
 function fakeSoundKit() {
-  const kit = { allowResume: true, allowPlay: true, ctx: null };
+  // Like a phone: a muted file may always play; a file plays WITH sound only once it has been played (muted or not)
+  // during a real activation (a key, a click, a finger lifting). kit.fire(target, type, pointerType) dispatches an event
+  // and remembers it while the listeners run. This list is the fake phone's own rule, written out separately on purpose.
+  const ACTIVATION = (type, pt) => ['touchend', 'click', 'keydown', 'mousedown'].includes(type) ||
+    (type === 'pointerup' && pt && pt !== 'mouse') || (type === 'pointerdown' && pt === 'mouse');
+  const kit = { allowResume: true, ctx: null, event: null };
+  kit.fire = (target, type, pointerType) => {
+    const ev = new Event(type); if (pointerType) ev.pointerType = pointerType;
+    kit.event = ev; try { target.dispatchEvent(ev); } finally { kit.event = null; }
+  };
   function FakeAC() { this.state = 'suspended'; this.currentTime = 0; this.sampleRate = 22050; this.destination = {}; this.silent = 0; this.resumes = 0; kit.ctx = this; }
   const node = () => ({ connect() {}, start() {}, stop() {}, gain: { value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {} },
     frequency: { setValueAtTime() {}, exponentialRampToValueAtTime() {} } });
@@ -595,10 +604,11 @@ function fakeSoundKit() {
     this.set('running'); return Promise.resolve();
   };
   class FakeEl {
-    constructor(src) { this.src = src; this.paused = true; this.muted = false; this.volume = 1; this.currentTime = 0; this.plays = 0; this.heard = 0; }
+    constructor(src) { this.src = src; this.paused = true; this.muted = false; this.volume = 1; this.currentTime = 0; this.plays = 0; this.heard = 0; this.unlocked = false; }
     play() {
       this.plays++;
-      if (!kit.allowPlay) return Promise.reject(Object.assign(new Error('not allowed'), { name: 'NotAllowedError' }));
+      if (kit.event && ACTIVATION(kit.event.type, kit.event.pointerType)) this.unlocked = true;
+      if (!this.muted && !this.unlocked) return Promise.reject(Object.assign(new Error('not allowed'), { name: 'NotAllowedError' }));
       this.paused = false; if (!this.muted && this.volume > 0) this.heard++;
       return Promise.resolve();
     }
@@ -640,25 +650,49 @@ test('sound on phones: a touch starts the engine, plays a silent sample, primes 
   audio.attach({ win: kit.win, doc: kit.doc, onGesture: () => gestures++ });
   assert.equal(audio.status().armed, true);
   assert.equal(audio.status().state, 'not-started');
-  // First touch: the browser refuses (on some iPhones a finger only counts when it lifts).
-  kit.allowResume = false; kit.allowPlay = false;
-  kit.win.dispatchEvent(new Event('pointerdown')); await flush();
+  // A finger goes down: the browser refuses (it only counts the finger lifting). No file is primed yet.
+  kit.allowResume = false;
+  kit.fire(kit.win, 'pointerdown', 'touch'); await flush();
   let st = audio.status();
   assert.equal(st.state, 'suspended'); assert.equal(st.armed, true, 'keeps listening');
-  assert.equal(st.silentPlays, 1); assert.equal(st.primed, 0, 'refused files are tried again');
-  assert.equal(st.elements, 5, 'jump sound gets 4 copies, music 1');
+  assert.equal(st.silentPlays, 1); assert.equal(st.primed, 0, 'not primed on a finger going down');
   // The finger lifts: allowed now.
-  kit.allowResume = true; kit.allowPlay = true;
-  kit.win.dispatchEvent(new Event('touchend')); await flush();
+  kit.allowResume = true;
+  kit.fire(kit.win, 'touchend'); await flush();
   st = audio.status();
+  assert.equal(st.elements, 5, 'jump sound gets 4 copies, music 1');
   assert.equal(st.state, 'running'); assert.equal(st.primed, 5); assert.equal(st.armed, false, 'stops listening');
   assert.equal(kit.ctx.silent, 2);
   assert.equal(sfx.heard + song.heard, 0, 'priming makes no sound');
   assert.equal(sfx.muted, false); assert.equal(song.muted, false); assert.equal(song.volume, 0.6, 'volume put back');
   assert.ok(sfx.paused && song.paused);
   assert.deepEqual(S.soundPlays, {}, 'priming is not counted as playing');
-  kit.win.dispatchEvent(new Event('click')); await flush();
+  kit.fire(kit.win, 'click'); await flush();
   assert.equal(gestures, 2, 'no more listening once sound is on');
+});
+
+test('sound on phones: only a key, a click or a finger lifting counts for sound files', () => {
+  const yes = [['touchend'], ['click'], ['keydown'], ['mousedown'], ['pointerup', 'touch'], ['pointerup', 'pen'], ['pointerdown', 'mouse']];
+  const no = [['touchstart'], ['pointerdown', 'touch'], ['pointerdown', 'pen'], ['pointerup', 'mouse'], ['pointerdown'], ['pointerup'], ['']];
+  for (const [t, p] of yes) assert.equal(S.isActivationEvent(t, p), true, t + ' ' + p);
+  for (const [t, p] of no) assert.equal(S.isActivationEvent(t, p), false, t + ' ' + p);
+});
+
+test('sound on phones: a finger going down (muted play allowed, but not a real activation) does not count; lifting it unlocks every file', async () => {
+  const kit = fakeSoundKit();
+  const sfx = new kit.FakeEl('jump.ogg'), song = new kit.FakeEl('music.ogg');
+  const audio = S.createAudio({ AudioContext: kit.FakeAC, sounds: { 'sfx-jump': [sfx], 'music-level-01-central-park': [song] } });
+  audio.attach({ win: kit.win, doc: kit.doc });
+  kit.fire(kit.win, 'touchstart'); kit.fire(kit.win, 'pointerdown', 'touch'); await flush();
+  assert.equal(audio.status().primed, 0, 'nothing primed'); assert.equal(audio.status().armed, true);
+  kit.fire(kit.win, 'pointerup', 'touch'); kit.fire(kit.win, 'touchend'); kit.fire(kit.win, 'click'); await flush();
+  const st = audio.status();
+  assert.equal(st.elements, 5); assert.equal(st.primed, 5); assert.equal(st.armed, false);
+  // Every file and copy is now really unlocked: later sounds, outside any touch, play with sound.
+  audio.sfx('sfx-jump'); audio.music('level'); await flush();
+  assert.ok(song.heard > 0, 'music heard');
+  assert.equal(st.refused, 0);
+  for (const k in S.soundPlays) delete S.soundPlays[k];
 });
 
 test('sound on phones: restarts after interruptions, but music waits for the game to unpause; mute silences every copy', async () => {
@@ -666,7 +700,7 @@ test('sound on phones: restarts after interruptions, but music waits for the gam
   const sfx = new kit.FakeEl('jump.ogg'), song = new kit.FakeEl('music.ogg');
   const audio = S.createAudio({ AudioContext: kit.FakeAC, sounds: { 'sfx-jump': [sfx], 'music-level-01-central-park': [song] } });
   audio.attach({ win: kit.win, doc: kit.doc });
-  kit.win.dispatchEvent(new Event('keydown')); await flush();
+  kit.fire(kit.win, 'keydown'); await flush();
   assert.equal(audio.status().state, 'running', 'a key press on a computer starts sound at once');
   audio.music('level');
   assert.equal(song.paused, false); assert.ok(song.heard > 0, 'music plays');
@@ -682,7 +716,7 @@ test('sound on phones: restarts after interruptions, but music waits for the gam
   // A phone call while playing (iPhone: 'interrupted'), and the browser wants a touch to restart: listen again.
   kit.allowResume = false; kit.ctx.set('interrupted'); song.pause(); await flush();
   assert.equal(audio.status().armed, true);
-  kit.allowResume = true; kit.win.dispatchEvent(new Event('touchend')); await flush();
+  kit.allowResume = true; kit.fire(kit.win, 'touchend'); await flush();
   assert.equal(kit.ctx.state, 'running'); assert.equal(song.paused, false, 'music the phone stopped mid-play carries on');
   // Mute: every file and every copy, even one that is playing right now.
   audio.sfx('sfx-jump');
@@ -1061,7 +1095,12 @@ test('sideways message: shown only upright, only with the touch buttons on, unti
   assert.equal(S.isPortrait(393, 852), true); assert.equal(S.isPortrait(852, 393), false); assert.equal(S.isPortrait(500, 500), false);
   const ask = (viewW, viewH, touch, dismissed) => S.needsSidewaysPrompt({ viewW, viewH, touch, dismissed });
   assert.equal(ask(393, 852, true, false), true, 'upright phone with touch buttons');
-  assert.equal(ask(820, 1180, true, false), true, 'upright tablet with touch buttons');
+  assert.equal(ask(375, 667, true, false), true, 'upright iPhone SE');
+  assert.equal(ask(412, 915, true, false), true, 'upright Pixel 7');
+  assert.equal(ask(440, 956, true, false), true, 'upright big phone');
+  assert.equal(ask(820, 1180, true, false), false, 'upright iPad: plays upright, no message');
+  assert.equal(ask(744, 1133, true, false), false, 'upright iPad mini');
+  assert.equal(ask(600, 960, true, false), false, 'upright small tablet');
   assert.equal(ask(852, 393, true, false), false, 'sideways phone');
   assert.equal(ask(393, 852, true, true), false, 'after PLAY UPRIGHT ANYWAY');
   assert.equal(ask(393, 852, false, false), false, 'a narrow computer window (no touch buttons)');

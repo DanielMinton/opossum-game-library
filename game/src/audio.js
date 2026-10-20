@@ -99,6 +99,17 @@
   // Browsers (iPhone Safari most of all) stay silent until the player touches the screen or presses a key, and
   // some only count the finger *lifting*. So every kind of touch, click and key press tries to start sound.
   S.AUDIO_UNLOCK_EVENTS = ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'click', 'keydown'];
+  // Which of those count as a real "the player did something" moment, when a browser lets a sound file play for good:
+  // a key, a mouse button, or a finger LIFTING (touchend, or pointerup from a finger or pen). A finger going down
+  // (touchstart, or pointerdown from a finger) doesn't count. Every event still restarts the sound engine, but sound
+  // files are only primed on these: a phone lets a muted file play at any time, so priming it on a finger going down
+  // would look like it worked while the file stayed locked.
+  S.isActivationEvent = (type, pointerType) => {
+    if (type === 'touchend' || type === 'click' || type === 'keydown' || type === 'mousedown') return true;
+    if (type === 'pointerdown') return pointerType === 'mouse';
+    if (type === 'pointerup') return !!pointerType && pointerType !== 'mouse';
+    return false;
+  };
   // Sound is fully started once the sound engine is running and every sound file has been "primed" (played
   // silently once during a touch, which iPhones need before they let a file play later). Until then, keep listening.
   // state: the AudioContext state, or 'none' when the browser has no WebAudio.
@@ -121,7 +132,7 @@
     const sounds = () => opts.sounds || S.sounds;
     const musicIds = new Set([].concat(...Object.values(S.MUSIC_TRACKS || {})));
     // For the self-checks: how many times each step happened.
-    const stats = { unlocks: 0, silentPlays: 0, primeTries: 0, refused: 0, resumeTries: 0, resumeRefused: 0, armed: false, rearms: 0 };
+    const stats = { unlocks: 0, silentPlays: 0, primeEvents: 0, primeTries: 0, refused: 0, resumeTries: 0, resumeRefused: 0, armed: false, rearms: 0 };
 
     // Real sound effects: a few copies of each file so the same sound can overlap itself.
     const pools = new Map();
@@ -184,10 +195,11 @@
     function primeAll() {
       for (const el of S.primeTargets(allElements(), (e) => primed.has(e), musicEl, musicOn)) prime(el);
     }
-    // A file that is playing (the music, or a sound effect) has clearly been allowed: count it as primed.
+    // A file that is playing with sound (the music, or a sound effect) has clearly been allowed: count it as primed.
+    // (Not one playing muted: phones allow that without a touch.)
     function unprimedCount() {
       let n = 0;
-      for (const el of allElements()) { if (!primed.has(el) && el.paused === false) primed.add(el); if (!primed.has(el)) n++; }
+      for (const el of allElements()) { if (!primed.has(el) && el.paused === false && !el.muted) primed.add(el); if (!primed.has(el)) n++; }
       return n;
     }
 
@@ -276,14 +288,18 @@
     }
     let current = null;
     // Called on every touch, click and key press until sound is fully started (and again after interruptions).
-    // Never throws.
-    api.unlock = function () {
+    // ev: the event (sound files are primed only when it is a real activation, see S.isActivationEvent);
+    // called without one, the caller vouches that this is a real activation. Never throws.
+    api.unlock = function (ev) {
       stats.unlocks++;
       try {
         init();
         if (ctx) { tryResume(true); playSilence(); }
-        fillPools();
-        primeAll();
+        if (!ev || S.isActivationEvent(ev.type, ev.pointerType)) {
+          stats.primeEvents++;
+          fillPools();
+          primeAll();
+        }
         if (musicOn && musicEl && musicEl.paused) quiet(musicEl.play()); // music asked for before the first key press
         checkDone();
       } catch (e) { /* never let sound break the game */ }
@@ -327,7 +343,7 @@
     let win = null, doc = null, onGesture = null;
     const visible = () => !doc || (doc.visibilityState ? doc.visibilityState !== 'hidden' : !doc.hidden);
     const LISTEN = { capture: true, passive: true };
-    function gesture() { if (onGesture) onGesture(); api.unlock(); }
+    function gesture(ev) { if (onGesture) onGesture(); api.unlock(ev || { type: '' }); }
     function arm() {
       if (!win || stats.armed) return;
       for (const t of S.AUDIO_UNLOCK_EVENTS) win.addEventListener(t, gesture, LISTEN);

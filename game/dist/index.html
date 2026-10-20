@@ -1721,6 +1721,17 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   // Browsers (iPhone Safari most of all) stay silent until the player touches the screen or presses a key, and
   // some only count the finger *lifting*. So every kind of touch, click and key press tries to start sound.
   S.AUDIO_UNLOCK_EVENTS = ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'click', 'keydown'];
+  // Which of those count as a real "the player did something" moment, when a browser lets a sound file play for good:
+  // a key, a mouse button, or a finger LIFTING (touchend, or pointerup from a finger or pen). A finger going down
+  // (touchstart, or pointerdown from a finger) doesn't count. Every event still restarts the sound engine, but sound
+  // files are only primed on these: a phone lets a muted file play at any time, so priming it on a finger going down
+  // would look like it worked while the file stayed locked.
+  S.isActivationEvent = (type, pointerType) => {
+    if (type === 'touchend' || type === 'click' || type === 'keydown' || type === 'mousedown') return true;
+    if (type === 'pointerdown') return pointerType === 'mouse';
+    if (type === 'pointerup') return !!pointerType && pointerType !== 'mouse';
+    return false;
+  };
   // Sound is fully started once the sound engine is running and every sound file has been "primed" (played
   // silently once during a touch, which iPhones need before they let a file play later). Until then, keep listening.
   // state: the AudioContext state, or 'none' when the browser has no WebAudio.
@@ -1743,7 +1754,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     const sounds = () => opts.sounds || S.sounds;
     const musicIds = new Set([].concat(...Object.values(S.MUSIC_TRACKS || {})));
     // For the self-checks: how many times each step happened.
-    const stats = { unlocks: 0, silentPlays: 0, primeTries: 0, refused: 0, resumeTries: 0, resumeRefused: 0, armed: false, rearms: 0 };
+    const stats = { unlocks: 0, silentPlays: 0, primeEvents: 0, primeTries: 0, refused: 0, resumeTries: 0, resumeRefused: 0, armed: false, rearms: 0 };
 
     // Real sound effects: a few copies of each file so the same sound can overlap itself.
     const pools = new Map();
@@ -1806,10 +1817,11 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     function primeAll() {
       for (const el of S.primeTargets(allElements(), (e) => primed.has(e), musicEl, musicOn)) prime(el);
     }
-    // A file that is playing (the music, or a sound effect) has clearly been allowed: count it as primed.
+    // A file that is playing with sound (the music, or a sound effect) has clearly been allowed: count it as primed.
+    // (Not one playing muted: phones allow that without a touch.)
     function unprimedCount() {
       let n = 0;
-      for (const el of allElements()) { if (!primed.has(el) && el.paused === false) primed.add(el); if (!primed.has(el)) n++; }
+      for (const el of allElements()) { if (!primed.has(el) && el.paused === false && !el.muted) primed.add(el); if (!primed.has(el)) n++; }
       return n;
     }
 
@@ -1898,14 +1910,18 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     }
     let current = null;
     // Called on every touch, click and key press until sound is fully started (and again after interruptions).
-    // Never throws.
-    api.unlock = function () {
+    // ev: the event (sound files are primed only when it is a real activation, see S.isActivationEvent);
+    // called without one, the caller vouches that this is a real activation. Never throws.
+    api.unlock = function (ev) {
       stats.unlocks++;
       try {
         init();
         if (ctx) { tryResume(true); playSilence(); }
-        fillPools();
-        primeAll();
+        if (!ev || S.isActivationEvent(ev.type, ev.pointerType)) {
+          stats.primeEvents++;
+          fillPools();
+          primeAll();
+        }
         if (musicOn && musicEl && musicEl.paused) quiet(musicEl.play()); // music asked for before the first key press
         checkDone();
       } catch (e) { /* never let sound break the game */ }
@@ -1949,7 +1965,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
     let win = null, doc = null, onGesture = null;
     const visible = () => !doc || (doc.visibilityState ? doc.visibilityState !== 'hidden' : !doc.hidden);
     const LISTEN = { capture: true, passive: true };
-    function gesture() { if (onGesture) onGesture(); api.unlock(); }
+    function gesture(ev) { if (onGesture) onGesture(); api.unlock(ev || { type: '' }); }
     function arm() {
       if (!win || stats.armed) return;
       for (const t of S.AUDIO_UNLOCK_EVENTS) win.addEventListener(t, gesture, LISTEN);
@@ -2290,9 +2306,13 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
   };
 
   // ---------- "turn your phone sideways" message ----------
-  // Shown only with the touch buttons on, on a screen taller than it is wide, until the player picks "play upright anyway".
+  // Shown only with the touch buttons on, on a phone-sized screen (short side under PHONE_MAX_SHORT_SIDE CSS px) held
+  // upright, until the player picks "play upright anyway". Tablets play upright without it (an upright iPad still gets
+  // a big x5 picture, and the message says "phone").
   S.isPortrait = (viewW, viewH) => viewH > viewW;
-  S.needsSidewaysPrompt = (o) => !!(o.touch && !o.dismissed && S.isPortrait(o.viewW, o.viewH));
+  S.PHONE_MAX_SHORT_SIDE = 600;
+  S.needsSidewaysPrompt = (o) => !!(o.touch && !o.dismissed && S.isPortrait(o.viewW, o.viewH) &&
+    Math.min(o.viewW, o.viewH) < S.PHONE_MAX_SHORT_SIDE);
 
   // Where the message's pixel-art card goes: artW x artH card pixels, each k x k real pixels (whole numbers, so it is as
   // sharp as the game), as big as fits in 92% of the notch-free width and 80% of its height (and no wider than maxW CSS
@@ -2931,10 +2951,11 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       const f = finger('jump'); for (let i = 0; i < 70; i++) { if (i === hold) f.up(); run(1); top = Math.min(top, p.y); }
       run(30); return Math.round(y0 - top);
     };
-    const portrait = S.isPortrait(window.__SAMMY_FIT.viewW, window.__SAMMY_FIT.viewH);
+    // An upright phone (not a tablet: tablets play upright without the message).
+    const portrait = S.needsSidewaysPrompt({ viewW: window.__SAMMY_FIT.viewW, viewH: window.__SAMMY_FIT.viewH, touch: true, dismissed: false });
     try {
-      // Upright: the "turn your phone sideways" message is up, covers the buttons and keeps the game paused.
-      // Sideways: it never shows.
+      // Upright phone: the "turn your phone sideways" message is up, covers the buttons and keeps the game paused.
+      // Sideways, and on tablets: it never shows.
       c.promptOnLoad = promptShown();
       if (portrait) {
         run(2);
@@ -3105,10 +3126,14 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
       try {
         c.elementsBefore = audio.status().elements;
         c.armedBeforeTouch = audio.status().armed;
-        // The first touch lands on a touch button (it reaches audio.js through the window).
+        // The first touch lands on a touch button (it reaches audio.js through the window). A finger going down
+        // restarts the engine but primes no sound file (phones don't count it); the finger lifting primes them.
         touch.elements.jump.el.dispatchEvent(new Event('touchstart', { bubbles: true }));
         c.touchButtonTries = unlocks === 1;
         c.silentSample = audio.status().silentPlays >= 1;
+        c.noPrimeOnFingerDown = audio.status().primed === 0 && audio.status().primeEvents === 0;
+        touch.elements.jump.el.dispatchEvent(new Event('touchend', { bubbles: true }));
+        c.primeOnFingerUp = unlocks === 2 && audio.status().primeEvents === 1;
         c.running = await until(() => audio.status().state === 'running');
         await until(() => !audio.status().armed, 500);
         let s = audio.status();
@@ -3123,7 +3148,7 @@ globalThis.SAMMY_ASSET_BASE = 'assets/';
         c.listensWhileStopped = audio.status().armed;
         hide(false);
         phone.promptButton.dispatchEvent(new Event('touchstart', { bubbles: true }));
-        c.sidewaysButtonTries = unlocks === 2;
+        c.sidewaysButtonTries = unlocks === 3;
         c.runningAfterTap = await until(() => audio.status().state === 'running');
         // Music: playing during play; paused (and staying paused) when the page hides and comes back; plays on unpause.
         input.press('start'); run(3);

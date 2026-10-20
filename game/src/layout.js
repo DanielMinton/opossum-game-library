@@ -203,9 +203,13 @@
   };
 
   // ---------- "turn your phone sideways" message ----------
-  // Shown only with the touch buttons on, on a screen taller than it is wide, until the player picks "play upright anyway".
+  // Shown only with the touch buttons on, on a phone-sized screen (short side under PHONE_MAX_SHORT_SIDE CSS px) held
+  // upright, until the player picks "play upright anyway". Tablets play upright without it (an upright iPad still gets
+  // a big x5 picture, and the message says "phone").
   S.isPortrait = (viewW, viewH) => viewH > viewW;
-  S.needsSidewaysPrompt = (o) => !!(o.touch && !o.dismissed && S.isPortrait(o.viewW, o.viewH));
+  S.PHONE_MAX_SHORT_SIDE = 600;
+  S.needsSidewaysPrompt = (o) => !!(o.touch && !o.dismissed && S.isPortrait(o.viewW, o.viewH) &&
+    Math.min(o.viewW, o.viewH) < S.PHONE_MAX_SHORT_SIDE);
 
   // Where the message's pixel-art card goes: artW x artH card pixels, each k x k real pixels (whole numbers, so it is as
   // sharp as the game), as big as fits in 92% of the notch-free width and 80% of its height (and no wider than maxW CSS
