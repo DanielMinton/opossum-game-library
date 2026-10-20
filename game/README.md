@@ -12,6 +12,7 @@ Every gameplay value comes from the examples in `templates/examples/`, which are
 - **Phones and tablets:** the game is bigger and sharper there (held sideways, it fills 83–95% of the height of the phones we checked, up from 54–60%), and it has on-screen touch buttons (see **Controls**). They show up only on touch screens. Held sideways, they sit beside the picture and may just cover the brown dirt strip at its bottom corners (never the top bar or the grass where Sammy and the zombies walk); held upright, the picture sits above the buttons. Not yet tried on a real phone. Phones also can't open a file by double-clicking; the game will need to be put on a website for that (not done). To see the buttons on a computer, add `?touch=1` to the address.
 - **Phone layout:** held upright with the touch buttons on, a "TURN YOUR PHONE SIDEWAYS" message covers the screen and keeps the game paused; turning the phone hides it (the game stays paused until you tap play), and **PLAY UPRIGHT ANYWAY** puts it away until the page is closed. Where the browser allows it (Android), a full-screen button sits next to pause; on iPhone, use Share → Add to Home Screen once the game is on a website. The picture and buttons keep clear of notches, rounded corners and the home bar. Pinch and double-tap zoom, page scrolling and long-press menus are blocked on touch screens. Never shown on a computer. Code: `src/phone.js`, maths in `src/layout.js`. Add `&upright=1` to the address to start with the message put away.
 - **Auto-pause:** hiding the page (phone locked, app or tab switched) or clicking into another window pauses the game and lets go of held keys and buttons, on computers too. It never resumes by itself.
+- **Sound on phones:** sound starts on the first tap (or key press). Every kind of tap counts, including on the touch buttons and the sideways message; if a phone refuses one, the next tap tries again. That tap also plays every sound file once, muted, because iPhones may otherwise refuse to play it later. After a phone call, the lock screen or another app, sound restarts when the page is back; music waits until you unpause. On an iPhone with the silent switch on, the placeholder beeps may be silent (real sound files should still play). Code: `src/audio.js` (`attach`, `unlock`). Real-phone checklist: `design/MOBILE_TEST_CHECKLIST.md`.
 
 ### Controls
 
@@ -25,7 +26,7 @@ Every gameplay value comes from the examples in `templates/examples/`, which are
 | Restart level | R | Select / Back | RESTART (while paused) |
 | Mute | M | — | MUTE (while paused) |
 
-With the touch buttons showing, the title screen and the tutorial messages use touch wording ("TAP JUMP TO START", "WHIP BUTTON: TAIL-WHIP"), and the "PLACEHOLDER ART" label moves to the bottom middle so a button never hides it. Sound starts after the first tap (phones don't allow sound before that).
+With the touch buttons showing, the title screen and the tutorial messages use touch wording ("TAP JUMP TO START", "WHIP BUTTON: TAIL-WHIP"), and the "PLACEHOLDER ART" label moves to the bottom middle so a button never hides it. Sound starts on the first tap (phones don't allow sound before that). MUTE silences everything, including a sound already playing.
 
 ### What's in the level
 
@@ -94,7 +95,7 @@ To try every planned file without scanning, add `?probe=1` to the address. Missi
    - Sound effects: `assets/audio/sfx/sfx-jump/sfx-jump-v01.ogg`
    - Music: `assets/audio/music/music-level-01-central-park/music-level-01-central-park-v01.ogg`
 2. Run `node game/tools/scan-assets.mjs`. It lists the sounds it found and flags any audio file with a name it doesn't recognize.
-3. Reload the game and press a key (browsers stay silent until you do). Each sound with a file uses it; the rest keep their beep.
+3. Reload the game and press a key or tap the screen (browsers stay silent until you do). Each sound with a file uses it; the rest keep their beep.
 
 **Only have WAV files?** From the `game/` folder, run `node tools/convert-audio.mjs` (or `npm run convert`). It makes an `.ogg` beside every `.wav` in `assets/audio/` that doesn't have one yet. Add `--mp3` to also make any missing `.mp3` copies for older Safari (this works even after the `.ogg` files exist). It needs ffmpeg (`brew install ffmpeg`); without it, it prints the exact commands to run. It never deletes or overwrites anything, and the `.wav` stays as the master copy. Then run the scanner (step 2).
 
@@ -153,10 +154,11 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | 48 game-rule checks (see the list below) |
-| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 43 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
+| `node --test tests/sim.test.mjs` | 51 game-rule checks (see the list below) |
+| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 50 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 | `index.html?test=touch&touch=1` | The touch-button check by hand (it taps the real buttons for you) |
+| `index.html?test=audio&touch=1` | The phone-sound check by hand (result appears as text in the top left) |
 
 **Game-rule checks** cover:
 - startup, level layout, movement, jumping, one-way platforms and rocks
@@ -176,6 +178,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - the touch wording fits on screen
 - notches: with and without touch buttons, the picture (and every button, including full screen, RESTART and MUTE) keeps clear of notch, camera-hole and home-bar margins on seven phones and tablets, centred in what's left; computers are unchanged
 - the "turn your phone sideways" message: shown only upright with touch buttons and until put away; its card is sharp, big enough and clear of notches
+- starting sound on phones (with a pretend sound engine and sound files): every kind of tap tries, a refused try is retried, a silent sample plays, every file and copy is primed without a sound and gets its volume back, it stops listening once sound is on, it restarts after a call or the lock screen but never while hidden, music waits for the unpause, and mute reaches every copy
 
 **Browser checks** cover:
 - the shareable copy is up to date: `dist/index.html` has the current code from `src/`, and `BUILD_INFO.txt` has the matching code. If not, it says "run node tools/build.mjs". (So after changing anything in `src/`, build before running this test.)
@@ -188,6 +191,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - touch buttons at a sideways phone (source and built game) and an upright phone: real touch events on the real buttons start the game, move (and turn by sliding), jump higher when held, tail-whip, move and jump with two fingers, pause, mute and restart; every way a finger can be lost (lifted, cancelled, the page losing focus or being hidden) lets go of the button; the first tap unlocks sound
 - phone layout: upright (393×852), the "turn your phone sideways" message covers the buttons and keeps the game paused, and PLAY UPRIGHT ANYWAY (at least 48×48 points) puts it away without un-pausing; sideways, no message and a full-screen button; on computers (1920×1080, 1440×900, a tall 500×900 window) no message and no buttons
 - auto-pause: hiding the page or leaving the window pauses the game and lets go of keys and touch buttons (keys and touch, source and built game); it doesn't resume by itself
+- sound on phones (`?test=audio`, with the two test sounds): every kind of tap, click and key press tries to start sound; a refused try is retried; a tap on a touch button starts the real sound engine, primes all 5 files silently (music plus 4 copies of the jump sound) and stops listening; stopped while hidden, it keeps listening and a tap on the sideways message's button restarts it; after a pretend lock screen, music stays paused until unpause; mute silences every copy. A second run uses the normal browser rule (no real tap possible): no errors, sound stays off, and it keeps listening
 - screen size at a sideways phone (852×393, 3 real pixels per point) and a laptop (1366×768): the picture is the size `layout.js` works out, fills the phone's height (95%), the page doesn't scroll, a screenshot shows every game pixel as one solid square (sharp, not blurred), and no touch buttons show
 
 The art and sound checks use a temporary copy of the library, never your `assets/` folder.
@@ -198,7 +202,7 @@ The art and sound checks use a temporary copy of the library, never your `assets
 - gamepads
 - whether the beeps sound right, and whether real sound files are audible (headless browsers have no speakers)
 - Safari and Firefox (only Chromium was run headless)
-- real phones and tablets (phone sizes and touches are only imitated in Chromium): how the buttons feel under real thumbs, real notches (headless Chromium reports none; Node tests cover typical margins), full screen and screen locking (Android), Add to Home Screen (iPhone), whether blocking zoom works in Safari, and whether sound really starts on the first tap
+- real phones and tablets (phone sizes and touches are only imitated in Chromium): how the buttons feel under real thumbs, real notches (headless Chromium reports none; Node tests cover typical margins), full screen and screen locking (Android), Add to Home Screen (iPhone), whether blocking zoom works in Safari, whether sound really starts on the first tap and comes back after a call or the lock screen, and the iPhone silent switch. See `design/MOBILE_TEST_CHECKLIST.md`
 
 **Difficulty note:** the autopilot clears the level when it can't take damage. Taking normal damage, it reaches the gauntlet but loses at wave 2, because it never jumps away or plays possum. A human player can do both, but the gauntlet may still be too hard. This needs a playtest.
 
@@ -212,7 +216,7 @@ The art and sound checks use a temporary copy of the library, never your `assets
 | `src/sim.js` | Game rules (no drawing, so it can be tested in Node) |
 | `src/render.js`, `src/font.js` | Drawing: real art when present, placeholders otherwise |
 | `src/assets.js`, `src/asset-files.js` | Planned art and sound lists, and the generated list of files that exist |
-| `src/audio.js` | Plays real sound files when present, placeholder beeps otherwise |
+| `src/audio.js` | Plays real sound files when present, placeholder beeps otherwise; starts sound on the first tap and restarts it after interruptions |
 | `src/layout.js` | Works out how big to draw the game on this screen (whole steps of real pixels) |
 | `src/input.js`, `src/main.js` | Controls, screen fitting, main loop and `?test=` self-checks |
 | `src/touch.js` | On-screen touch buttons for phones and tablets (where they go is worked out in `layout.js`) |

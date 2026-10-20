@@ -83,6 +83,7 @@
       const settle = (ok) => {
         if (settled) return; settled = true;
         if (ok) { (S.sounds[w.id] = S.sounds[w.id] || []).push(el); R.loaded.push(w.path); } else R.failed.push(w.path);
+        if (ok && finished && opts.onLate) opts.onLate(); // arrived after the game started (main.js primes it on the next tap)
         left -= 1; if (left === 0) { clearTimeout(timer); finish(); }
       };
       el.preload = 'auto';
@@ -94,32 +95,107 @@
     }
   };
 
-  S.createAudio = function () {
+  // ---------- starting sound on phones (pure rules, tested in Node) ----------
+  // Browsers (iPhone Safari most of all) stay silent until the player touches the screen or presses a key, and
+  // some only count the finger *lifting*. So every kind of touch, click and key press tries to start sound.
+  S.AUDIO_UNLOCK_EVENTS = ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'click', 'keydown'];
+  // Sound is fully started once the sound engine is running and every sound file has been "primed" (played
+  // silently once during a touch, which iPhones need before they let a file play later). Until then, keep listening.
+  // state: the AudioContext state, or 'none' when the browser has no WebAudio.
+  S.audioUnlockDone = (state, unprimed) => (state === 'running' || state === 'none') && unprimed === 0;
+  // Try to restart sound after a phone call, the lock screen or switching apps: only while the page is showing.
+  S.audioShouldResume = (state, visible) => !!visible && (state === 'suspended' || state === 'interrupted');
+  // Which sound files to prime now: not yet primed, and not playing (the music that should be playing is left alone).
+  S.primeTargets = (elements, isPrimed, musicEl, musicOn) =>
+    elements.filter((el) => !isPrimed(el) && !(el === musicEl && musicOn) && el.paused !== false);
+  // Copies of each sound effect file (so a sound can overlap itself), all made and primed during the first touch.
+  S.SFX_POOL = 4;
+
+  // opts (tests only): { AudioContext, sounds } to use instead of the browser's and S.sounds.
+  S.createAudio = function (opts) {
+    opts = opts || {};
     let ctx = null, master = null, noiseBuf = null, timer = null, track = null, step = 0, nextT = 0;
     const api = { muted: false, ok: false };
     const V = Object.assign({ musicVolume: 0.6, sfxVolume: 0.8 }, (S.CONFIG && S.CONFIG.sound) || {});
     const quiet = (p) => { if (p && p.catch) p.catch(() => {}); }; // play() is refused until the player presses a key
+    const sounds = () => opts.sounds || S.sounds;
+    const musicIds = new Set([].concat(...Object.values(S.MUSIC_TRACKS || {})));
+    // For the self-checks: how many times each step happened.
+    const stats = { unlocks: 0, silentPlays: 0, primeTries: 0, refused: 0, resumeTries: 0, resumeRefused: 0, armed: false, rearms: 0 };
 
     // Real sound effects: a few copies of each file so the same sound can overlap itself.
     const pools = new Map();
-    function playFile(id) {
-      S.soundPlays[id] = (S.soundPlays[id] || 0) + 1;
-      const list = S.sounds[id];
-      const el = list[Math.floor(Math.random() * list.length)];
+    function poolFor(el) {
       let pool = pools.get(el);
       if (!pool) { pool = [el]; pools.set(el, pool); }
+      return pool;
+    }
+    function playFile(id) {
+      S.soundPlays[id] = (S.soundPlays[id] || 0) + 1;
+      const list = sounds()[id];
+      const el = list[Math.floor(Math.random() * list.length)];
+      const pool = poolFor(el);
       let use = pool.find((a) => a.paused || a.ended);
-      if (!use && pool.length < 4) { use = el.cloneNode(); pool.push(use); }
+      if (!use && pool.length < S.SFX_POOL) { use = el.cloneNode(); pool.push(use); }
       if (!use) use = pool[0];
-      use.volume = V.sfxVolume;
+      use.volume = V.sfxVolume; use.muted = api.muted;
       try { use.currentTime = 0; } catch (e) { /* not seekable yet */ }
       quiet(use.play());
+    }
+    // Every sound file element: each variation plus its copies.
+    function allElements() {
+      const out = [], all = sounds();
+      for (const id in all) for (const el of all[id]) { const pool = pools.get(el); if (pool) out.push(...pool); else out.push(el); }
+      return out;
+    }
+    // Make the copies of every sound effect now (during a touch), so each one can be primed.
+    function fillPools() {
+      const all = sounds();
+      for (const id in all) {
+        if (musicIds.has(id)) continue;
+        for (const el of all[id]) {
+          const pool = poolFor(el);
+          try { while (pool.length < S.SFX_POOL) pool.push(el.cloneNode()); } catch (e) { /* keep what we have */ }
+        }
+      }
+    }
+    // Priming: play the file muted and stop it straight away, during the touch. iPhones then let it play later.
+    // Done synchronously (not after play() finishes) so it can never stop music the game has just started.
+    // If the browser says "not allowed" (that touch didn't count), it is tried again on the next touch.
+    const primed = new WeakSet();
+    function prime(el) {
+      stats.primeTries++;
+      let vol = 1, t = 0;
+      try { vol = el.volume; t = el.currentTime || 0; } catch (e) { /* ignore */ }
+      primed.add(el);
+      try {
+        el.muted = true;
+        try { el.volume = 0; } catch (e) { /* read-only on iPhone; muted is enough */ }
+        const p = el.play();
+        el.pause();
+        try { el.currentTime = t; } catch (e) { /* not seekable yet */ }
+        if (p && p.catch) p.catch((err) => { if (err && err.name === 'NotAllowedError') { primed.delete(el); stats.refused++; arm(); } });
+      } catch (e) {
+        primed.delete(el);
+      } finally {
+        try { el.muted = api.muted; el.volume = vol; } catch (e) { /* ignore */ }
+      }
+    }
+    function primeAll() {
+      for (const el of S.primeTargets(allElements(), (e) => primed.has(e), musicEl, musicOn)) prime(el);
+    }
+    // A file that is playing (the music, or a sound effect) has clearly been allowed: count it as primed.
+    function unprimedCount() {
+      let n = 0;
+      for (const el of allElements()) { if (!primed.has(el) && el.paused === false) primed.add(el); if (!primed.has(el)) n++; }
+      return n;
     }
 
     // Real music: one <audio> element per track, looped. Pause keeps the position.
     let musicEl = null, musicOn = false;
     function fileTrack(name) {
-      for (const id of (S.MUSIC_TRACKS && S.MUSIC_TRACKS[name]) || []) if (S.sounds[id]) { S.sounds[id][0].soundId = id; return S.sounds[id][0]; }
+      const all = sounds();
+      for (const id of (S.MUSIC_TRACKS && S.MUSIC_TRACKS[name]) || []) if (all[id]) { all[id][0].soundId = id; return all[id][0]; }
       return null;
     }
     function startFile(el) {
@@ -135,12 +211,17 @@
       musicEl.pause();
       if (!keepPlace) { try { musicEl.currentTime = 0; } catch (e) { /* ignore */ } musicEl = null; }
     }
+    let initTried = false;
     function init() {
       if (ctx) return;
+      initTried = true;
       try {
-        const AC = globalThis.AudioContext || globalThis.webkitAudioContext;
+        const AC = opts.AudioContext || globalThis.AudioContext || globalThis.webkitAudioContext;
         if (!AC) return;
         ctx = new AC();
+        // A phone call, the lock screen or another app can stop the sound engine ('suspended', or 'interrupted' on
+        // iPhone). Try to restart it; if the browser wants a touch first, listen for one again.
+        ctx.onstatechange = onStateChange;
         master = ctx.createGain(); master.gain.value = api.muted ? 0 : 0.5; master.connect(ctx.destination);
         noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
         const d = noiseBuf.getChannelData(0);
@@ -194,13 +275,93 @@
       timer = setInterval(schedule, 25);
     }
     let current = null;
+    // Called on every touch, click and key press until sound is fully started (and again after interruptions).
+    // Never throws.
     api.unlock = function () {
-      init(); if (ctx && ctx.state === 'suspended') ctx.resume();
-      if (musicOn && musicEl && musicEl.paused) quiet(musicEl.play()); // music asked for before the first key press
+      stats.unlocks++;
+      try {
+        init();
+        if (ctx) { tryResume(true); playSilence(); }
+        fillPools();
+        primeAll();
+        if (musicOn && musicEl && musicEl.paused) quiet(musicEl.play()); // music asked for before the first key press
+        checkDone();
+      } catch (e) { /* never let sound break the game */ }
     };
+    // The classic iPhone unlock: play one silent sample through the sound engine during the touch.
+    function playSilence() {
+      try {
+        const b = ctx.createBuffer(1, 1, 22050), src = ctx.createBufferSource();
+        src.buffer = b; src.connect(ctx.destination); src.start(0);
+        stats.silentPlays++;
+      } catch (e) { /* ignore */ }
+    }
+    // 'not-started' until the first touch; 'none' when the browser has no WebAudio at all.
+    const ctxState = () => (ctx ? ctx.state : (initTried ? 'none' : 'not-started'));
+    // Restart the sound engine. fromTouch: called during a touch or key press (always worth a try);
+    // otherwise only while the page is showing. If it doesn't restart, listen for the next touch.
+    function tryResume(fromTouch) {
+      if (!ctx || ctx.state === 'running' || ctx.state === 'closed') return;
+      if (!fromTouch && !S.audioShouldResume(ctx.state, visible())) { arm(); return; }
+      stats.resumeTries++;
+      try {
+        const p = ctx.resume();
+        if (p && p.then) p.then(afterResume, () => { stats.resumeRefused++; arm(); }); else afterResume();
+      } catch (e) { /* not allowed without a touch */ }
+      if (ctx.state !== 'running') arm();
+    }
+    function afterResume() {
+      if (!ctx || ctx.state !== 'running') { arm(); return; }
+      // Music that should be playing (the game isn't paused) and was stopped by the phone: carry on.
+      // While the game is paused musicOn is false, so the music waits for the normal unpause.
+      if (musicOn && musicEl && musicEl.paused) quiet(musicEl.play());
+      checkDone();
+    }
+    function onStateChange() {
+      if (!ctx) return;
+      if (ctx.state === 'running') afterResume();
+      else if (ctx.state !== 'closed') tryResume(false);
+    }
+
+    // ---------- listening for touches and key presses ----------
+    let win = null, doc = null, onGesture = null;
+    const visible = () => !doc || (doc.visibilityState ? doc.visibilityState !== 'hidden' : !doc.hidden);
+    const LISTEN = { capture: true, passive: true };
+    function gesture() { if (onGesture) onGesture(); api.unlock(); }
+    function arm() {
+      if (!win || stats.armed) return;
+      for (const t of S.AUDIO_UNLOCK_EVENTS) win.addEventListener(t, gesture, LISTEN);
+      stats.armed = true; stats.rearms++;
+    }
+    function disarm() {
+      if (!win || !stats.armed) return;
+      for (const t of S.AUDIO_UNLOCK_EVENTS) win.removeEventListener(t, gesture, LISTEN);
+      stats.armed = false;
+    }
+    function checkDone() { if (S.audioUnlockDone(ctxState(), unprimedCount())) disarm(); else arm(); }
+    // o: { win, doc, onGesture }. Listens on the whole window in the capture phase, so every touch counts,
+    // including on the touch buttons and the "turn your phone sideways" button.
+    api.attach = function (o) {
+      win = o.win; doc = o.doc; onGesture = o.onGesture || null;
+      const back = () => { if (ctx) tryResume(false); };
+      if (doc) doc.addEventListener('visibilitychange', () => { if (visible()) back(); });
+      win.addEventListener('pageshow', back);
+      win.addEventListener('focus', back);
+      arm();
+    };
+    // Sound files that finished loading after the first touch still need priming: keep listening if so.
+    api.soundsChanged = function () { if (win && !S.audioUnlockDone(ctxState(), unprimedCount())) arm(); };
+    api.status = function () {
+      const els = allElements();
+      return Object.assign({}, stats, { state: ctxState(), elements: els.length, primed: els.filter((e) => primed.has(e)).length,
+        mutedElements: els.filter((e) => e.muted).length, musicPlaying: !!(musicEl && !musicEl.paused) });
+    };
+    // Self-check only: stop the sound engine as a phone call would.
+    api.suspendForTest = function () { return ctx && ctx.suspend ? ctx.suspend() : Promise.resolve(); };
+    api.musicElement = () => musicEl;
     api.sfx = function (id) {
       if (api.muted) return;
-      if (S.sounds[id] && S.sounds[id].length) { playFile(id); return; }
+      if (sounds()[id] && sounds()[id].length) { playFile(id); return; }
       const d = SFX[id]; if (d && ctx) tone(d[0], d[1], d[2], d[3], d[4]);
     };
     api.music = function (cmd) {
@@ -213,7 +374,7 @@
       if (cmd === 'clear') {
         stopMusic(); current = null;
         // A real level-clear sound replaces the placeholder jingle (sfx-level-clear plays at the same moment).
-        if (ctx && !S.sounds['sfx-level-clear']) [72, 76, 79, 84].forEach((n, i) => tone('square', midi(n), midi(n), 0.18, 0.15, ctx.currentTime + i * 0.12));
+        if (ctx && !sounds()['sfx-level-clear']) [72, 76, 79, 84].forEach((n, i) => tone('square', midi(n), midi(n), 0.18, 0.15, ctx.currentTime + i * 0.12));
         return;
       }
       current = cmd; playMusic(cmd);
@@ -221,7 +382,8 @@
     api.toggleMute = function () {
       api.muted = !api.muted;
       if (master) master.gain.value = api.muted ? 0 : 0.5;
-      if (musicEl) musicEl.muted = api.muted;
+      // Every sound file and every copy, including ones still playing.
+      for (const el of allElements()) { try { el.muted = api.muted; } catch (e) { /* ignore */ } }
       return api.muted;
     };
     return api;

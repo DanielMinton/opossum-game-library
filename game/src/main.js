@@ -77,11 +77,11 @@
   })();
   fit();
 
-  // Browsers only allow sound after the player does something. On phones a finger counts only when it lifts
-  // (pointerup / touchend), so listen to those too. The touch buttons' events reach the window as well.
+  // Browsers only allow sound after the player does something, and some phones count a finger only when it lifts.
+  // audio.js listens to every touch, click and key press on the whole window (touch buttons and the "turn your
+  // phone sideways" button included) until sound is running, and again after a phone call or the lock screen.
   let unlocks = 0;
-  const unlock = () => { unlocks++; audio.unlock(); };
-  for (const t of ['keydown', 'pointerdown', 'pointerup', 'touchend']) window.addEventListener(t, unlock);
+  audio.attach({ win: window, doc: document, onGesture: () => { unlocks++; } });
 
   function drainEvents() {
     for (const ev of state.events) {
@@ -99,6 +99,7 @@
     pending -= 1; if (pending) return;
     if (params.get('test') === 'keys') keysTest();
     else if (params.get('test') === 'touch') touchTest();
+    else if (params.get('test') === 'audio') audioTest();
     else if (params.has('test')) runTest(params.get('test'));
     else requestAnimationFrame(loop);
   };
@@ -107,9 +108,10 @@
     for (const w of report.warnings) console.warn('[sammy] art warning:', w);
     ready();
   });
-  S.loadSounds({ base, probe: params.has('probe') }, (report) => {
+  S.loadSounds({ base, probe: params.has('probe'), onLate: () => audio.soundsChanged() }, (report) => {
     console.info('[sammy] sounds loaded:', report.loaded.length, 'of', report.tried, 'files found',
       report.failed.length ? { failed: report.failed } : '', report.unplayable.length ? { unplayable: report.unplayable } : '');
+    audio.soundsChanged(); // files that arrived after the first tap still need priming on the next one
     ready();
   });
 
@@ -245,7 +247,7 @@
       tap('jump');
       c.jumpStarts = state.mode === 'playing';
       run(1); c.pauseShownInPlay = !!buttonReport().pause;
-      c.soundUnlocked = unlocks > unlocksBefore;
+      c.soundUnlocked = unlocks > unlocksBefore || !audio.status().armed; // (stops listening once sound is fully on)
       run(5);
       // Hold the right half of the pad for a second.
       const x0 = p.x, pad = finger('pad', 0.8);
@@ -300,6 +302,145 @@
       c.hiddenClears && c.paused && c.muted && c.unmuted && c.restarted && c.tapPictureStarts && errors.length === 0;
     out.textContent = JSON.stringify(r);
     requestAnimationFrame(loop);
+  }
+
+  // ?test=audio: starting sound on phones. Headless browsers can't make a real touch, so this checks the steps:
+  // (1) a pretend sound engine (same code, fake AudioContext) proves every kind of touch tries to start sound, a
+  //     refused try is retried on the next touch, it stops listening once sound runs, and it restarts after a phone
+  //     call, the lock screen or switching apps (only while the page shows);
+  // (2) the real sound engine and the real sound files: a touch starts it, every file is primed, it stops listening;
+  //     after being stopped it starts again, music stays paused while the game is paused, and mute silences every copy.
+  // Run with --autoplay-policy=no-user-gesture-required for (2) to succeed; without it, it must just not break.
+  function audioTest() {
+    const out = document.getElementById('test-result');
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    // Waits for the sound engine, which runs in real time. Headless test browsers fast-forward timers, so this yields
+    // without timers (real time passes) as well as with them.
+    const yieldNow = () => new Promise((r) => { const ch = new MessageChannel(); ch.port1.onmessage = () => r(); ch.port2.postMessage(0); });
+    const until = async (cond, ms) => {
+      for (let t = 0; t < (ms || 3000); t += 25) {
+        for (let i = 0; i < 400; i++) { if (cond()) return true; await yieldNow(); }
+        await wait(25);
+      }
+      return !!cond();
+    };
+    let now = 1000;
+    const run = (n) => { for (let i = 0; i < n; i++) { now += 1000 / 60; frame(now); } };
+    const hide = (on) => {
+      if (on) {
+        Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+        Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+      } else { delete document.hidden; delete document.visibilityState; }
+    };
+    const f = {}, c = {};
+    (async () => {
+      // ---- (1) pretend sound engine ----
+      try {
+        const fake = { allow: false, made: null };
+        function FakeAC() {
+          this.state = 'suspended'; this.currentTime = 0; this.sampleRate = 22050; this.destination = {};
+          this.resumes = 0; this.silent = 0; fake.made = this;
+        }
+        const node = () => ({ connect() {}, start() {}, stop() {}, gain: { value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {} },
+          frequency: { setValueAtTime() {}, exponentialRampToValueAtTime() {} } });
+        FakeAC.prototype.createGain = node; FakeAC.prototype.createOscillator = node; FakeAC.prototype.createBiquadFilter = node;
+        FakeAC.prototype.createBuffer = (ch, len) => ({ length: len, getChannelData: () => new Float32Array(len) });
+        FakeAC.prototype.createBufferSource = function () { const self = this, n = node(); n.start = () => { self.silent++; }; return n; };
+        FakeAC.prototype.set = function (st) { this.state = st; if (this.onstatechange) this.onstatechange(); };
+        FakeAC.prototype.resume = function () {
+          this.resumes++;
+          if (!fake.allow) return Promise.reject(new Error('not allowed without a touch'));
+          this.set('running'); return Promise.resolve();
+        };
+        const fw = new EventTarget(), fd = new EventTarget();
+        fd.visibilityState = 'visible';
+        let gestures = 0;
+        const fa = S.createAudio({ AudioContext: FakeAC, sounds: {} });
+        fa.attach({ win: fw, doc: fd, onGesture: () => { gestures++; } });
+        const tick = () => wait(5);
+        f.armedBeforeTouch = fa.status().armed;
+        // Every kind of touch, click and key press tries; the browser refuses (that touch didn't count).
+        for (const t of S.AUDIO_UNLOCK_EVENTS) { fw.dispatchEvent(new Event(t)); await tick(); }
+        f.everyEventTries = gestures === S.AUDIO_UNLOCK_EVENTS.length;
+        f.refusedStillListening = fake.made.state === 'suspended' && fa.status().armed && fake.made.resumes >= S.AUDIO_UNLOCK_EVENTS.length;
+        f.silentSample = fake.made.silent >= S.AUDIO_UNLOCK_EVENTS.length;
+        // The next touch counts: running, and it stops listening.
+        fake.allow = true; fw.dispatchEvent(new Event('touchend')); await tick();
+        f.runningAfterTouch = fake.made.state === 'running';
+        f.stopsListening = !fa.status().armed;
+        const g0 = gestures; fw.dispatchEvent(new Event('click')); await tick(); f.listenersRemoved = gestures === g0;
+        // A phone call ('interrupted', iPhone) while showing: it tries at once; refused, so it listens for a touch.
+        fake.allow = false; let r0 = fake.made.resumes;
+        fake.made.set('interrupted'); await tick();
+        f.interruptTriesAtOnce = fake.made.resumes > r0;
+        f.interruptListensAgain = fa.status().armed;
+        fake.allow = true; fw.dispatchEvent(new Event('pointerup')); await tick();
+        f.touchAfterInterrupt = fake.made.state === 'running' && !fa.status().armed;
+        // Locked phone: no tries while hidden; showing again restarts it by itself.
+        fd.visibilityState = 'hidden'; r0 = fake.made.resumes;
+        fake.made.set('suspended'); await tick();
+        f.noTryWhileHidden = fake.made.resumes === r0 && fake.made.state === 'suspended';
+        fd.visibilityState = 'visible'; fd.dispatchEvent(new Event('visibilitychange')); await tick();
+        f.backOnShow = fake.made.state === 'running' && !fa.status().armed;
+        // Coming back through the back button (pageshow) or to the window (focus).
+        for (const ev of ['pageshow', 'focus']) {
+          fd.visibilityState = 'hidden'; fake.made.set('suspended'); await tick(); fd.visibilityState = 'visible';
+          fw.dispatchEvent(new Event(ev)); await tick();
+          f['backOn' + ev] = fake.made.state === 'running';
+        }
+      } catch (e) { errors.push('fake: ' + String(e && e.stack || e)); }
+
+      // ---- (2) the real sound engine and real sound files ----
+      try {
+        c.elementsBefore = audio.status().elements;
+        c.armedBeforeTouch = audio.status().armed;
+        // The first touch lands on a touch button (it reaches audio.js through the window).
+        touch.elements.jump.el.dispatchEvent(new Event('touchstart', { bubbles: true }));
+        c.touchButtonTries = unlocks === 1;
+        c.silentSample = audio.status().silentPlays >= 1;
+        c.running = await until(() => audio.status().state === 'running');
+        await until(() => !audio.status().armed, 500);
+        let s = audio.status();
+        c.elements = s.elements; c.primed = s.primed; c.stopsListening = !s.armed;
+        c.noSoundCounted = Object.keys(S.soundPlays).length === 0; // priming isn't playing
+        c.restoredUnmuted = s.mutedElements === 0;
+        // Stopped while the page is hidden (lock screen): it waits, listening; a tap on the sideways button restarts it.
+        hide(true); document.dispatchEvent(new Event('visibilitychange'));
+        await audio.suspendForTest();
+        c.suspended = await until(() => audio.status().state === 'suspended', 500);
+        await wait(50);
+        c.listensWhileStopped = audio.status().armed;
+        hide(false);
+        phone.promptButton.dispatchEvent(new Event('touchstart', { bubbles: true }));
+        c.sidewaysButtonTries = unlocks === 2;
+        c.runningAfterTap = await until(() => audio.status().state === 'running');
+        // Music: playing during play; paused (and staying paused) when the page hides and comes back; plays on unpause.
+        input.press('start'); run(3);
+        c.started = state.mode === 'playing';
+        c.musicPlays = await until(() => audio.status().musicPlaying, 800);
+        hide(true); document.dispatchEvent(new Event('visibilitychange'));
+        c.pausedOnHide = state.mode === 'paused' && !audio.status().musicPlaying;
+        await audio.suspendForTest();
+        hide(false);
+        document.dispatchEvent(new Event('visibilitychange')); window.dispatchEvent(new Event('pageshow')); window.dispatchEvent(new Event('focus'));
+        c.resumedOnShow = await until(() => audio.status().state === 'running');
+        await wait(200); run(3);
+        c.musicWaitsWhilePaused = state.mode === 'paused' && !audio.status().musicPlaying;
+        input.press('start'); run(3);
+        c.musicBackOnUnpause = state.mode === 'playing' && await until(() => audio.status().musicPlaying, 800);
+        // Mute (M or the MUTE button) silences every file and every copy; unmute brings them back.
+        input.press('jump'); run(2);
+        input.press('mute'); run(1); s = audio.status();
+        c.muteAll = state.muted && s.mutedElements === s.elements && s.elements > 0;
+        input.press('mute'); run(1); s = audio.status();
+        c.unmuteAll = !state.muted && s.mutedElements === 0;
+      } catch (e) { errors.push(String(e && e.stack || e)); }
+      const r = { test: 'audio', fake: f, checks: c, status: audio.status(), errors };
+      r.fakeOk = Object.keys(f).length >= 14 && Object.keys(f).every((k) => f[k] === true || k === 'armedBeforeTouch') && f.armedBeforeTouch;
+      r.ok = errors.length === 0 && r.fakeOk;
+      out.textContent = JSON.stringify(r);
+      requestAnimationFrame(loop);
+    })();
   }
 
   // Draw every state the autopilot can't reach (it never takes damage), to catch drawing errors.

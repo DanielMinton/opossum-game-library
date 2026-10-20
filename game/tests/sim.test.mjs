@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const src = path.join(here, '..', 'src');
-for (const f of ['config', 'font', 'level', 'assets', 'sim', 'bot', 'layout', 'render']) {
+for (const f of ['config', 'font', 'level', 'assets', 'sim', 'bot', 'layout', 'render', 'audio']) {
   vm.runInThisContext(fs.readFileSync(path.join(src, f + '.js'), 'utf8'), { filename: f + '.js' });
 }
 const S = globalThis.SAMMY;
@@ -576,6 +576,123 @@ test('sound scan: picks the newest version, skips .wav masters, and flags misnam
     assert.equal(r.found.length, 0, 'art list unaffected');
     assert.ok(fs.readFileSync(out, 'utf8').includes('PRESENT_SOUND_FILES'));
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+// ---------- starting sound on phones (audio.js) ----------
+// A pretend sound engine and pretend <audio> elements, so the steps can be checked without a browser.
+function fakeSoundKit() {
+  const kit = { allowResume: true, allowPlay: true, ctx: null };
+  function FakeAC() { this.state = 'suspended'; this.currentTime = 0; this.sampleRate = 22050; this.destination = {}; this.silent = 0; this.resumes = 0; kit.ctx = this; }
+  const node = () => ({ connect() {}, start() {}, stop() {}, gain: { value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {} },
+    frequency: { setValueAtTime() {}, exponentialRampToValueAtTime() {} } });
+  FakeAC.prototype.createGain = node; FakeAC.prototype.createOscillator = node; FakeAC.prototype.createBiquadFilter = node;
+  FakeAC.prototype.createBuffer = (ch, len) => ({ length: len, getChannelData: () => new Float32Array(len) });
+  FakeAC.prototype.createBufferSource = function () { const n = node(); n.start = () => { this.silent++; }; return n; };
+  FakeAC.prototype.set = function (st) { this.state = st; if (this.onstatechange) this.onstatechange(); };
+  FakeAC.prototype.resume = function () {
+    this.resumes++;
+    if (!kit.allowResume) return Promise.reject(new Error('needs a touch'));
+    this.set('running'); return Promise.resolve();
+  };
+  class FakeEl {
+    constructor(src) { this.src = src; this.paused = true; this.muted = false; this.volume = 1; this.currentTime = 0; this.plays = 0; this.heard = 0; }
+    play() {
+      this.plays++;
+      if (!kit.allowPlay) return Promise.reject(Object.assign(new Error('not allowed'), { name: 'NotAllowedError' }));
+      this.paused = false; if (!this.muted && this.volume > 0) this.heard++;
+      return Promise.resolve();
+    }
+    pause() { this.paused = true; }
+    cloneNode() { return new FakeEl(this.src); }
+  }
+  kit.FakeAC = FakeAC; kit.FakeEl = FakeEl;
+  kit.win = new EventTarget(); kit.doc = new EventTarget(); kit.doc.visibilityState = 'visible';
+  return kit;
+}
+const flush = () => new Promise((r) => setTimeout(r, 0));
+
+test('sound on phones: the rules for when to listen, when to restart, and what to prime', () => {
+  for (const t of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'click', 'keydown']) assert.ok(S.AUDIO_UNLOCK_EVENTS.includes(t), t);
+  assert.equal(S.audioUnlockDone('running', 0), true);
+  assert.equal(S.audioUnlockDone('running', 1), false, 'a sound file still needs priming');
+  assert.equal(S.audioUnlockDone('suspended', 0), false);
+  assert.equal(S.audioUnlockDone('interrupted', 0), false);
+  assert.equal(S.audioUnlockDone('not-started', 0), false, 'never stops listening before the first touch');
+  assert.equal(S.audioUnlockDone('none', 0), true, 'a browser without WebAudio still gets its files primed');
+  assert.equal(S.audioShouldResume('suspended', true), true);
+  assert.equal(S.audioShouldResume('interrupted', true), true);
+  assert.equal(S.audioShouldResume('suspended', false), false, 'not while the page is hidden');
+  assert.equal(S.audioShouldResume('running', true), false);
+  assert.equal(S.audioShouldResume('closed', true), false);
+  const a = { paused: true }, b = { paused: true }, music = { paused: true }, playing = { paused: false };
+  const done = new Set([b]);
+  assert.deepEqual(S.primeTargets([a, b, music, playing], (e) => done.has(e), music, true), [a], 'skips primed, playing, and music that should be on');
+  assert.deepEqual(S.primeTargets([a, music], () => false, music, false), [a, music], 'paused music (game paused) is primed');
+});
+
+test('sound on phones: a touch starts the engine, plays a silent sample, primes every file silently, then stops listening', async () => {
+  const kit = fakeSoundKit();
+  const sfx = new kit.FakeEl('jump.ogg'), song = new kit.FakeEl('music.ogg');
+  song.volume = 0.6;
+  const sounds = { 'sfx-jump': [sfx], 'music-level-01-central-park': [song] };
+  const audio = S.createAudio({ AudioContext: kit.FakeAC, sounds });
+  let gestures = 0;
+  audio.attach({ win: kit.win, doc: kit.doc, onGesture: () => gestures++ });
+  assert.equal(audio.status().armed, true);
+  assert.equal(audio.status().state, 'not-started');
+  // First touch: the browser refuses (on some iPhones a finger only counts when it lifts).
+  kit.allowResume = false; kit.allowPlay = false;
+  kit.win.dispatchEvent(new Event('pointerdown')); await flush();
+  let st = audio.status();
+  assert.equal(st.state, 'suspended'); assert.equal(st.armed, true, 'keeps listening');
+  assert.equal(st.silentPlays, 1); assert.equal(st.primed, 0, 'refused files are tried again');
+  assert.equal(st.elements, 5, 'jump sound gets 4 copies, music 1');
+  // The finger lifts: allowed now.
+  kit.allowResume = true; kit.allowPlay = true;
+  kit.win.dispatchEvent(new Event('touchend')); await flush();
+  st = audio.status();
+  assert.equal(st.state, 'running'); assert.equal(st.primed, 5); assert.equal(st.armed, false, 'stops listening');
+  assert.equal(kit.ctx.silent, 2);
+  assert.equal(sfx.heard + song.heard, 0, 'priming makes no sound');
+  assert.equal(sfx.muted, false); assert.equal(song.muted, false); assert.equal(song.volume, 0.6, 'volume put back');
+  assert.ok(sfx.paused && song.paused);
+  assert.deepEqual(S.soundPlays, {}, 'priming is not counted as playing');
+  kit.win.dispatchEvent(new Event('click')); await flush();
+  assert.equal(gestures, 2, 'no more listening once sound is on');
+});
+
+test('sound on phones: restarts after interruptions, but music waits for the game to unpause; mute silences every copy', async () => {
+  const kit = fakeSoundKit();
+  const sfx = new kit.FakeEl('jump.ogg'), song = new kit.FakeEl('music.ogg');
+  const audio = S.createAudio({ AudioContext: kit.FakeAC, sounds: { 'sfx-jump': [sfx], 'music-level-01-central-park': [song] } });
+  audio.attach({ win: kit.win, doc: kit.doc });
+  kit.win.dispatchEvent(new Event('keydown')); await flush();
+  assert.equal(audio.status().state, 'running', 'a key press on a computer starts sound at once');
+  audio.music('level');
+  assert.equal(song.paused, false); assert.ok(song.heard > 0, 'music plays');
+  // Priming never stops music that is playing.
+  audio.unlock(); assert.equal(song.paused, false);
+  // Phone locked: the game pauses (music pauses), the engine is stopped. Nothing restarts while hidden.
+  audio.music('pause'); kit.doc.visibilityState = 'hidden'; kit.ctx.set('suspended'); await flush();
+  assert.equal(kit.ctx.state, 'suspended'); assert.equal(audio.status().armed, true);
+  // Unlocked again: the engine restarts by itself, but the music stays paused with the game.
+  kit.doc.visibilityState = 'visible'; kit.doc.dispatchEvent(new Event('visibilitychange')); await flush();
+  assert.equal(kit.ctx.state, 'running'); assert.equal(song.paused, true, 'music waits for the unpause');
+  audio.music('resume'); assert.equal(song.paused, false);
+  // A phone call while playing (iPhone: 'interrupted'), and the browser wants a touch to restart: listen again.
+  kit.allowResume = false; kit.ctx.set('interrupted'); song.pause(); await flush();
+  assert.equal(audio.status().armed, true);
+  kit.allowResume = true; kit.win.dispatchEvent(new Event('touchend')); await flush();
+  assert.equal(kit.ctx.state, 'running'); assert.equal(song.paused, false, 'music the phone stopped mid-play carries on');
+  // Mute: every file and every copy, even one that is playing right now.
+  audio.sfx('sfx-jump');
+  const copies = audio.status().elements;
+  assert.equal(audio.toggleMute(), true);
+  assert.equal(audio.status().mutedElements, copies);
+  audio.sfx('sfx-jump');
+  assert.equal(audio.toggleMute(), false);
+  assert.equal(audio.status().mutedElements, 0);
+  for (const k in S.soundPlays) delete S.soundPlays[k];
 });
 
 // ---------- art pipeline ----------

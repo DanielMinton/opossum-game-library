@@ -18,6 +18,9 @@
 //  6. Touch buttons (?test=touch&touch=1) at a sideways phone (852x393) in both the source and built game, and an
 //     upright phone (393x852): real touch events on the real buttons start the game, move, jump higher when held,
 //     tail-whip, pause, mute and restart, two fingers at once work, and every way of lifting a finger lets go.
+//  8. Sound on phones (?test=audio, in the temporary copy with the test sounds): every kind of touch tries to start
+//     sound, a refused try is retried, it stops listening once on, restarts after interruptions (not while hidden),
+//     primes every sound file silently, music stays paused while the game is, and mute silences every copy.
 //  7. Phone layout: upright with touch buttons, the "turn your phone sideways" message shows, keeps the game paused
 //     and PLAY UPRIGHT ANYWAY puts it away; sideways and on computers it never shows, and computers show no
 //     full-screen button. Hiding the page or leaving the window pauses the game (keys and touch).
@@ -165,6 +168,35 @@ const ks = runPage(path.join(tmp, 'game', 'index.html'), 'test=keys');
 check('real sounds play through real key presses without errors (start music, jump sound)',
   ks.ok && ks.sounds.loaded.length === 2 && ks.sounds.plays['sfx-jump'] > 0 && ks.sounds.plays['music-level-01-central-park'] > 0,
   `mode ${ks.mode}, errors ${JSON.stringify(ks.errors)}, sounds ${JSON.stringify(ks.sounds)}`);
+
+// 8: starting sound on phones (?test=audio), with the two test sounds as real <audio> files.
+// Headless browsers can't make a real touch, so the first run lets sound start without one (as a real tap would)
+// and the second uses the normal rule (sound needs a real touch): there, nothing may break and it keeps listening.
+{
+  const tmpGame = path.join(tmp, 'game', 'index.html');
+  const au = runPage(tmpGame, 'test=audio&touch=1', ['--autoplay-policy=no-user-gesture-required', '--window-size=852,393', '--force-device-scale-factor=3']);
+  const c = au.checks || {}, s = au.status || {};
+  check('sound on phones (pretend engine): every kind of touch, click and key press tries; a refused try is retried; stops listening once sound runs',
+    au.ok && au.fake.everyEventTries && au.fake.refusedStillListening && au.fake.silentSample && au.fake.runningAfterTouch && au.fake.listenersRemoved,
+    JSON.stringify(au.fake || au.errors));
+  check('sound on phones (pretend engine): restarts after a phone call, the lock screen, the back button or switching windows; never while hidden',
+    au.ok && au.fake.interruptTriesAtOnce && au.fake.interruptListensAgain && au.fake.touchAfterInterrupt && au.fake.noTryWhileHidden &&
+    au.fake.backOnShow && au.fake.backOnpageshow && au.fake.backOnfocus, JSON.stringify(au.fake || au.errors));
+  check('sound on phones (real engine): a tap on a touch button starts it with a silent sample, primes all 5 files (music + 4 jump copies) silently, then stops listening',
+    au.ok && c.touchButtonTries && c.silentSample && c.running && c.elements === 5 && c.primed === 5 && c.stopsListening && c.noSoundCounted && c.restoredUnmuted,
+    JSON.stringify({ c, errors: au.errors }));
+  check('sound on phones (real engine): stopped while hidden it keeps listening; a tap on the sideways button restarts it',
+    au.ok && c.suspended && c.listensWhileStopped && c.sidewaysButtonTries && c.runningAfterTap, JSON.stringify(c));
+  check('sound on phones (real engine): music pauses with the game, does not come back by itself, comes back on unpause',
+    au.ok && c.started && c.musicPlays && c.pausedOnHide && c.resumedOnShow && c.musicWaitsWhilePaused && c.musicBackOnUnpause, JSON.stringify(c));
+  check('sound on phones (real engine): mute silences every sound file and copy, unmute brings them back', au.ok && c.muteAll && c.unmuteAll,
+    JSON.stringify({ muteAll: c.muteAll, unmuteAll: c.unmuteAll, status: s }));
+  const blocked = runPage(tmpGame, 'test=audio&touch=1', ['--window-size=852,393', '--force-device-scale-factor=3']);
+  const bs = blocked.status || {};
+  check('sound on phones without a real touch (normal browser rule): no errors, sound stays off and it keeps listening for a real tap',
+    blocked.ok && blocked.errors.length === 0 && bs.state !== 'running' && bs.armed === true && blocked.checks.touchButtonTries,
+    JSON.stringify({ state: bs.state, armed: bs.armed, primed: bs.primed, errors: blocked.errors }));
+}
 
 // 5: screen fitting at a phone and a laptop size. The expected numbers come from layout.js itself.
 const L = {}; vm.runInNewContext(fs.readFileSync(path.join(gameDir, 'src', 'layout.js'), 'utf8'), { globalThis: { SAMMY: L } });

@@ -73,6 +73,13 @@ Gamepads have not been tested by a real person yet.
 - **No accidental zoom, scrolling or text selection** while playing (pinch and double-tap zoom are turned off; the game already scales itself to fill the screen).
 - **Auto-pause (computers too):** if the page is hidden (phone locked, another app or tab) or you click into another window, the game pauses and lets go of any held buttons. It never un-pauses by itself.
 
+**Sound on phones (step 4, done):**
+- **Sound starts on your first tap** (phones stay silent until you touch the screen; on a computer, the first key press). Any tap counts, including on the touch buttons.
+- **iPhone silent switch:** today's computer-made beeps may stay silent on an iPhone with the silent switch on. Flip the switch off to hear them. Real sound files, once added, should play either way.
+- **After a phone call, locking the phone or switching apps,** the game is paused; sound comes back when you unpause. If it doesn't, one more tap brings it back.
+- **MUTE** silences everything, including a sound that is already playing.
+- Not yet heard on a real phone. To check it on real phones, follow **[design/MOBILE_TEST_CHECKLIST.md](design/MOBILE_TEST_CHECKLIST.md)** once the game is on a website.
+
 ## What's in level 1
 
 Level 1, **Sheep Meadow**, is 12 screens long. A fast run takes about 1 minute; a first try takes about 3–5 minutes.
@@ -110,6 +117,7 @@ These drawings were made for this page only. They are not the game's art. In the
 - The first real art: **Sammy's run animation**.
 - Bigger, sharper scaling on phones and tablets, and **on-screen touch buttons** (shown only on touch screens).
 - The phone layout: a "turn your phone sideways" message, a full-screen button (Android), room for notches, no accidental zoom, and auto-pause when you leave the page.
+- Reliable sound on phones: it starts on the first tap and comes back after a call or the lock screen. Plus a step-by-step checklist for testing on a real phone: [design/MOBILE_TEST_CHECKLIST.md](design/MOBILE_TEST_CHECKLIST.md).
 - An automatic art and sound loader: put a correctly named file into `assets/`, run the scanner, and it replaces its placeholder.
 - Checks for art files (size, colors, see-through pixels).
 - A shareable build (`game/dist/`: the game page plus an `assets/` folder with the cleared real art) with license rules and a credits list.
@@ -117,7 +125,7 @@ These drawings were made for this page only. They are not the game's art. In the
 - Design docs, templates and worked examples for every kind of art and sound.
 
 **Next:**
-1. **Desktop and mobile (major priority):** the game now fills phone and tablet screens crisply, has on-screen touch buttons, and has the phone layout (sideways message, full screen, notches, no accidental zoom, auto-pause). Still to do: a check that sound starts on the first tap, and tests on real phones (the game must be put on a website first). The plan is in [design/DECISIONS.md](design/DECISIONS.md).
+1. **Desktop and mobile (major priority):** the game now fills phone and tablet screens crisply, has on-screen touch buttons, the phone layout (sideways message, full screen, notches, no accidental zoom, auto-pause) and sound that starts on the first tap. Still to do: tests on a real iPhone and Android phone with **[design/MOBILE_TEST_CHECKLIST.md](design/MOBILE_TEST_CHECKLIST.md)**. The game must be put on a website first, which needs your go-ahead (suggested: itch.io or GitHub Pages). The plan is in [design/DECISIONS.md](design/DECISIONS.md).
 2. **You (the owner) answer the open questions** in **[design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)**. There are 12, each with a suggested answer. Examples: the final title, how gory it gets, who makes the art and music, and what goes in the first release.
 3. You review the draft style guide, [design/STYLE_GUIDE.md](design/STYLE_GUIDE.md).
 4. Real art and sound arrive, starting with the most important files ("Tier 1") in [design/ASSET_REQUEST_CHECKLIST.md](design/ASSET_REQUEST_CHECKLIST.md).
@@ -232,8 +240,8 @@ node tests/browser-smoke.mjs
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | **48 game-rule tests:** every move, enemy and item in level 1, a full autopilot run, the screen-size, notch, touch-button and "turn sideways" message maths, and the art, sound and license checks. |
-| `node tests/browser-smoke.mjs` | **43 browser checks:** opens the game in a hidden Chromium browser, plays the whole level in both the normal and the shareable copy, presses real keys, taps the real touch buttons at phone sizes, draws every screen, loads test art and sound, checks the picture is big and sharp at a phone size and a laptop size, checks the "turn your phone sideways" message (upright only) and auto-pause, and checks the touch buttons and the message stay hidden on a computer. Needs Chrome, Edge or another Chromium browser. |
+| `node --test tests/sim.test.mjs` | **51 game-rule tests:** every move, enemy and item in level 1, a full autopilot run, the screen-size, notch, touch-button and "turn sideways" message maths, starting sound on phones, and the art, sound and license checks. |
+| `node tests/browser-smoke.mjs` | **50 browser checks:** opens the game in a hidden Chromium browser, plays the whole level in both the normal and the shareable copy, presses real keys, taps the real touch buttons at phone sizes, draws every screen, loads test art and sound, checks the picture is big and sharp at a phone size and a laptop size, checks the "turn your phone sideways" message (upright only), auto-pause and starting sound on phones, and checks the touch buttons and the message stay hidden on a computer. Needs Chrome, Edge or another Chromium browser. |
 | `?test=full` | Open `game/index.html`, click the address bar, type `?test=full` at the very end and press Enter. The game then plays itself ("autopilot") so you can watch a full run. |
 
 If you changed the game's code, run the build (see [Building a shareable copy](#building-a-shareable-copy)) before the browser check. Otherwise the check fails and asks you to run `node tools/build.mjs`.
@@ -247,6 +255,7 @@ If you changed the game's code, run the build (see [Building a shareable copy](#
 | [design/GAME_BRIEF.md](design/GAME_BRIEF.md) | The game idea. What you've confirmed, and what is still only proposed. |
 | [design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md) | The open questions only you can answer, each with a suggested answer. |
 | [design/DECISIONS.md](design/DECISIONS.md) | A dated log of every choice made so far. "Current state" is at the top. |
+| [design/MOBILE_TEST_CHECKLIST.md](design/MOBILE_TEST_CHECKLIST.md) | Step-by-step list for trying the game on a real iPhone and Android phone (once it's on a website). |
 | [design/STYLE_GUIDE.md](design/STYLE_GUIDE.md) | Draft art and sound rules: sizes, colors, outlines, light. All Proposed. |
 | [design/ASSET_REQUEST_CHECKLIST.md](design/ASSET_REQUEST_CHECKLIST.md) | What art and sound to send, in order of priority. |
 | [design/ASSET_SOURCES.csv](design/ASSET_SOURCES.csv) | One row per art or sound file: who made it and its license. Empty today. |
