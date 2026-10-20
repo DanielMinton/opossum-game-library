@@ -2,12 +2,15 @@
   "name": "sammy-prototype",
   "version": "0.1.0",
   "private": true,
-  "description": "Placeholder prototype of level 1 (Sheep Meadow) for the Sammy the opossum game. No dependencies.",
+  "description": "Placeholder prototype of level 1 (Sheep Meadow) for the Sammy the opossum game.",
   "scripts": {
     "test": "node --test tests/sim.test.mjs tests/import-art.test.mjs",
     "scan": "node tools/scan-assets.mjs",
     "convert": "node tools/convert-audio.mjs",
     "build": "node tools/build.mjs",
     "smoke": "node tests/browser-smoke.mjs"
+  },
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
   }
 }
