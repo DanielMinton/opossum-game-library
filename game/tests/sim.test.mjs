@@ -1339,7 +1339,16 @@ test('README art: three self-contained pixel-art SVGs with a title and descripti
   }
   const cast = fs.readFileSync(path.join(dir, 'cast.svg'), 'utf8').toLowerCase();
   for (const who of ['Sammy', 'Zombie Jogger', 'Hot Dog Vendor', 'Chainsaw', 'Hot Dog Cart', 'Trash Lid Shield']) assert.ok(cast.includes(who.toLowerCase()), 'cast description names ' + who);
-  // The captions are drawn as outlines, so check the generator's numbers against the game's instead.
-  assert.equal(C.lid.hits, 3, 'README says the lid blocks 3 hits');
-  assert.equal(C.cart.spillCount, 3, 'README says the cart spills 3 hot dogs');
+  // The captions are drawn as outlines, so check the picture's description and the README alt text say the
+  // same facts, and that those facts match the game's numbers.
+  const readme = fs.readFileSync(path.join(libRoot, 'README.md'), 'utf8');
+  const alt = (readme.match(/<img src="\.github\/readme\/cast\.svg" alt="([^"]*)"/) || [])[1] || '';
+  for (const [where, text] of [['cast.svg description', (cast.match(/<desc[^>]*>([\s\S]*?)<\/desc>/) || [])[1] || ''], ['README cast alt text', alt.toLowerCase()]]) {
+    for (const fact of ['blocks 3 hits', 'two whips tip it', '3 healing hot dogs', 'lobs hot dogs from afar', 'coming next']) {
+      assert.ok(text.includes(fact), where + ' says "' + fact + '"');
+    }
+    for (const wrong of ['then bites', 'blocks one hit', 'rip and tear', 'until it isn']) assert.ok(!text.includes(wrong), where + ' does not say "' + wrong + '"');
+  }
+  assert.equal(C.lid.hits, 3, 'the lid blocks 3 hits');
+  assert.equal(C.cart.spillCount, 3, 'the cart spills 3 hot dogs');  // (two whips tipping the cart is checked by the cart tests: upright -> rocking -> tipping)
 });

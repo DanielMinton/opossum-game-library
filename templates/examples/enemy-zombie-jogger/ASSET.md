@@ -2,7 +2,7 @@
 
 > **EXAMPLE ONLY — planning spec, not a finished asset.** Run the scanner to see which files exist. Don't copy this into assets/ until every TBD is filled in.
 
-How to read this example: **Confirmed** = humans have turned into zombies, with humorous, graphic (cartoon/slapstick) animations. Everything else (this enemy type, its behavior, numbers) is **Proposed** / **Example**. For a real enemy you would copy this file to `assets/enemies/enemy-zombie-jogger/ASSET.md`. *(Superseded 2026-10-19 by the owner's "Zombie Hunter" direction: badass action-horror with dark humour, a chainsaw, night-time Central Park, stylized gore with a low-gore option. See `design/DECISIONS.md`.)*
+How to read this example: **Confirmed** = humans have turned into zombies, with humorous, graphic (cartoon/slapstick) animations *(only the tone words "humorous" and "cartoon/slapstick" are superseded, 2026-10-19, by the owner's "Zombie Hunter" direction: badass action-horror with dark humour, a chainsaw, night-time Central Park, stylized gore with a low-gore option; see `design/DECISIONS.md`)*. Everything else (this enemy type, its behavior, numbers) is **Proposed** / **Example**, and still stands as an example. For a real enemy you would copy this file to `assets/enemies/enemy-zombie-jogger/ASSET.md`.
 
 ---
 
@@ -11,7 +11,7 @@ How to read this example: **Confirmed** = humans have turned into zombies, with 
 - Category: enemy
 - Files and purpose: see **Planned files** below (all planned — not yet supplied).
 - Readiness: TBD — Example: concept sketch = `reference`; strips = `ready` once they follow the frame rules.
-- Visual description: Example: a Central Park morning jogger turned zombie. Neon sweatband, headphones dangling from one ear, sweat-stained running tank, one sneaker untied, step-counter watch still beeping. Greenish-grey skin, droopy eyes, tongue out mid-stride. Comedic, not scary.
+- Visual description: Example: a Central Park morning jogger turned zombie. Neon sweatband, headphones dangling from one ear, sweat-stained running tank, one sneaker untied, step-counter watch still beeping. Greenish-grey skin, droopy eyes, tongue out mid-stride. ~~Comedic, not scary.~~ *(Superseded 2026-10-19: rotting and menacing, with dark humour; see `design/DECISIONS.md`.)*
 - Intended role in the game: Proposed: the basic, most common enemy in `level-01-sheep-meadow` (the Central Park wake-up level). Teaches the player to attack and to use Play Possum.
 - Camera/view: Proposed: side-view profile, facing right.
 - Relative size: Proposed: about 40–46 px tall in a 48×48 frame — a little taller than Sammy.

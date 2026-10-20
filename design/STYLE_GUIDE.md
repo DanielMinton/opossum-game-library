@@ -36,7 +36,7 @@ The owner's direction (Confirmed) is night-time Central Park, Bethesda Terrace a
 
 **Scene and light**
 - **Night sky:** navy at the top, through indigo, to a dusky purple glow just above the skyline. Flat bands with dithered seams, no smooth gradients. A few stars (single pixels).
-- **Full moon:** big and pale, with 2–3 crater shades. The moon is the main light: keep light from the **top-left** (the moon sits upper left or behind the scene).
+- **Full moon:** big and pale, with 2–3 crater shades. The moon is the main light: keep light from the **top-left** (the moon sits upper left or behind the scene). *The README banner draws its moon upper right, behind the angel fountain, for the picture's layout; it's page art, not game art, so this rule still holds for the game.*
 - **Amber lamplight:** the park's lamps are warm amber pools. Show the glow with a **dithered halo** (a checkerboard thinning out from the lamp), never see-through pixels.
 - **Wet stone:** the terrace and paths are rain-slick. Show reflections as short **vertical dithered streaks** of lamp amber and moon white under each light source, on dark blue-grey stone. Reflections are part of the tile or background art, not a see-through layer.
 - **Bethesda Terrace nods:** the angel fountain, arched arcade, stone balustrades and staircases, the lake beyond. Draw your own simplified version; don't trace photos.

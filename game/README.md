@@ -103,7 +103,7 @@ To try every planned file without scanning, add `?probe=1` to the address. Missi
 
 **Level-clear jingle:** if `sfx-level-clear` has a file, it replaces the placeholder jingle.
 
-**Not supported yet: loop points.** Music loops the whole file from start to end. An intro that plays once before the loop needs loop-point support, which isn't built. Until then, make the file loop cleanly end-to-start, with no separate intro.
+**Not supported yet: loop points.** Music loops the whole file from start to end. An intro that plays once before the loop needs loop-point support, which isn't built. Until then, make the file loop cleanly end-to-start, with no separate intro. **Exception:** the theme song (`music-level-01-central-park-v01.mp3`) is used as supplied, so it loops whole: its quiet build-in and fade-out are heard every 70 seconds. A trimmed loop edit can come later.
 
 ## Build a shareable copy
 

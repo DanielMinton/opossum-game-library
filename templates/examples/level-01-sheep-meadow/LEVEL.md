@@ -3,7 +3,7 @@
 
 > **Where the real copy goes:** `design/levels/level-01-sheep-meadow.md` (per `templates/LEVEL.md`) — **not** `assets/`. Level docs describe layout, not artwork.
 
-**Confirmed by the user:** Sammy (an opossum, "he") wakes up in Central Park with no memory of how he got there; humans have become zombies with humorous, slapstick-graphic animations; Sammy fights through levels using interactive objects, power-ups and special abilities; 16-bit console presentation. **Everything below is Proposed / Example.** *(Superseded 2026-10-19: see the "Zombie Hunter" direction in `design/DECISIONS.md`.)*
+**Confirmed by the user:** Sammy (an opossum, "he") wakes up in Central Park with no memory of how he got there; humans have become zombies with humorous, slapstick-graphic animations *(only the tone words "humorous, slapstick" are superseded, 2026-10-19: see the "Zombie Hunter" direction in `design/DECISIONS.md`)*; Sammy fights through levels using interactive objects, power-ups and special abilities; 16-bit console presentation. **Everything below is Proposed / Example**, and still stands as an example.
 
 ## Overview
 

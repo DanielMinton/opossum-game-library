@@ -307,11 +307,22 @@ Mobile steps 3 and 4 (phone layout, reliable sound on phones) and the task list,
 - **License row:** creator themodernopossum, source "made with Suno (id cffcc91b-…)", license "Suno — plan to be confirmed", `commercial_use` **tbd**, `attribution_required` tbd. Suno's paid plans grant commercial use of songs made while subscribed; the free plan doesn't. So it plays in your own copy, and the build leaves it out with the reason "commercial_use is "tbd"; it must be "yes"" (checked). The shareable copy plays the placeholder tune. New owner question 21 asks which plan was used.
 - **It loops whole:** after 70 s it starts again from its quiet build-in, and the fade-out is heard each time. A trimmed loop edit (or loop points) can come later.
 - **Title screen (Proposed):** browsers block sound until the first key press or tap, so the title screen is silent until then. That first press (or tap) both turns sound on and starts the game, and the song starts with it, so nobody has to press twice. This needed **no code change**: it is how the game already works. Other option: ask for the song as soon as the title screen shows, so it plays behind the title in browsers that allow sound without a press, and on a tap that doesn't start the game (for example PLAY UPRIGHT ANYWAY). A few lines of code, but it touches the checks for starting sound on phones; worth doing later if wanted.
-- Docs that said "music must loop cleanly with no intro" now note the exception.
+- Docs that said "music must loop cleanly with no intro" now note the exception (`design/ASSET_REQUEST_CHECKLIST.md` Audio row and 1.11, `game/README.md` "Not supported yet: loop points").
 
 **Concept picture:** `assets/references/zombie-hunter-concept-v01.jpg` (the song's cover art), with `assets/references/README.md` saying what it is and that it's mood and direction only. References never ship (the build skips `assets/references/`). No license row: it's reference-only and never in the build.
 
 **README art:** new banner ("Sammy the Opossum — ZOMBIE HUNTER", marked working title), cast lineup (now six, including the Chainsaw) and Play Possum footer, all original pixel art with Ubuntu lettering turned into outlines. Two cast captions were fixed before saving, to match the game: the trash lid "blocks 3 hits" (was "blocks one hit"), and the hot dog cart "two whips tip it · 3 healing hot dogs" (was "rolling cover · until it isn't"). The art shows the proposed gore level; the game itself has no gore yet.
+
+**Review fixes to the README art (2026-10-19):**
+- Hot Dog Vendor caption was "lobs hot dogs, then bites", but in the game he never bites or hurts by touch (only his thrown hot dogs do). Now "lobs hot dogs from afar".
+- Chainsaw caption was "power-up · rip and tear": that's another game's famous catchphrase (our rule: no copying from other games), and the chainsaw isn't in the game yet. Now "coming next · cuts them in half"; the README alt text says "coming next" for the chainsaw too.
+- Gore recoloured to the STYLE_GUIDE reserved colours (blood 144,0,0 with 180,0,36 highlights and 72,0,0 shadows, all darker than Sammy's bandana; plus some acid ichor-green spatter), since artists will copy this art's gore level.
+- Small text made readable on phones: captions and taglines now use Ubuntu Medium/Bold and are a little bigger; the footer tagline sits on a dark plate.
+- The banner's moon is upper right for the picture's layout; the game rule (moon light from the top-left) is unchanged, now noted in `design/STYLE_GUIDE.md`.
+- The README pitch no longer says Sammy is already in a night-time park (the game is still daytime placeholder boxes).
+- Example templates: the "superseded" marks now sit right after the old tone words, so the rest of each example clearly still stands; the jogger's "Comedic, not scary." is marked too.
+- The README-art test now checks that the cast picture's description and the README alt text state the same facts as the game (blocks 3 hits, two whips tip the cart, 3 healing hot dogs, the vendor lobs from afar, the chainsaw is coming next).
+- `CLAUDE.md` still waits on the owner's OK (go-ahead item 5 in `design/OPEN_TASKS.md`).
 
 **`CLAUDE.md` not changed:** it still says Sammy fights "cartoon zombies" and has no gore rule. Claude only changes that file with the owner's OK (as before, see `design/OPEN_TASKS.md`, go-ahead item 5). Proposed new lines, ready to add when the owner says yes:
 - Top line: "Sammy the opossum hunts zombies with his tail-whip (and soon a chainsaw) in Central Park at night. Tone: badass action-horror with dark humour (Confirmed 2026-10-19)."
