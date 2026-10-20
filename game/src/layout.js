@@ -59,6 +59,7 @@
       pause: [Math.max(Math.round(a * 0.8), px(44)), Math.max(Math.round(a * 0.7), px(44))],
       restart: [Math.max(Math.round(a * 1.6), 40), Math.max(Math.round(a * 0.75), px(44))],
       mute: [Math.max(Math.round(a * 1.6), 40), Math.max(Math.round(a * 0.75), px(44))],
+      gore: [Math.max(Math.round(a * 1.6), 40), Math.max(Math.round(a * 0.75), px(44))],
     };
     const g = Math.max(2, Math.round(a * 0.2)) * k;   // gap between buttons (real px)
     const m = px(16) * k;                              // margin from the screen edge (real px)
@@ -146,11 +147,11 @@
       c.pause = Object.assign({ x: DW - eR - P.w, y: pic.y + pic.h + g }, P);
     }
 
-    // Pause menu (shown only while paused): RESTART and MUTE side by side.
+    // Pause menu (shown only while paused): RESTART, MUTE and GORE side by side.
     // Sideways: over the picture, under the PAUSED panel. Upright: in the empty band below the picture, on the same
     // row as the PAUSE button (to its left), so the small picture stays visible.
-    const R = size('restart'), Mu = size('mute');
-    const rowW = R.w + g + Mu.w;
+    const R = size('restart'), Mu = size('mute'), Go = size('gore');
+    const rowW = R.w + g + Mu.w + g + Go.w;
     let rowX = Math.round((DW - rowW) / 2), rowY = pic.y + Math.round(140 * pic.s);
     if (portrait) {
       rowY = c.pause.y;
@@ -159,6 +160,7 @@
     }
     c.restart = Object.assign({ x: rowX, y: rowY }, R);
     c.mute = Object.assign({ x: c.restart.x + R.w + g, y: rowY }, Mu);
+    c.gore = Object.assign({ x: c.mute.x + Mu.w + g, y: rowY }, Go);
     // Sideways, the game draws its PAUSED box big enough to hold RESTART and MUTE too (in game pixels; render.js),
     // so the scene doesn't peek out around the buttons.
     let menuPanel = null;
@@ -166,8 +168,8 @@
       const gx = (v) => (v - pic.x) / pic.s, gy = (v) => (v - pic.y) / pic.s;
       menuPanel = {
         x0: Math.max(1, Math.min(100, Math.floor(gx(c.restart.x - g)))), y0: 80,
-        x1: Math.min(gw - 1, Math.max(220, Math.ceil(gx(c.mute.x + Mu.w + g)))),
-        y1: Math.min(gh - 1, Math.max(130, Math.ceil(gy(rowY + Math.max(R.h, Mu.h) + g)))),
+        x1: Math.min(gw - 1, Math.max(220, Math.ceil(gx(c.gore.x + Go.w + g)))),
+        y1: Math.min(gh - 1, Math.max(130, Math.ceil(gy(rowY + Math.max(R.h, Mu.h, Go.h) + g)))),
       };
     }
 

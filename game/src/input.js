@@ -8,7 +8,7 @@
     KeyX: 'attack', KeyJ: 'attack',
     KeyC: 'possum', KeyL: 'possum',
     Enter: 'start', Escape: 'start', KeyP: 'start',
-    KeyR: 'restart', KeyM: 'mute',
+    KeyR: 'restart', KeyM: 'mute', KeyG: 'gore',
   };
   // Standard gamepad layout: A/Cross = jump, X/Square = whip, B/Circle or Y/Triangle = Play Possum.
   const PAD = { 0: 'jump', 2: 'attack', 1: 'possum', 3: 'possum', 9: 'start', 8: 'restart', 12: 'jump', 14: 'left', 15: 'right', 13: 'down' };
@@ -56,6 +56,7 @@
         for (const k in inp.held) inp.held[k] = !!(keyHeld[k] || pad[k] || fromSources(k));
         for (const k of pending) if (k in inp.pressed) inp.pressed[k] = true;
         inp.mute = pending.has('mute');
+        inp.gore = pending.has('gore'); // gore setting: drawing only, so it never reaches the rules' buttons
         pending.clear();
         return inp;
       },

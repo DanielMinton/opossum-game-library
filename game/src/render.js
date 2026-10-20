@@ -22,6 +22,28 @@
     return true;
   }
   S.drawSprite = sprite;
+
+  // ---------- gore setting (drawing only: the game rules never read it) ----------
+  // 'full' = red blood, guts, cut-in-half zombies. 'low' = grey puffs and dust, nobody gets cut in half on screen.
+  // Set by ?gore=low, the G key or the GORE button in the touch pause menu; remembered in the browser (main.js).
+  S.GORE_KEY = 'sammy.gore';
+  S.gore = 'full';
+  S.setGore = function (v) { S.gore = v === 'low' ? 'low' : 'full'; return S.gore; };
+  // storage: localStorage or anything with getItem/setItem. Private windows and blocked storage throw; that's fine.
+  S.readGorePref = function (storage) {
+    try { return storage && storage.getItem(S.GORE_KEY) === 'low' ? 'low' : 'full'; } catch (e) { return 'full'; }
+  };
+  S.writeGorePref = function (storage, v) {
+    if (!storage) return false;
+    try { storage.setItem(S.GORE_KEY, v === 'low' ? 'low' : 'full'); return true; } catch (e) { return false; }
+  };
+  // ?gore=low or ?gore=full wins over the remembered choice.
+  S.pickGore = function (query, stored) { return query === 'low' || query === 'full' ? query : stored === 'low' ? 'low' : 'full'; };
+  // Gore colours (9-bit grid). Kept here, not in S.PAL, so the low setting can promise none of them is ever drawn.
+  const GORE = { blood: '#b40000', bloodDark: '#6c0000', bloodHi: '#fc4848', ichor: '#90d824', ichorDark: '#486c00', bone: '#fcfcd8', meat: '#d86c6c' };
+  S.GORE_COLORS = GORE;
+  const LOWPUFF = ['#d8d8d8', '#909090'];
+  const gravity = 300; // px/s² for flying bits (looks only)
   S.spriteDraws = {};
   S.flashDraws = {};
 
@@ -159,19 +181,70 @@
     }
   }
 
-  // Enemies and Sammy: real sprite or placeholder first, then the state marks (?, !, BOING…) on top of either.
+  // Enemies and Sammy: real sprite or placeholder first, then the state marks (?, !, gag text…) on top of either.
+  // How a zombie goes down: e.defeatStyle from the rules ('pop' jogger, 'deflate' vendor, 'sliced' by the chainsaw).
+  const defeated = (e) => e.state === 'defeat' || e.state === 'dead';
+  const styleOf = (e) => e.defeatStyle || (e.type === 'vendor' ? 'deflate' : 'pop');
+  const hashId = (id) => { let h = 0; for (const ch of String(id || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
+  // Deadpan one-liners over a zombie as it goes down. Picked from its id, so the same zombie always says the same thing.
+  const GAGS = {
+    pop: ['POP.', 'BOINK.', 'NOPE.'],
+    deflate: ['PFFFT.', 'SAD HISS.', 'FFFFFT.'],
+    sliced: ['RIIIP.', 'WELL, SHIT.', 'HALVSIES.', 'FUCK ME.'],
+    low: ['SHHK.', 'WELL, SHIT.', 'DONE.'],
+  };
+  function gag(ctx, e, style, y) {
+    if (e.t > 0.6) return;
+    const list = GAGS[style === 'sliced' && S.gore === 'low' ? 'low' : style] || GAGS.pop;
+    const txt = list[hashId(e.id) % list.length];
+    S.drawTextCentered(ctx, txt, Math.round(e.x), y - Math.round(e.t * 12), style === 'sliced' && S.gore !== 'low' ? GORE.bloodHi : K.white, 1, K.black);
+  }
+  // Chainsaw kill: the standing pose cut at the waist. Full gore: the top half slides off and falls, red cut faces and
+  // drips. Low gore: no split; the whole zombie sinks into the ground in a grey puff.
+  function drawSliced(ctx, e, drawPose, height) {
+    const x = Math.round(e.x), y = Math.round(e.y), t = e.t, f = e.face || 1;
+    const cut = y - Math.round(height * 0.5);
+    if (S.gore === 'low') {
+      const sink = Math.min(height, Math.round(t * height * 2.2));
+      ctx.save(); ctx.beginPath(); ctx.rect(x - 40, y - 80, 80, 80); ctx.clip();
+      ctx.translate(0, sink); drawPose(); ctx.restore();
+      for (let i = -2; i <= 2; i++) R(ctx, LOWPUFF[i & 1], x + i * (5 + t * 12) - 2, y - 4 - t * 10 - (i & 1) * 3, 4, 4);
+      return;
+    }
+    // Bottom half stays a moment, then buckles.
+    const buckle = Math.round(Math.max(0, t - 0.25) * 40);
+    ctx.save(); ctx.beginPath(); ctx.rect(x - 40, cut, 80, y - cut); ctx.clip();
+    ctx.translate(0, buckle); drawPose(); ctx.restore();
+    R(ctx, GORE.blood, x - 8, cut + buckle, 16, 2);
+    // Top half: slides back off the cut, then falls.
+    const dx = Math.round(-f * (t * 40)), top = Math.min(Math.round(Math.max(0, t - 0.1) ** 2 * gravity), y - cut - 4);
+    ctx.save(); ctx.beginPath(); ctx.rect(x - 40 + dx, cut - 80 + top, 80, 80); ctx.clip();
+    ctx.translate(dx, top); drawPose(); ctx.restore();
+    R(ctx, GORE.bloodHi, x - 8 + dx, cut - 2 + top, 16, 2);
+    // Drips from the bottom half's cut face.
+    for (let i = 0; i < 4; i++) {
+      const dl = Math.min(y - cut - buckle - 2, Math.round(t * 30 + rnd(i + 3) * 6));
+      if (dl > 0) R(ctx, i & 1 ? GORE.bloodDark : GORE.blood, x - 6 + i * 4, cut + buckle + 2, 1, dl);
+    }
+    // Spreading pool.
+    const pool = Math.min(26, Math.round(t * 50));
+    R(ctx, GORE.bloodDark, x - pool / 2, y - 1, pool, 2);
+  }
+
   function drawJogger(ctx, e) {
-    const flash = e.state === 'hitreact';
-    if (!sprite(ctx, 'jogger:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawJoggerPlaceholder(ctx, e, flash);
-    const x = Math.round(e.x), y = Math.round(e.y);
-    if ((e.state === 'defeat' || e.state === 'dead') && e.t < 0.3) S.drawTextCentered(ctx, 'BOING', x, y - 56, K.white, 1, K.black);
+    const flash = e.state === 'hitreact', style = styleOf(e), x = Math.round(e.x), y = Math.round(e.y);
+    if (defeated(e) && style === 'sliced') {
+      drawSliced(ctx, e, () => { if (!sprite(ctx, 'jogger:hit', 0, e.x, e.y, e.face, false, 0)) drawJoggerPlaceholder(ctx, e, false, true); }, 38);
+    } else if (!sprite(ctx, 'jogger:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawJoggerPlaceholder(ctx, e, flash);
+    if (defeated(e)) gag(ctx, e, style, y - 56);
     if (e.state === 'confused') S.drawTextCentered(ctx, '?', x, y - 50, K.white, 2, K.black);
     if (e.state === 'spawn') S.drawTextCentered(ctx, '!', x, y - 50, K.heart, 2, K.black);
   }
 
-  function drawJoggerPlaceholder(ctx, e, flash) {
+  // standing: draw the upright pose even while defeated (the chainsaw cut uses it).
+  function drawJoggerPlaceholder(ctx, e, flash, standing) {
     const x = Math.round(e.x), y = Math.round(e.y), f = e.face;
-    if (e.state === 'defeat' || e.state === 'dead') {
+    if (!standing && defeated(e)) {
       // Placeholder comedy: the head pops off and bounces away, the body sinks into a pile of sweatsuit.
       const t = e.t;
       const sink = Math.min(1, t / 0.5);
@@ -179,6 +252,11 @@
       R(ctx, K.band, x - 10, y - 4, 20, 4);
       const hx = x - f * t * 70, hy = y - 40 - Math.abs(Math.sin(t * 9)) * 24 * (1 - t);
       R(ctx, K.jogger, hx - 4, hy - 8, 8, 8); R(ctx, K.band, hx - 4, hy - 7, 8, 2);
+      // Full gore: the neck stump squirts for a moment.
+      if (S.gore !== 'low' && t < 0.4) {
+        const ny = y - 30 * (1 - sink) - 8;
+        R(ctx, GORE.blood, x - 2, ny - 4 - t * 10, 4, 4); R(ctx, GORE.bloodHi, x - 1, ny - 8 - t * 30, 2, 3);
+      }
       return;
     }
     const lean = e.state === 'attack' && e.t > 0.15 && e.t < 0.32 ? f * 4 : 0;
@@ -192,17 +270,18 @@
   }
 
   function drawVendor(ctx, e) {
-    const flash = e.state === 'hitreact';
-    if (!sprite(ctx, 'vendor:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawVendorPlaceholder(ctx, e, flash);
-    const x = Math.round(e.x), y = Math.round(e.y);
+    const flash = e.state === 'hitreact', style = styleOf(e), x = Math.round(e.x), y = Math.round(e.y);
+    if (defeated(e) && style === 'sliced') {
+      drawSliced(ctx, e, () => { if (!sprite(ctx, 'vendor:hit', 0, e.x, e.y, e.face, false, 0)) drawVendorPlaceholder(ctx, e, false, true); }, 36);
+    } else if (!sprite(ctx, 'vendor:' + e.anim, e.animT, e.x, e.y, e.face, false, null, flash)) drawVendorPlaceholder(ctx, e, flash);
     if (e.state === 'shrug') S.drawTextCentered(ctx, '?', x, y - 50, K.white, 2, K.black);
-    if (e.state === 'defeat') S.drawTextCentered(ctx, 'PFFFT', x, y - 48, K.white, 1, K.black);
+    if (defeated(e)) gag(ctx, e, style, y - 48);
   }
 
-  function drawVendorPlaceholder(ctx, e, flash) {
+  function drawVendorPlaceholder(ctx, e, flash, standing) {
     const x = Math.round(e.x), y = Math.round(e.y), f = e.face;
     let hgt = 36;
-    if (e.state === 'defeat' || e.state === 'dead') hgt = Math.max(6, 36 * (1 - e.t / C.vendor.defeatTime)); // deflates like a balloon
+    if (!standing && defeated(e)) hgt = Math.max(6, 36 * (1 - e.t / C.vendor.defeatTime)); // deflates like a balloon
     R(ctx, flash ? K.white : K.vendor, x - 10, y - hgt, 20, hgt);
     R(ctx, K.white, x - 8, y - hgt + 14, 16, Math.max(0, hgt - 18)); // apron
     R(ctx, K.hat, x - 7, y - hgt - 5, 14, 5);
@@ -276,6 +355,53 @@
       else if (f.kind === 'sparkle') { R(ctx, K.mustard, f.x - 1, f.y - 8 - k * 8, 2, 2); R(ctx, K.white, f.x + 5, f.y - 4 - k * 8, 2, 2); R(ctx, K.white, f.x - 6, f.y - 3 - k * 8, 2, 2); }
       else if (f.kind === 'bang') S.drawTextCentered(ctx, '!', f.x, f.y, K.heart, 2, K.black);
       else if (f.kind === 'text') S.drawTextCentered(ctx, f.text, f.x, Math.round(f.y - k * 10), K.white, 1, K.black);
+      else if (f.kind === 'blood') drawBits(ctx, f, f.n || 6, f.dir || 1, f.power || 1, [GORE.blood, GORE.bloodHi, GORE.bloodDark]);
+      else if (f.kind === 'ichor') drawBits(ctx, f, f.n || 5, f.dir || 0, 0.6, [GORE.ichor, GORE.ichorDark]);
+      else if (f.kind === 'chunk') drawChunks(ctx, f);
+      else if (f.kind === 'sparks') drawSparks(ctx, f);
+    }
+  }
+  // Droplets thrown from a hit, worked out from the effect's age alone (no stored state), landing as flat smears.
+  // Low gore: a few grey puffs drifting up instead.
+  function drawBits(ctx, f, n, dir, power, cols) {
+    const seed = Math.round(f.x * 3 + f.y * 7), t = f.t;
+    if (S.gore === 'low') {
+      if (f.t / f.life > 0.7) return;
+      for (let i = 0; i < Math.min(3, Math.ceil(n / 3)); i++) R(ctx, LOWPUFF[i & 1], f.x + (i - 1) * 5 + dir * t * 20 - 2, f.y - 3 - t * 16 - rnd(seed + i) * 4, 3, 3);
+      return;
+    }
+    for (let i = 0; i < n; i++) {
+      const a = rnd(seed + i * 13), b = rnd(seed + i * 29 + 5);
+      const d = dir || (a < 0.5 ? -1 : 1);
+      const vx = d * (25 + a * 95) * power, vy = -(40 + b * 110) * power;
+      const x = f.x + vx * t, y = f.y + vy * t + gravity * t * t;
+      if (y >= G - 1) R(ctx, cols[2] || cols[1], x - 2, G - 1, 4 + (i % 3), 1); // landed: a smear on the path
+      else R(ctx, cols[i % cols.length], x, y, i % 3 ? 2 : 3, i % 3 ? 2 : 3);
+    }
+  }
+  // Chainsaw kill: lumps of zombie and a bit of bone tumble out in the saw's direction, bouncing once.
+  // Low gore: a dust cloud.
+  function drawChunks(ctx, f) {
+    const t = f.t, dir = f.dir || 1, seed = Math.round(f.x * 5);
+    if (S.gore === 'low') { for (let i = -1; i <= 1; i++) R(ctx, K.grey, f.x + i * (6 + t * 20) - 3, f.y - 6 - t * 12, 6, 5); return; }
+    for (let i = 0; i < 4; i++) {
+      const a = rnd(seed + i * 17), vx = dir * (40 + a * 80), vy = -(90 + rnd(seed + i * 31) * 90);
+      let y = f.y + vy * t + gravity * t * t;
+      const x = f.x + vx * t;
+      if (y > G - 3) y = G - 3 - Math.abs(Math.sin(t * 12)) * 6 * Math.max(0, 1 - t * 2);
+      const col = i === 3 ? GORE.bone : i === 2 ? K.jogger : GORE.meat;
+      R(ctx, col, x - 2, y - 2, i === 3 ? 4 : 5, i === 3 ? 2 : 4);
+      R(ctx, GORE.bloodDark, x - 2, y + 1, 2, 1);
+      R(ctx, GORE.blood, x - dir * 4, y, 2, 1); // trail
+    }
+  }
+  // The saw biting: hot sparks spraying from the blade (same in both gore settings).
+  function drawSparks(ctx, f) {
+    const t = f.t, dir = f.dir || 1, seed = Math.round(f.x * 11 + f.y);
+    for (let i = 0; i < 5; i++) {
+      const a = rnd(seed + i * 7), b = rnd(seed + i * 19);
+      const x = f.x + dir * (10 + a * 50) * t * 3, y = f.y - b * 40 * t * 3 + gravity * t * t;
+      R(ctx, i & 1 ? K.mustard : K.white, x, y, i & 1 ? 2 : 1, 1);
     }
   }
 
@@ -385,7 +511,14 @@
     if (s.mode === 'title') { drawTitle(ctx, s); return; }
     const camX = Math.round(s.cam.x);
     ctx.save();
-    if (s.shake > 0) ctx.translate(Math.round(Math.sin(s.t * 90) * 2), 0);
+    // Screen shake (cart crash, chainsaw kill): bigger the more shake is left. Hitstop (the rules freeze for a few
+    // frames on a chainsaw kill) adds a hard one-pixel judder so the freeze reads as impact, not a stall.
+    const shake = s.shake || 0, hitstop = s.hitstop || 0;
+    if (shake > 0 || hitstop > 0) {
+      const amp = Math.min(4, 2 + shake * 6);
+      const dx = shake > 0 ? Math.round(Math.sin(s.t * 90) * amp) : 0, dy = shake > 0 ? Math.round(Math.cos(s.t * 77) * amp * 0.5) : 0;
+      ctx.translate(dx + (hitstop > 0 ? (Math.floor(hitstop * 120) & 1 ? 1 : -1) : 0), dy);
+    }
     drawBackground(ctx, camX);
     ctx.translate(-camX, 0);
     drawGround(ctx, s, camX - 16, camX + W + 16);
@@ -408,7 +541,10 @@
       if (mp) panel(ctx, mp.x0, mp.y0, mp.x1 - mp.x0, mp.y1 - mp.y0); else panel(ctx, 100, 80, 120, 50);
       S.drawTextCentered(ctx, 'PAUSED', W / 2, 90, K.white, 2, K.black);
       S.drawTextCentered(ctx, S.TEXT[S.touchActive ? 'touch' : 'keys'].paused, W / 2, 112, K.grey);
+      if (!S.touchActive) S.drawTextCentered(ctx, 'G: GORE ' + (S.gore === 'low' ? 'LOW' : 'FULL'), W / 2, 121, K.grey);
     }
+    // A moment of feedback after G or the GORE button (main.js counts it down).
+    if (S.goreNote > 0 && s.mode === 'playing') S.drawTextCentered(ctx, S.gore === 'low' ? 'GORE: LOW. FINE.' : 'GORE: FULL. HELL YES.', W / 2, H - 20, K.white, 1, K.black);
     if (s.mode === 'clear') drawClear(ctx, s);
     if (s.muted) { if (S.touchActive) S.drawText(ctx, 'MUTED', W - 26, 6, K.grey); else S.drawText(ctx, 'MUTED', 4, H - 7, K.grey); }
     watermark(ctx);

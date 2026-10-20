@@ -279,3 +279,10 @@ Mobile steps 3 and 4 (phone layout, reliable sound on phones) and the task list,
 - **Question count:** there are 20 owner questions (one doc said 19).
 - **Picture-template tool:** it refused to write into `assets/` only when the folder name matched exactly. On a Mac, `ASSETS/x` is the same folder as `assets/x`, so the test caught it writing there. The check now ignores upper and lower case.
 - **Tests after the merge:** 58 game-rule tests and 51 browser checks, all passing.
+
+## 2026-10-19: Stage B — chainsaw, gore, night park
+
+Choices below are **Proposed (reversible)**.
+- **Gore (B2):** zombies bleed. Every hit sprays red drops that land as smears on the path; chainsaw kills cut the zombie in half at the waist (top half slides off and drops, cut faces drip, a pool spreads), throw out lumps and a bit of bone, and shake the screen. Whip kills keep the old jokes: the jogger's head pops off (now with a short neck squirt), the vendor deflates. Each death gets a short deadpan line ("POP.", "PFFFT.", "RIIIP.", "WELL, SHIT.", "FUCK ME."). Placeholder drawing only; real art can replace it later.
+- **Low-gore setting (B2):** `?gore=low`, the **G** key, or the **GORE** button in the touch pause menu switch to low gore: grey puffs and dust instead of blood and guts, and chainsawed zombies sink into the ground instead of splitting. The game plays exactly the same either way (only the drawing changes). The browser remembers the choice; full gore is the default. The pause box shows "G: GORE FULL/LOW" on keyboards.
+- **Touch pause menu (B2):** RESTART, MUTE and GORE now sit side by side (`game/src/layout.js`).

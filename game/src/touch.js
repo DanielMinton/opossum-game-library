@@ -1,5 +1,5 @@
 // On-screen touch buttons for phones and tablets: a left/right pad, JUMP, WHIP, POSSUM and PAUSE
-// (plus RESTART and MUTE while paused). They feed the same buttons as the keyboard (input.js).
+// (plus RESTART, MUTE and GORE while paused). They feed the same buttons as the keyboard (input.js).
 // Shown only on touch screens: when the browser says the main pointer is a finger, on the first touch, or with ?touch=1.
 // Where each button goes is worked out in layout.js (S.touchLayout); this file builds, draws and listens to them.
 (function (S) {
@@ -33,6 +33,7 @@
     pause: { label: 'Pause', color: 'menu', icon: 'pause', press: 'start' },
     restart: { label: 'Restart the level', color: 'menu', text: 'RESTART', press: 'restart', menu: true },
     mute: { label: 'Sound on or off', color: 'menu', text: 'MUTE', press: 'mute', menu: true },
+    gore: { label: 'Gore full or low', color: 'menu', text: 'GORE', press: 'gore', menu: true },
     // Full screen works on the finger lifting (browsers only allow it then); shown only where the browser can do it.
     full: { label: 'Full screen on or off', color: 'menu', icon: 'full' },
   };
@@ -82,7 +83,7 @@
       return;
     }
     body(g, 0, 0, w, h, COLORS[B.color], down);
-    const text = name === 'mute' && extra.muted ? 'UNMUTE' : B.text;
+    const text = name === 'mute' && extra.muted ? 'UNMUTE' : name === 'gore' ? (S.gore === 'low' ? 'GORE LOW' : 'GORE FULL') : B.text;
     const ic = name === 'pause' && extra.paused ? 'play' : name === 'full' && extra.fullscreen ? 'unfull' : B.icon;
     const s = 2;
     const ih = ic ? iconH(ic, s) : 0, th = text ? 5 : 0, gap = ic && text ? 3 : 0;
@@ -113,7 +114,7 @@
     document.body.appendChild(probe);
 
     const els = {}, down = {}; // down[name] = true while pushed in
-    let mode = 'title', muted = false, fullOn = false, padDir = { left: false, right: false };
+    let mode = 'title', muted = false, goreShown = S.gore, fullOn = false, padDir = { left: false, right: false };
     const pointers = new Map(); // pointerId -> { name, dir }
     for (const name in BUTTONS) {
       const el = document.createElement('div');
@@ -220,17 +221,18 @@
         S.touchMenuPanel = L.menuPanel || null;
       },
       // Called every frame: show PAUSE only during play (on the title and level-clear screens it would just start the
-      // game), RESTART and MUTE only while paused, and keep the PAUSE and MUTE pictures current.
+      // game), RESTART, MUTE and GORE only while paused, and keep the PAUSE, MUTE and GORE pictures current.
       update(state, isMuted) {
         if (state.mode !== mode) {
           const wasPaused = mode === 'paused';
           mode = state.mode;
-          for (const n of ['restart', 'mute']) els[n].el.classList.toggle('hide', mode !== 'paused');
+          for (const n of ['restart', 'mute', 'gore']) els[n].el.classList.toggle('hide', mode !== 'paused');
           els.pause.el.classList.toggle('hide', mode !== 'playing' && mode !== 'paused');
           if (wasPaused !== (mode === 'paused')) redraw('pause');
           if (mode !== 'paused') { for (const [id, p] of pointers) if (BUTTONS[p.name].menu) pointers.delete(id); sync(); }
         }
         if (!!isMuted !== muted) { muted = !!isMuted; redraw('mute'); }
+        if (S.gore !== goreShown) { goreShown = S.gore; redraw('gore'); }
       },
       // The FULL SCREEN button shows "leave full screen" while on.
       setFullscreen(on) { if (!!on !== fullOn) { fullOn = !!on; redraw('full'); } },
