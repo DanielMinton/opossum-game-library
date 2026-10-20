@@ -48,16 +48,52 @@
       anim: 'idle', animT: 0,
     };
   }
+  // ---------- enemy types ----------
+  // S.ENEMY_TYPES: type name -> { name, cfg, brain, update, states, anims }. One row per type, built from every config.js block
+  // that has a `brain`. Nothing else in this file asks "is it a jogger?": every difference between types is a field of its
+  // config block (see config.js, "enemy types") read through typeOf(e). An enemy whose type has no row is an error, never a jogger.
+  const BRAINS = {
+    // brain: { update(s, e), states: every state the brain can put an enemy in (the render sweep draws each), anims: state -> animation }
+    walker: { update: (s, e) => updateWalker(s, e), states: ['spawn', 'patrol', 'chase', 'attack', 'hitreact', 'confused', 'defeat', 'dead'],
+      anims: { spawn: 'idle', patrol: 'walk', chase: 'walk', attack: 'attack', hitreact: 'hit', confused: 'idle', defeat: 'defeat', dead: 'defeat' } },
+    turret: { update: (s, e) => updateTurret(s, e), states: ['idle', 'throw', 'hitreact', 'shrug', 'defeat', 'dead'],
+      anims: { idle: 'idle', shrug: 'idle', throw: 'throw', hitreact: 'hit', defeat: 'defeat', dead: 'defeat' } },
+  };
+  const TYPE_FIELDS = ['brain', 'art', 'start', 'startAnim', 'hp', 'bodyW', 'bodyH', 'hitReactTime', 'defeatTime', 'flinch', 'knockback',
+    'sawKnockback', 'cartKnock', 'shieldPush', 'hitY', 'possum', 'possumIgnore', 'defeatStyle', 'sawStyle'];
+  const POSSUM_KINDS = ['confused', 'shrug'];
+  S.ENEMY_TYPES = {};
+  S.ENEMY_TYPE_FIELDS = TYPE_FIELDS;
+  // Registers (or replaces) an enemy type from a config block. Throws on a missing field or an unknown brain, so a half-written
+  // type fails at load, not in the middle of a level. Tests use it for stub types.
+  S.defineEnemyType = function (name, cfg) {
+    for (const f of TYPE_FIELDS) if (cfg[f] === undefined) throw new Error('enemy type "' + name + '" is missing "' + f + '" in config.js');
+    const brain = BRAINS[cfg.brain];
+    if (!brain) throw new Error('enemy type "' + name + '" has unknown brain "' + cfg.brain + '" (known: ' + Object.keys(BRAINS).join(', ') + ')');
+    if (!brain.states.includes(cfg.start)) throw new Error('enemy type "' + name + '" starts in "' + cfg.start + '", which its brain has no state for');
+    if (!POSSUM_KINDS.includes(cfg.possum)) throw new Error('enemy type "' + name + '" has unknown possum reaction "' + cfg.possum + '"');
+    if (!brain.states.includes(cfg.possum)) throw new Error('enemy type "' + name + '" reacts to Play Possum with "' + cfg.possum + '", which its brain has no state for');
+    const T = { name, cfg, brain: cfg.brain, update: brain.update, states: brain.states, anims: brain.anims };
+    S.ENEMY_TYPES[name] = T;
+    return T;
+  };
+  S.enemyType = function (name) {
+    const T = S.ENEMY_TYPES[name];
+    if (!T) throw new Error('unknown enemy type "' + name + '" (known: ' + Object.keys(S.ENEMY_TYPES).join(', ') + ')');
+    return T;
+  };
+  const typeOf = (e) => S.enemyType(e.type);
+  for (const name of Object.keys(C)) if (C[name] && typeof C[name] === 'object' && C[name].brain) S.defineEnemyType(name, C[name]);
+
   function makeEnemy(def, idx, extra) {
-    const isVendor = def.type === 'vendor';
-    const k = isVendor ? C.vendor : C.jogger;
+    const T = typeOf(def), k = T.cfg;
     return Object.assign({
       id: (extra && extra.id) || ('e' + idx), type: def.type, def,
       x: def.x, y: def.y != null ? def.y : G, vx: 0, vy: 0, face: -1, dir: -1,
-      grounded: true, hp: k.hp, state: isVendor ? 'idle' : 'patrol', t: 0,
+      grounded: true, hp: k.hp, state: k.start, t: 0,
       home: def.x, cd: 0, lostT: 0, throwT: 0.5, released: false, attackHit: false,
-      confused: false, arena: false, anim: isVendor ? 'idle' : 'walk', animT: 0,
-      defeatStyle: isVendor ? 'deflate' : 'pop', // how it goes down; 'sliced' when the chainsaw does it
+      confused: false, arena: false, anim: k.startAnim, animT: 0,
+      defeatStyle: k.defeatStyle, // how it goes down; k.sawStyle ('sliced') when the chainsaw does it
     }, extra || {});
   }
   function makeCart(def, idx) {
@@ -184,7 +220,7 @@
       p.invuln = 0.3;
       sfx(s, p.shield > 0 ? 'sfx-shield-block' : 'sfx-shield-break');
       effect(s, 'spark', p.x + p.face * 10, p.y - 18, 0.2);
-      if (opts.source && opts.source.type === 'jogger') opts.source.x += sign(opts.source.x - p.x) * 16;
+      if (opts.source) { const push = typeOf(opts.source).cfg.shieldPush; if (push) opts.source.x += sign(opts.source.x - p.x) * push; }
       return 'blocked';
     }
     if (p.state === 'playdead' || p.state === 'getup') p.possumCd = C.possum.cooldown;
@@ -212,6 +248,7 @@
   // opts.source: 'whip' (default), 'chainsaw' or 'cart'. Gore is effect data only; render.js decides how much to show.
   function damageEnemy(s, e, fromX, opts) {
     if (e.state === 'defeat' || e.state === 'dead') return;
+    const k = typeOf(e).cfg;
     const saw = !!opts && opts.source === 'chainsaw';
     const dir = sign(e.x - fromX) || 1;
     e.hp -= saw ? C.chainsaw.damage : 1;
@@ -221,7 +258,7 @@
     effect(s, 'blood', gx, e.y - 24, 0.6, { n: saw ? 8 : 4, dir, power: saw ? 2 : 1 });
     if (e.hp <= 0) {
       e.state = 'defeat'; e.t = 0; e.vx = 0; e.confused = false;
-      e.defeatStyle = saw ? 'sliced' : (e.type === 'vendor' ? 'deflate' : 'pop');
+      e.defeatStyle = saw ? k.sawStyle : k.defeatStyle;
       e.sliceDir = dir; // the cut top half slides this way (away from Sammy)
       s.stats.defeated += 1;
       sfx(s, 'sfx-zombie-defeat-comedic');
@@ -234,8 +271,10 @@
       }
       return;
     }
+    // flinch: false (the big ones, the bosses): the hit flashes it white for hitReactTime and changes nothing else; it keeps coming.
+    if (!k.flinch) { e.flashT = k.hitReactTime; return; }
     e.state = 'hitreact'; e.t = 0;
-    e.vx = e.type === 'jogger' ? dir * (saw ? 40 : 120) : 0;
+    e.vx = dir * (saw ? k.sawKnockback : k.knockback);
   }
 
   function releaseConfused(s) {
@@ -243,7 +282,7 @@
       if (!e.confused) continue;
       e.confused = false;
       if (e.state === 'confused') { e.state = 'patrol'; e.home = e.x; e.t = 0; }
-      e.ignoreT = C.possum.ignoreAfter; // lost interest: won't re-notice Sammy straight away
+      e.ignoreT = typeOf(e).cfg.possumIgnore; // lost interest: won't re-notice Sammy straight away
       if (e.state === 'shrug') { e.state = 'idle'; e.t = 0; }
     }
   }
@@ -262,8 +301,9 @@
       if (e.state === 'defeat' || e.state === 'dead') continue;
       if (Math.abs(e.x - p.x) <= C.possum.radius && Math.abs(e.y - p.y) < 48) {
         e.confused = true;
-        if (e.type === 'jogger' && e.state !== 'attack' && e.state !== 'hitreact') { e.state = 'confused'; e.t = 0; e.vx = 0; }
-        if (e.type === 'vendor' && e.state !== 'hitreact') { e.state = 'shrug'; e.t = 0; }
+        const how = typeOf(e).cfg.possum;
+        if (how === 'confused' && e.state !== 'attack' && e.state !== 'hitreact') { e.state = 'confused'; e.t = 0; e.vx = 0; }
+        if (how === 'shrug' && e.state !== 'hitreact') { e.state = 'shrug'; e.t = 0; }
       }
     }
   }
@@ -372,7 +412,7 @@
     s.lastWhip = r;
     for (const e of s.enemies) {
       if (e.state === 'defeat' || e.state === 'dead' || p.hitSet.has(e.id)) continue;
-      const k = e.type === 'vendor' ? C.vendor : C.jogger;
+      const k = typeOf(e).cfg;
       if (overlap(r, footBox(e, k.bodyW, k.bodyH))) { p.hitSet.add(e.id); damageEnemy(s, e, p.x, { source: 'whip' }); }
     }
     for (const c of s.carts) {
@@ -410,7 +450,7 @@
     let cut = false;
     for (const e of s.enemies) {
       if (e.state === 'defeat' || e.state === 'dead' || e.state === 'spawn') continue;
-      const k = e.type === 'vendor' ? C.vendor : C.jogger;
+      const k = typeOf(e).cfg;
       if (overlap(r, footBox(e, k.bodyW, k.bodyH))) { damageEnemy(s, e, p.x, { source: 'chainsaw' }); cut = true; }
     }
     for (const c of s.carts) {
@@ -443,8 +483,10 @@
   // ---------- enemies ----------
   function playerHidden(p) { return p.state === 'playdead' || p.state === 'getup'; }
 
-  function updateJogger(s, e) {
-    const J = C.jogger;
+  // The "walker" brain (jogger, hippie, sweater, cheerleader, baby): patrol near home, notice Sammy, chase, lunge, reel, go down.
+  // Every number comes from the type's config block (J); the type's hooks are its flags (flinch, possum, knockback…).
+  function updateWalker(s, e) {
+    const J = typeOf(e).cfg;
     const p = s.player;
     e.t += DT; e.cd = Math.max(0, e.cd - DT); e.ignoreT = Math.max(0, (e.ignoreT || 0) - DT);
     const dx = p.x - e.x, dy = p.y - e.y;
@@ -474,7 +516,7 @@
       case 'attack': {
         e.vx = 0;
         if (e.t >= J.attackHitStart && e.t < J.attackHitEnd && !e.attackHit) {
-          const r = { x: e.face > 0 ? e.x + 4 : e.x - 4 - J.hitW, y: e.y - 26, w: J.hitW, h: J.hitH };
+          const r = { x: e.face > 0 ? e.x + 4 : e.x - 4 - J.hitW, y: e.y - J.hitY, w: J.hitW, h: J.hitH };
           if (overlap(r, playerBox(p))) { e.attackHit = true; hurtPlayer(s, { fromX: e.x, source: e }); }
         }
         if (e.t >= J.attackTime) { e.state = e.confused ? 'confused' : 'chase'; e.t = 0; e.cd = J.attackCooldown; }
@@ -495,11 +537,12 @@
     }
     if (e.state !== 'dead') moveBody(s, e, J.bodyW, J.bodyH);
     if (e.y > 260) e.state = 'dead';
-    setAnim(e, { spawn: 'idle', patrol: 'walk', chase: 'walk', attack: 'attack', hitreact: 'hit', confused: 'idle', defeat: 'defeat', dead: 'defeat' }[e.state]);
+    setAnim(e, BRAINS.walker.anims[e.state]);
   }
 
-  function updateVendor(s, e) {
-    const V = C.vendor;
+  // The "turret" brain (the hot dog vendor): stands still, faces Sammy, throws when he is in range, shrugs at Play Possum.
+  function updateTurret(s, e) {
+    const V = typeOf(e).cfg;
     const p = s.player;
     e.t += DT;
     const dx = p.x - e.x;
@@ -522,29 +565,29 @@
     }
     e.vx = 0;
     if (e.state !== 'dead') moveBody(s, e, V.bodyW, V.bodyH);
-    setAnim(e, { idle: 'idle', shrug: 'idle', throw: 'throw', hitreact: 'hit', defeat: 'defeat', dead: 'defeat' }[e.state]);
+    setAnim(e, BRAINS.turret.anims[e.state]);
   }
 
   function throwHotDog(s, e) {
-    const V = C.vendor;
+    const V = typeOf(e).cfg;
     const p = s.player;
     const x = e.x + e.face * 10, y = e.y - 28;
     const T = V.projFlight;
     const vx = clamp((p.x - x) / T, -150, 150);
     const vy = (p.y - 15 - y - 0.5 * V.projGravity * T * T) / T;
-    s.projectiles.push({ id: 'pr' + (s.nextId++), x, y, vx, vy, life: V.projLife, t: 0 });
+    // The projectile carries its own size and gravity, so any throwing type's numbers work (the vendor's today).
+    s.projectiles.push({ id: 'pr' + (s.nextId++), x, y, vx, vy, life: V.projLife, t: 0, w: V.projW, h: V.projH, g: V.projGravity });
     sfx(s, 'sfx-throw');
   }
 
   function updateProjectiles(s) {
-    const V = C.vendor;
     const p = s.player;
     const solids = getSolids(s);
     for (const pr of s.projectiles) {
       pr.t += DT; pr.life -= DT;
-      pr.vy += V.projGravity * DT;
+      pr.vy += pr.g * DT;
       pr.x += pr.vx * DT; pr.y += pr.vy * DT;
-      const box = { x: pr.x - V.projW / 2, y: pr.y - V.projH / 2, w: V.projW, h: V.projH };
+      const box = { x: pr.x - pr.w / 2, y: pr.y - pr.h / 2, w: pr.w, h: pr.h };
       if (overlap(box, playerBox(p)) && p.state !== 'ko') {
         hurtPlayer(s, { fromX: pr.x });
         pr.dead = true; effect(s, 'splat', pr.x, pr.y, 0.27); sfx(s, 'sfx-splat');
@@ -583,8 +626,9 @@
       for (const e of s.enemies) {
         if (e.state === 'defeat' || e.state === 'dead') continue;
         if (Math.abs(e.x - cx) <= K.knockRadius) {
+          const knock = typeOf(e).cfg.cartKnock;
           e.state = 'hitreact'; e.t = 0;
-          if (e.type === 'jogger') e.vx = (sign(e.x - cx) || 1) * 160;
+          if (knock) e.vx = (sign(e.x - cx) || 1) * knock;
         }
       }
     }
@@ -647,7 +691,7 @@
       const left = i % 2 === 0;
       const step = (i >> 1) * 14;
       const x = left ? A.x0 + 64 + step : A.gateX - 16 - step; // left side drops in by the second arch, not at the screen edge
-      const e = makeEnemy({ type: 'jogger', x, y: 100 }, 0, { id: 'w' + n + '-' + i, arena: true, state: 'spawn', wave: n });
+      const e = makeEnemy({ type: C.gauntlet.waveType, x, y: 100 }, 0, { id: 'w' + n + '-' + i, arena: true, state: 'spawn', wave: n });
       e.y = 100; e.grounded = false; e.face = left ? 1 : -1;
       s.enemies.push(e);
     }
@@ -745,7 +789,7 @@
     s.t += DT;
     s.stats.time += DT;
     updatePlayer(s, inp);
-    for (const e of s.enemies) { if (e.type === 'vendor') updateVendor(s, e); else updateJogger(s, e); e.animT += DT; }
+    for (const e of s.enemies) { typeOf(e).update(s, e); e.animT += DT; e.flashT = Math.max(0, (e.flashT || 0) - DT); }
     s.enemies = s.enemies.filter((e) => !(e.arena && e.state === 'dead'));
     for (const c of s.carts) { updateCart(s, c); c.animT += DT; }
     updatePickups(s);

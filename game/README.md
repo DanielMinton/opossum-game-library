@@ -168,9 +168,9 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | 78 game-rule checks (see the list below) |
-| `node --test tests/import-art.test.mjs` | 23 art-importer checks (`npm test` runs both test files: 101 in all) |
-| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 57 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
+| `node --test tests/sim.test.mjs` | 81 game-rule checks (see the list below) |
+| `node --test tests/import-art.test.mjs` | 22 art-importer checks (`npm test` runs both test files: 103 in all) |
+| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 55 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 | `index.html?test=touch&touch=1` | The touch-button check by hand (it taps the real buttons for you) |
 | `index.html?test=audio&touch=1` | The phone-sound check by hand (result appears as text in the top left) |
@@ -186,6 +186,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - pause, restart (also from the pause screen) and play again
 - the chainsaw: where it lies, grabbing it, revving (slower, 1 fuel a second, its sound loops and stops on pause, K.O. and restart), quick cuts that slice zombies (blood, chunks, hit-stop, shake), running out of fuel, getting it back after a K.O., and the autopilot using it in the gauntlet; how whip kills look (jogger pops, vendor deflates)
 - a full autopilot playthrough, repeatable results, and the art list vs. the example docs (file names and sizes)
+- the enemy type table: every type is one complete row (settings, brain, start state, drawer, a strip for every animation) and no "is it a jogger?" checks are left in the code; an unknown or half-written type is refused at once; knockback, shield push, cart knock, Play Possum grace and the defeat style come from the table; a type that doesn't flinch flashes white, keeps coming and still loses health
 - the background bands (rows match the tileset doc and don't overlap), the tail-whip frame width, and the placeholder font (M, W, H and N look different)
 - the sound list: every sound the game triggers has a planned name and a beep; file names, versions and variations are read correctly
 - the audio converter picks only `.wav` files missing an `.ogg` (or an `.mp3` with `--mp3`), and never overwrites
