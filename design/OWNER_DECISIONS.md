@@ -133,6 +133,7 @@ To answer, edit this file, or just tell Claude (for example, "go with the sugges
 
 ### 26. Where does the Brute go, and what does Sammy get before him?
 - **Your answer (Confirmed 2026-10-20):** the Brute comes **after the final gauntlet wave, before the exit**. Right before him Sammy gets a **power-up** (a trash lid or a hot dog cache: Claude picks one and marks it Proposed) **and the chainsaw**: today's pickup on screen 11 (x 3300) stays, and a second pickup or a refuel appears inside the arena when the boss starts, so he always has a saw for the boss.
+- **Built (2026-10-20, Proposed): the trash lid.** A lid and a chainsaw drop in by the arena's left wall the moment he walks in; the chainsaw refills a saw Sammy already has. The lid was picked over a hot dog cache because his swipe is the one hit you can't always dodge, and three hot dogs come out of him when he dies anyway. Say so if you'd rather have the hot dogs. Two small things you can still change: his death crawl is harmless (the design's "last scare" is one switch), and the acid puddles only start burning 0.6 s after they land, so lying flat under the stream isn't a trap.
 
 ### 27. The Ringmaster
 - **Your answer (Confirmed 2026-10-20): level 2.** He is not built now; his notes stay in `design/BOSSES.md` and `design/ZOMBIE-ROSTER-AND-BOSSES.md` for the level 2 boss.

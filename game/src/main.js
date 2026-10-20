@@ -479,15 +479,18 @@
     p.saw = null; p.anim = 'idle';
     p.shield = 3; draw('shield'); p.shield = 1; draw('shield-cracked'); p.possumCd = 3; draw('possum-cooldown');
     // Every enemy type in every state its brain has (dead is never drawn), plus the no-flinch flash, in its placeholder or real art.
+    // A type the level doesn't place (the boss) gets a stand-in. The boss also shows his health bar and the floor hazards.
     for (const [type, T] of Object.entries(S.ENEMY_TYPES)) {
-      const e = state.enemies.find((q) => q.type === type && q.state !== 'dead') || state.enemies.find((q) => q.type === type);
-      if (!e) continue;
+      const e = state.enemies.find((q) => q.type === type && q.state !== 'dead') || state.enemies.find((q) => q.type === type) || sweepEnemy(type);
       e.x = p.x + 40;
+      if (T.brain === 'boss') { state.arena.state = 'boss'; state.hazards.push({ kind: 'wave', x: p.x - 30, dir: -1, speed: 160, w: 16, h: 10, t: 0.3, life: 1.7 }, { kind: 'puddle', x: p.x + 90, w: 28, t: 0.1, life: 5 }); }
       for (const st of T.states) {
         if (st === 'dead') continue;
         e.state = st; e.t = 0.2; e.anim = T.anims[st]; e.animT = 0.2; e.flashT = 0; draw(type + '-' + st);
       }
+      if (T.brain === 'boss') { e.state = 'defeat'; e.t = T.cfg.defeatTime + 0.2; draw(type + '-flat'); e.hp = 1; e.enraged = true; e.state = 'walk'; e.hitT = 0.2; draw(type + '-bar-hit'); e.hitT = 0; e.enraged = false; e.hp = T.cfg.hp; }
       e.state = T.cfg.start; e.anim = T.cfg.startAnim; e.flashT = 0.1; draw(type + '-flash'); e.flashT = 0;
+      state.arena.state = 'idle'; state.hazards = [];
     }
     for (const c of state.carts) for (const st of ['upright', 'rocking', 'tipping', 'tipped', 'empty']) { c.state = st; c.t = 0.1; c.anim = st === 'tipped' ? 'tipped-over' : st; draw('cart-' + st); }
     state.projectiles.push({ x: p.x + 20, y: p.y - 20, vx: 0, vy: 0, t: 0.1, life: 1 });
@@ -511,6 +514,13 @@
     return drawn;
   }
 
+  // A stand-in enemy of a type the level doesn't place (the boss is only made by the arena), added to the state for drawing.
+  function sweepEnemy(type) {
+    const e = S.makeEnemy({ type, x: state.player.x + 40, y: C.groundY }, 0, { id: 'sweep-' + type, boss: S.ENEMY_TYPES[type].brain === 'boss' });
+    state.enemies.push(e);
+    return e;
+  }
+
   // Puts zombies going down in every defeat style, plus every gore effect, near x (render sweep and ?goredemo=T shots).
   function goreDemo(x, t) {
     t = t || 0.2;
@@ -519,7 +529,7 @@
     for (const [type, T] of Object.entries(S.ENEMY_TYPES)) styles.push([type, T.cfg.defeatStyle], [type, T.cfg.sawStyle]);
     styles.forEach(([type, style], i) => {
       const e = state.enemies.find((q) => q.type === type && !q.goreDemo && q.state !== 'dead') ||
-        Object.assign({}, state.enemies.find((q) => q.type === type), { id: 'demo' + i });
+        Object.assign({}, state.enemies.find((q) => q.type === type) || sweepEnemy(type), { id: 'demo' + i });
       if (!e.type) return;
       Object.assign(e, { goreDemo: true, x: x + i * 36, y: C.groundY, face: -1, state: 'defeat', t, anim: 'defeat', animT: t, defeatStyle: style });
       if (!state.enemies.includes(e)) state.enemies.push(e);

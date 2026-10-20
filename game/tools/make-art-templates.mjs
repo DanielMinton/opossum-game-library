@@ -35,6 +35,7 @@ export const GROUPS = [
   { id: 'sammy', folder: 'characters/character-sammy', title: 'SAMMY' },
   { id: 'jogger', folder: 'enemies/enemy-zombie-jogger', title: 'ZOMBIE JOGGER' },
   { id: 'vendor', folder: 'enemies/enemy-zombie-hot-dog-vendor', title: 'ZOMBIE HOT DOG VENDOR AND HIS HOT DOGS' },
+  { id: 'brute', folder: 'enemies/enemy-zombie-brute', title: 'THE BRUTE (BOSS): BODY, FACES, ACID, DUST' },
   { id: 'cart', folder: 'props/prop-hot-dog-cart', title: 'HOT DOG CART AND HOT DOG PICKUP' },
   { id: 'lid', folder: 'items/item-powerup-trash-lid-shield', title: 'TRASH LID SHIELD' },
   { id: 'chainsaw', folder: 'items/item-powerup-chainsaw', title: 'CHAINSAW' },

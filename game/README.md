@@ -168,8 +168,8 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | 81 game-rule checks (see the list below) |
-| `node --test tests/import-art.test.mjs` | 22 art-importer checks (`npm test` runs both test files: 103 in all) |
+| `node --test tests/sim.test.mjs` | 97 game-rule checks (see the list below) |
+| `node --test tests/import-art.test.mjs` | 22 art-importer checks (`npm test` runs both test files: 119 in all) |
 | `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 55 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 | `index.html?test=touch&touch=1` | The touch-button check by hand (it taps the real buttons for you) |
@@ -187,6 +187,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - the chainsaw: where it lies, grabbing it, revving (slower, 1 fuel a second, its sound loops and stops on pause, K.O. and restart), quick cuts that slice zombies (blood, chunks, hit-stop, shake), running out of fuel, getting it back after a K.O., and the autopilot using it in the gauntlet; how whip kills look (jogger pops, vendor deflates)
 - a full autopilot playthrough, repeatable results, and the art list vs. the example docs (file names and sizes)
 - the enemy type table: every type is one complete row (settings, brain, start state, drawer, a strip for every animation) and no "is it a jogger?" checks are left in the code; an unknown or half-written type is refused at once; knockback, shield push, cart knock, Play Possum grace and the defeat style come from the table; a type that doesn't flinch flashes white, keeps coming and still loses health
+- the Brute (the level 1 boss): the arena brings him in after the last wave with the banner and the supplies (lid and chainsaw) and opens the exit only when he is dead; his entrance; each attack in turn (swipe: tell, step, low swings, big knockback, safe opening; slam: tell, two floor shockwaves that are jumpable, stuck opening, cooldown; spin: high, both sides, dizzy; acid vomit every fourth attack: high stream, puddles that land when it ends and burn standing or lying, ignore the lid, never knock back, dry up); the stagger at half health and the enrage (shorter tells, faster walk, double shockwaves, vomit every third attack); the chainsaw cutting him any time with the most gore; Play Possum (confused until Sammy gets up, an attack already started finishes, then a moment of grace to walk through him); his death (the crawl, the hot dogs, the exit); a K.O. resetting the fight; the chainsaw supply refuelling; the autopilot beating him without god mode in 10 to 30 s; determinism and low gore; his lines and art cells; the boss bar portrait in every state with no gore colour in low gore
 - the background bands (rows match the tileset doc and don't overlap), the tail-whip frame width, and the placeholder font (M, W, H and N look different)
 - the sound list: every sound the game triggers has a planned name and a beep; file names, versions and variations are read correctly
 - the audio converter picks only `.wav` files missing an `.ogg` (or an `.mp3` with `--mp3`), and never overwrites
@@ -210,7 +211,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - the shareable copy is up to date: `dist/index.html` has the current code from `src/`, and `BUILD_INFO.txt` has the matching code. If not, it says "run node tools/build.mjs". (So after changing anything in `src/`, build before running this test.)
 - the source game and the built game each play title → level → gauntlet → clear → restart with no errors
 - real key presses through the normal game loop start the game and move Sammy
-- every screen the autopilot never reaches draws without errors: hurt, K.O., play-dead, shield, confused zombies, Sammy with the chainsaw (idle, run, rev, low fuel), every defeat style and gore effect in full and low gore, pause and mute
+- every screen the autopilot never reaches draws without errors: hurt, K.O., play-dead, shield, confused zombies, every state of every zombie type and of the Brute (with his health bar and the floor hazards), Sammy with the chainsaw (idle, run, rev, low fuel), every defeat style and gore effect in full and low gore, pause and mute
 - art scanning: the newest version of a strip is picked, and a wrong-size file is warned about
 - art loading: correct test images load and are drawn, the hit flash works on real art, and a wrong-size test image is reported and not drawn
 - sound loading: a test sound effect and test music load, and real key presses play them instead of the beeps; the source game loads every real sound file in `assets/` (today the theme song), and the built game loads none until one is cleared

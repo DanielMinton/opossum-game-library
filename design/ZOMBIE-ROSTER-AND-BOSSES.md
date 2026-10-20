@@ -385,7 +385,9 @@ Each step: files touched, tests to add, and a "done when" check. Run from `game/
 
 **Done when (step 3):** screens 5, 9 and 10 play as described in section 3, the gauntlet's typed waves spawn the right bodies in a fixed order (`spawned` count test updated from 9), and the full autopilot run still clears the level in god mode.
 
-### Step 4: boss machinery (4a) and the Ringmaster (4b)
+### Step 4: boss machinery (4a) and the Ringmaster (4b) — **4a and the Brute (step 5) built 2026-10-20**
+
+*What was built differs a little from the sketch: the boss brain has one state per pose (`swipe-tell`, `slam-stuck`, `vomit-stream`…) rather than generic `tell`/`hit`/`opening`; all four attacks, the stagger and the enrage are in (not only the MVP two); cuts land any time (answer 7) with hit-stop, chunks and blood on every cut; `sawOpenOnly` does not exist; the puddles land when the stream ends; the supplies are a lid and a chainsaw (answer 4); the death crawl is harmless; the manifest follows the combined strips the importer made from the sheet. See `DECISIONS.md`, "Steps 4a and 5". The level placement (`gauntlet.waves` as typed lists, the gauntlet shrinking to two waves) is the integrator's step.*
 
 **4a, shared (needed by either boss):**
 - `sim.js`: the `boss` brain: states `enter`, `walk`, `turn`, `tell`, `hit`, `opening`, `stuck`, `dizzy`, `confused`, `stagger`, `death`, `dead`, driven by the type block's attack sub-blocks (each: trigger range, tell, step, hit window and box, opening); attack choice by distance plus a fixed counter; `s.hazards` (puddles with a life, shockwaves with a speed) checked against Sammy's box every step through `hurtPlayer({ hazard: true, acid: true })` (no knockback, lid doesn't block); `sawOpenOnly` in `sawCut` (sparks and `CLANG.` otherwise); boss hits add 2 frames of hit-stop; `damageEnemy` never gives a boss `sliced`; bosses never fall out of the world; `music(s, 'boss')`.

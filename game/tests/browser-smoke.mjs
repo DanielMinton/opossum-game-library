@@ -311,7 +311,7 @@ for (const [w, h, dpr] of [[1920, 1080, 1], [1440, 900, 2], [500, 900, 1]]) {
 if (shots) {
   fs.mkdirSync(shots, { recursive: true });
   const src = path.join(gameDir, 'index.html');
-  for (const [n, q] of [['title', 'frames=1&title=1'], ['level', 'frames=1060'], ['arena', 'frames=2700'], ['clear', 'frames=3265']]) screenshot(src, 'test=shot&' + q, path.join(shots, n + '.png'));
+  for (const [n, q] of [['title', 'frames=1&title=1'], ['level', 'frames=1060'], ['arena', 'frames=2700'], ['boss', 'frames=3210'], ['boss-death', 'frames=4620'], ['clear', 'frames=4760']]) screenshot(src, 'test=shot&' + q, path.join(shots, n + '.png'));
   for (const [n, q] of [['touch-phone-level', 'frames=1060'], ['touch-phone-paused', 'frames=1060&paused=1']]) screenshot(src, 'test=shot&touch=1&' + q, path.join(shots, n + '.png'), ['--window-size=852,393', '--force-device-scale-factor=3']);
   for (const [n, q] of [['touch-upright-message', 'frames=1060'], ['touch-upright-play', 'frames=1060&upright=1']]) screenshot(src, 'test=shot&touch=1&' + q, path.join(shots, n + '.png'), ['--window-size=393,852', '--force-device-scale-factor=3']);
   screenshot(path.join(tmp, 'game', 'index.html'), 'test=shot&frames=120', path.join(shots, 'real-art-test.png'));

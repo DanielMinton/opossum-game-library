@@ -23,6 +23,8 @@
   const CART = 'props/prop-hot-dog-cart/';
   const LID = 'items/item-powerup-trash-lid-shield/';
   const SAW = 'items/item-powerup-chainsaw/';
+  const BRU = 'enemies/enemy-zombie-brute/';
+  const big = { fw: 128, fh: 96, px: 64, py: 95 }; // the Brute's wide attack cells
   const saw = { fw: 64, px: 26 }; // Sammy with the chainsaw: 64x48 cells; feet at x 26 leave 37 px in front for the saw bar (the cutting reach is 28)
   const ENV = 'environments/environment-central-park-tileset/';
   const cart = { fw: 64, fh: 48, px: 32, py: 47 };
@@ -73,6 +75,25 @@
 
     strip('pickup:chainsaw', SAW + 'chainsaw-pickup-strip-v01.png', 4, 8, 'loop', { fw: 32, fh: 16, px: 16, py: 15 }),
     strip('hud:chainsaw', SAW + 'hud-icon-chainsaw-v01.png', 1, 1, 'hold', { fw: 16, fh: 16, px: 0, py: 0, feet: false }),
+
+    // THE BRUTE (level 1 boss, 2026-10-20). Cut from the owner's boss sheet at scale 0.45 (about 86 px tall). Feet on row 95: 96-wide
+    // cells have the feet at x 48, 128-wide ones at x 64 (the wide attack poses), the vomit body at x 40 (its stream is a separate
+    // effect cell drawn at his mouth). Several poses share one strip ('frame' mode: the game picks the frame from his state, and the
+    // held poses last the config.js times): swipe = tell, step, 3 hits, opening; slam = tell, hit, stuck; spin = tell, 2 spins, dizzy
+    // (the dizzy pose is also the vomit tell); stagger = half-health stagger, enrage roar. Faces: 17 HUD portraits, 32x32.
+    strip('brute:walk', BRU + 'brute-walk-strip-v01.png', 6, 8, 'loop', { fw: 96, fh: 96, px: 48, py: 95 }),
+    strip('brute:swipe', BRU + 'brute-swipe-strip-v01.png', 6, 10, 'frame', Object.assign({ hitFrame: 2 }, big)),
+    strip('brute:slam', BRU + 'brute-slam-strip-v01.png', 3, 10, 'frame', Object.assign({ hitFrame: 1 }, big)),
+    strip('brute:spin', BRU + 'brute-spin-strip-v01.png', 4, 10, 'frame', Object.assign({ hitFrame: 1 }, big)),
+    strip('brute:vomit', BRU + 'brute-vomit-strip-v01.png', 1, 1, 'hold', { fw: 96, fh: 96, px: 40, py: 95 }),
+    strip('brute:vomit-stream', BRU + 'brute-vomit-stream-strip-v01.png', 1, 1, 'hold', { fw: 64, fh: 96, px: 32, py: 48, feet: false }), // its top-left goes at his feet + (39, -85)
+    strip('brute:stagger', BRU + 'brute-stagger-strip-v01.png', 2, 1, 'frame', big),
+    strip('brute:death', BRU + 'brute-death-strip-v01.png', 10, 6, 'once', big),
+    strip('brute:faces', BRU + 'brute-faces-strip-v01.png', 17, 1, 'frame', { fw: 32, fh: 32, px: 0, py: 0, feet: false }),
+    strip('brute:acid-splat', BRU + 'brute-acid-splat-strip-v01.png', 2, 8, 'once', { fw: 96, fh: 48, px: 48, py: 24, feet: false }),
+    strip('brute:acid-smoke', BRU + 'brute-acid-smoke-strip-v01.png', 4, 8, 'loop', { fw: 40, fh: 56, px: 20, py: 55 }),
+    strip('brute:blood-slash', BRU + 'brute-blood-slash-strip-v01.png', 3, 12, 'once', { fw: 96, fh: 64, px: 48, py: 32, feet: false }),
+    strip('brute:dust', BRU + 'brute-dust-strip-v01.png', 1, 1, 'hold', { fw: 128, fh: 48, px: 64, py: 24, feet: false }),
 
     // Parallax bands: y = top row on screen, scroll = speed vs. the camera, fw = loop width.
     // Bands must not overlap (rows 80-143, 144-175, 176-207), as in the tileset ASSET.md.
@@ -128,6 +149,9 @@
     'sfx-checkpoint', 'sfx-gate-open', 'sfx-level-clear', 'sfx-start',
     // Stage B: chainsaw and gore (sfx-chainsaw-rev loops while the saw revs)
     'sfx-chainsaw-start', 'sfx-chainsaw-rev', 'sfx-chainsaw-cut', 'sfx-gore-splat',
+    // The Brute (2026-10-20): his tells (grunt, chains, roar, gurgle), his hits, every hit on him, his death, and the acid
+    'sfx-boss-grunt', 'sfx-boss-chains', 'sfx-boss-roar', 'sfx-boss-gurgle', 'sfx-boss-swipe', 'sfx-boss-slam', 'sfx-boss-hit', 'sfx-boss-death',
+    'sfx-acid-spray', 'sfx-acid-burn',
   ];
   S.SOUND_MANIFEST = SFX_IDS.map((id) => ({ id, kind: 'sfx', dir: 'audio/sfx/' + id + '/' })).concat([
     { id: 'music-level-01-central-park', kind: 'music', dir: 'audio/music/music-level-01-central-park/' },

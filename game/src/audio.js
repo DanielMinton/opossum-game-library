@@ -29,6 +29,17 @@
     'sfx-chainsaw-rev': ['sawtooth', 90, 150, 0.06, 0.12], // loop: pitch wobbles between the two Hz, 0.06 s per wobble
     'sfx-chainsaw-cut': ['noise', 2400, 900, 0.08, 0.2],
     'sfx-gore-splat': ['noise', 400, 60, 0.25, 0.35],
+    // The Brute (placeholder beeps until his sounds exist)
+    'sfx-boss-grunt': ['sawtooth', 80, 50, 0.3, 0.3],       // swipe tell, stagger
+    'sfx-boss-chains': ['square', 1800, 600, 0.3, 0.2],     // slam tell: chains clank
+    'sfx-boss-roar': ['sawtooth', 60, 140, 0.8, 0.35],      // entrance, spin tell, enrage
+    'sfx-boss-gurgle': ['triangle', 90, 40, 0.6, 0.3],      // vomit tell: a long wet gurgle
+    'sfx-boss-swipe': ['noise', 700, 200, 0.2, 0.3],        // the gauntlet swing
+    'sfx-boss-slam': ['noise', 200, 40, 0.5, 0.4],          // fists into the stone
+    'sfx-boss-hit': ['square', 140, 60, 0.12, 0.3],         // a hit landing on him (meaty)
+    'sfx-boss-death': ['sawtooth', 120, 30, 1.5, 0.35],     // the long fall
+    'sfx-acid-spray': ['noise', 1200, 500, 0.7, 0.25],      // the stream
+    'sfx-acid-burn': ['noise', 2000, 1200, 0.2, 0.2],       // Sammy in a puddle
   };
   const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
   const TRACKS = {
