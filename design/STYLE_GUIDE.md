@@ -154,7 +154,7 @@ The exact size of every planned file is in `game/src/assets.js`. Sammy's cell si
 
 ### Pivot and baseline rules
 
-- Pivot = **bottom-center**. In a 48×48 cell that is **(24, 47)**, zero-based. **Exception: Sammy** uses **(28, 47)** in his 48-wide cells: his long tail needs room behind him, so his body sits 4 px right of centre. His wider cells have their own feet column (run and tail-whip (36, 47), play-dead (32, 47), K.O. (38, 47), chainsaw (26, 47)) and land uses (17, 47); the table is in `game/src/assets.js` and the point is always where his body stands, so he never hops sideways when the animation changes *(updated 2026-10-20; this used to say every Sammy strip uses (28, 47))*.
+- Pivot = **bottom-center**. In a 48×48 cell that is **(24, 47)**, zero-based. **Exception: Sammy** uses **(28, 47)** in his 48-wide cells: his long tail needs room behind him, so his body sits 4 px right of centre. His wider cells have their own feet column (run and tail-whip (36, 47), play-dead (32, 47), K.O. (38, 47), chainsaw idle and run (26, 47), chainsaw rev 76 wide (26, 47)) and land uses (28, 47) like idle (since v03; v02 had (17, 47)); the table is in `game/src/assets.js` and the point is always where his body stands, so he never hops sideways when the animation changes *(updated 2026-10-20; this used to say every Sammy strip uses (28, 47))*.
 - Feet touch **row 47** in every grounded frame (64×64 cell: (32, 63), row 63).
 - Jump and fall frames may lift off the baseline; keep the body centered horizontally.
 - Characters face **RIGHT** by default. Mirroring for left is allowed unless an asymmetric detail must stay on one side — note it.

@@ -59,7 +59,7 @@ Strip width = frame count × cell width (with no padding). Most cells are 48×48
 - Grid columns / rows: one row per file; columns = frame count (e.g. run = 8 columns × 1 row).
 - Frame count and reading order: left to right, starting at frame 0. Counts in the table below.
 - Padding / spacing: Proposed: none (frames touch). If you prefer 1 px gaps between frames, say "1 px padding" here.
-- Pivot / feet baseline: Proposed: pixel (28, 47) counting from 0 at the top-left in the 48-wide cells (4 px right of centre, so the tail has room behind him). In every grounded frame the feet touch row 47 (the bottom row). Jump/fall frames may lift off that row. Wider cells have their own feet column (run and tail-whip (36, 47), play-dead (32, 47), ko (38, 47), chainsaw (26, 47)); land uses (17, 47). The feet column is where Sammy's body stands, so he never hops sideways when the animation changes; the run is drawn lower (a crawl, about 30 px tall) on purpose.
+- Pivot / feet baseline: Proposed: pixel (28, 47) counting from 0 at the top-left in the 48-wide cells (4 px right of centre, so the tail has room behind him). In every grounded frame the feet touch row 47 (the bottom row). Jump/fall frames may lift off that row. Wider cells have their own feet column (run and tail-whip (36, 47), play-dead (32, 47), ko (38, 47), chainsaw idle and run (26, 47), chainsaw rev 76 wide (26, 47)); land uses (28, 47) too (since v03; v02 had (17, 47)). The feet column is where Sammy's body stands, so he never hops sideways when the animation changes; the run is drawn lower (a crawl, about 30 px tall) on purpose.
 - Animation names and frame ranges (state whether zero- or one-based): zero-based — see table.
 - Frames per second per animation: see table.
 - Looping / one-shot: see table.
@@ -73,7 +73,7 @@ Strip width = frame count × cell width (with no padding). Most cells are 48×48
 | run | 0–7 | 8 | 12 | loop | A four-legged crawl (owner's choice, 2026-10-19), about 30 px tall. 64×48 cells, pivot (36, 47). Feet on row 47. |
 | jump-rise | 0–1 | 2 | 10 | one-shot, hold last frame | Holds frame 1 while going up. |
 | fall | 0–1 | 2 | 10 | loop | Tail/fur flutter. |
-| land | 0–1 | 2 | 15 | one-shot | Squash on frame 0. Returns to idle/run. Pivot (17, 47): the frames lunge forward. |
+| land | 0–1 | 2 | 15 | one-shot | Squash on frame 0. Returns to idle/run. Pivot (28, 47) like idle (since v03; v02's frames lunged forward at (17, 47)). Today the fall crouch is held for both frames; two real landing frames are still wanted. |
 | tail-whip (attack) | 0–3 | 4 | 15 | one-shot | **Hit frame = 2** (the frame where damage happens). 0–1 wind-up, 3 recovery. 64×48 cells, pivot (36, 47). |
 | hurt | 0–1 | 2 | 10 | one-shot | Knock-back flinch; a white/flash frame can be done in code. |
 | play-dead | 0–3 | 4 | 8 | one-shot, then hold frame 3 | Drops, rolls over, tongue out (Example). Used by the "Play Possum" ability. 64×48 cells, pivot (32, 47). |

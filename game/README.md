@@ -88,7 +88,7 @@ node tools/import-art.mjs ~/Downloads/jogger-walk.png --slot jogger:walk
 
 **Licenses:** art only goes into the shareable build when its row in `design/ASSET_SOURCES.csv` clears it (see **Build a shareable copy**). The game on your own computer uses every file either way.
 
-Frame sizes, frame counts, speeds and the feet point (24, 47) follow the draft style guide (`design/STYLE_GUIDE.md`) and each example's animation table. Exceptions for Sammy: his feet point is (28, 47), not (24, 47), so his tail has room behind him, and some of his strips use wider cells with their own feet point so his body stays put when the animation changes (since 2026-10-20): run and tail-whip 64×48 with the feet at (36, 47), play-dead 64×48 at (32, 47), K.O. 76×48 at (38, 47), the three chainsaw strips 64×48 at (26, 47), and land 48×48 at (17, 47). The full table is in `game/src/assets.js` and a test checks it. Background band rows, scroll speeds and loop widths are in the `bg:` lines of `game/src/assets.js`.
+Frame sizes, frame counts, speeds and the feet point (24, 47) follow the draft style guide (`design/STYLE_GUIDE.md`) and each example's animation table. Exceptions for Sammy: his feet point is (28, 47), not (24, 47), so his tail has room behind him, and some of his strips use wider cells with their own feet point so his body stays put when the animation changes (since 2026-10-20): run and tail-whip 64×48 with the feet at (36, 47), play-dead 64×48 at (32, 47), K.O. 76×48 at (38, 47), chainsaw idle and run 64×48 at (26, 47), chainsaw rev 76×48 at (26, 47), and land 48×48 at (28, 47) like idle (since v03; v02 had (17, 47)). The full table is in `game/src/assets.js` and a test checks it. Background band rows, scroll speeds and loop widths are in the `bg:` lines of `game/src/assets.js`.
 
 
 ### Scenery art (2026-10-19, Proposed)
@@ -169,7 +169,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 | Command | What it checks |
 |---|---|
 | `node --test tests/sim.test.mjs` | 78 game-rule checks (see the list below) |
-| `node --test tests/import-art.test.mjs` | 22 art-importer checks (`npm test` runs both test files: 100 in all) |
+| `node --test tests/import-art.test.mjs` | 23 art-importer checks (`npm test` runs both test files: 101 in all) |
 | `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 57 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 | `index.html?test=touch&touch=1` | The touch-button check by hand (it taps the real buttons for you) |
@@ -179,7 +179,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 **Game-rule checks** cover:
 - startup, level layout, movement, jumping, one-way platforms and rocks
 - tail-whip; jogger patrol, chase and attack; invincibility after a hit
-- Sammy's art cells: one table of cell widths and feet points (48-wide strips at (28, 47); run, tail-whip, play-dead, K.O. and the chainsaw strips wider, each with its own feet column; land at (17, 47)), and the chainsaw cells hold the saw's reach
+- Sammy's art cells: one table of cell widths and feet points (48-wide strips at (28, 47); run, tail-whip, play-dead, K.O. and the chainsaw strips wider, the chainsaw rev 76 wide, each with its own feet column; land back at (28, 47)), and the chainsaw cells hold the saw's reach
 - Play Possum (confusion, cancel, cooldown, range, the "ready" flash)
 - cart (tip, spill, heal, settle), trash lid, vendor, pond, and falling into a dry pit (no splash)
 - K.O. and checkpoints; the gauntlet and exit; finishing in mid-air
@@ -248,7 +248,7 @@ The test art and test sounds live in a temporary copy of the library, never your
 | `src/phone.js` | Phone page behaviour: the "turn your phone sideways" message, full screen, no accidental zoom or long-press menus |
 | `src/scenery.js` | Scenery: coded placeholders for the park and Bethesda Terrace, and the drawing of real scenery art |
 | `src/bot.js` | Autopilot used only by the tests |
-| `tools/` | Art and sound scanner (with PNG checks in `png.mjs`), WAV-to-OGG converter, build script, license rules (`licenses.mjs`), and the drawing-template maker (`make-art-templates.mjs`, which writes blank templates and contact sheets to `templates/art-templates/`; `png-writer.mjs` saves its PNGs) |
+| `tools/` | Art and sound scanner (with PNG checks in `png.mjs`), WAV-to-OGG converter, build script, license rules (`licenses.mjs`), the drawing-template maker (`make-art-templates.mjs`, which writes blank templates and contact sheets to `templates/art-templates/`; `png-writer.mjs` saves its PNGs), and `chainsaw-teeth.mjs`, the small pass that paints the chain teeth back onto Sammy's three chainsaw strips after the importer (see `design/DECISIONS.md`, "Sammy v03") |
 | `tests/` | Game-rule tests and the browser check |
 | `dist/` | Latest shareable build (made by `tools/build.mjs`) |
 

@@ -624,3 +624,35 @@ test('slot names can be remapped, and mistakes in the map are explained', () => 
   assert.match(wrongCount.report, /needs 6 frame\(s\) but the map lists 5/);
   assert.throws(() => buildFrom(sh, {}, (map) => { map.slots['jogger:hit'].frames[0].box = [5, 5, 40, 40]; }), /is empty/);
 });
+
+test('chainsaw teeth pass: the chain comes back on the steel bar and the 1 px outline stays', async () => {
+  const { paintTeeth, badEdgePixels, STEEL, OUTLINE, LIGHT } = await import('../tools/chainsaw-teeth.mjs');
+  // Two 32 x 16 frames: a 12 x 4 steel bar with a 1 px fur band round it and the 1 px outline outside that, as the importer leaves it.
+  const FW = 32, H = 16, W = FW * 2, FUR = [144, 108, 72];
+  const d = new Uint8Array(W * H * 4);
+  const put = (x, y, c) => { const i = (y * W + x) * 4; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255; };
+  const steel = STEEL[0].slice(1).match(/../g).map((h) => parseInt(h, 16));
+  for (let f = 0; f < 2; f++) {
+    const x0 = f * FW + 8, y0 = 5;
+    for (let y = -2; y < 6; y++) for (let x = -2; x < 14; x++) {
+      const ring = Math.max(x < 0 ? -x : x >= 12 ? x - 11 : 0, y < 0 ? -y : y >= 4 ? y - 3 : 0);
+      put(x0 + x, y0 + y, ring === 0 ? steel : ring === 1 ? FUR : OUTLINE);
+    }
+  }
+  const img = { width: W, height: H, px: d };
+  assert.equal(badEdgePixels(img), 0, 'the test strip starts with a clean outline');
+  const before = Uint8Array.from(d);
+  const counts = paintTeeth(img, FW, [0, 1]);
+  assert.ok(counts.teeth > 0, 'teeth painted: ' + JSON.stringify(counts));
+  assert.equal(badEdgePixels(img), 0, 'every edge pixel is still the outline colour');
+  const hex = (x, y) => { const i = (y * W + x) * 4; return [d[i], d[i + 1], d[i + 2]]; };
+  assert.deepEqual(hex(8, 3), OUTLINE, 'the outline above the bar is untouched');
+  assert.deepEqual(hex(8 + 2, 4), LIGHT, 'a light tooth just inside the outline on an even column');
+  assert.deepEqual(hex(8 + 3, 4), OUTLINE, 'a dark tooth on the odd column');
+  assert.deepEqual(hex(FW + 8 + 3, 4), LIGHT, 'phase 1 shifts the pattern by one column');
+  assert.deepEqual(hex(14, 6), steel, 'the bar itself keeps its steel');
+  let changed = 0;
+  for (let i = 0; i < d.length; i += 4) if (d[i + 3] !== before[i + 3]) changed++;
+  assert.equal(changed, 0, 'no pixel changed between solid and transparent');
+  assert.equal(paintTeeth({ width: W, height: H, px: Uint8Array.from(d) }, FW, [0, 1]).teeth, counts.teeth, 'the pass is deterministic');
+});

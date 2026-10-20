@@ -86,6 +86,8 @@ Every Sammy animation plays today with real art. Since v03 (2026-10-20, later th
 | Land (`sammy-land`, the fall crouch held for both frames) | **2 frames**: a landing crouch (knees bent, body low), then halfway back up; the whole body inside 48×48 with the feet at column 28; **no dust** (the game draws its own puff) | replaces both frames; 48×48, feet (28, 47) |
 | Chainsaw idle (`sammy-chainsaw-idle`, one pose held) | **2 frames** breathing: body 1 px lower, saw bar bobbing | replaces frames 3 and 4; 64×48, feet (26, 47); the saw tip no more than 37 px in front of the feet |
 
+Also open, not frames: the X eyes (play-dead, K.O.) could use a hand repaint (a 3×3 black X on a white dot; the sheet's X marks blur to a blob at game size); the tail curl is wider than the 48 px cell, so idle and victory lose about 7 px of tail tip.
+
 ## Later: needs direction
 
 These can wait, but each needs a choice or input from you before work starts.
