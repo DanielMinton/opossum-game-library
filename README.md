@@ -279,6 +279,20 @@ Anything else is left out, and `BUILD_INFO.txt` says why. Files in `assets/refer
 
 Today the real art is all of Sammy (13 animation strips) plus the chainsaw pickup and icon (each licensed in `design/ASSET_SOURCES.csv`, so they go into the build). The theme song is real too, but its row says `commercial_use` is "tbd" until the owner confirms which Suno plan it was made on (owner question 21), so the build leaves it out and plays the placeholder tune. Everything else is a placeholder. The `dist/` folder is saved in the project history for now (this is open question 9 in [design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)).
 
+## Put it on the web (Vercel)
+
+The game is a plain website, so hosting is simple. Once it's online you can play it on a phone (and use "Add to Home Screen" on iPhone).
+
+1. Go to [vercel.com](https://vercel.com), sign in with GitHub, click **Add New → Project**, and pick this repository (`opossum-game-library`).
+2. Vercel reads `vercel.json` from the repo, so the settings are already filled in: it runs the game's build and publishes the `game/dist` folder. Just click **Deploy**.
+3. After a minute you get a link like `https://opossum-game-library.vercel.app`. Every push to GitHub updates it automatically.
+
+**Two things to know:**
+- The published copy only includes art and sound with a cleared licence row in `design/ASSET_SOURCES.csv`. Until the Suno plan question (number 21 in `design/OWNER_DECISIONS.md`) is answered, the theme song stays out and the placeholder tune plays.
+- The link is public to anyone who has it. Vercel's free plan is fine for this.
+
+Command-line alternative: `npm i -g vercel`, then `vercel --prod` in the project folder.
+
 ## Tests
 
 The tests need Node 18 or newer (a free program for running JavaScript). Nothing else to install. From the project folder, run:
