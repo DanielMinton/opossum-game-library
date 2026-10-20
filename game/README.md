@@ -144,7 +144,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | 63 game-rule checks (see the list below) |
+| `node --test tests/sim.test.mjs` | 67 game-rule checks (see the list below) |
 | `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 51 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 | `index.html?test=touch&touch=1` | The touch-button check by hand (it taps the real buttons for you) |
@@ -157,6 +157,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - cart (tip, spill, heal, settle), trash lid, vendor, pond, and falling into a dry pit (no splash)
 - K.O. and checkpoints; the gauntlet and exit; finishing in mid-air
 - pause, restart (also from the pause screen) and play again
+- the chainsaw: where it lies, grabbing it, revving (slower, 1 fuel a second, its sound loops and stops on pause, K.O. and restart), quick cuts that slice zombies (blood, chunks, hit-stop, shake), running out of fuel, getting it back after a K.O., and the autopilot using it in the gauntlet; how whip kills look (jogger pops, vendor deflates)
 - a full autopilot playthrough, repeatable results, and the art list vs. the example docs (file names and sizes)
 - the background bands (rows match the tileset doc and don't overlap), the tail-whip frame width, and the placeholder font (M, W, H and N look different)
 - the sound list: every sound the game triggers has a planned name and a beep; file names, versions and variations are read correctly

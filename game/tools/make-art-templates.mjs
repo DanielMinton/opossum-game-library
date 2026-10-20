@@ -37,6 +37,7 @@ export const GROUPS = [
   { id: 'vendor', folder: 'enemies/enemy-zombie-hot-dog-vendor', title: 'ZOMBIE HOT DOG VENDOR AND HIS HOT DOGS' },
   { id: 'cart', folder: 'props/prop-hot-dog-cart', title: 'HOT DOG CART AND HOT DOG PICKUP' },
   { id: 'lid', folder: 'items/item-powerup-trash-lid-shield', title: 'TRASH LID SHIELD' },
+  { id: 'chainsaw', folder: 'items/item-powerup-chainsaw', title: 'CHAINSAW' },
   { id: 'background', folder: 'environments/environment-central-park-tileset', title: 'CENTRAL PARK BACKGROUND' },
 ];
 
@@ -44,6 +45,7 @@ export const GROUPS = [
 const NOTES = {
   'overlay:lid': 'THE GAME PICKS THE FRAME: 0 = 3 BLOCKS LEFT, 1 = 2 LEFT, 2 = 1 LEFT',
   'hud:lid': 'SCREEN ICON (TOP OF THE SCREEN), NOT IN THE PARK. ANCHOR IS THE TOP-LEFT PIXEL',
+  'hud:chainsaw': 'SCREEN ICON (TOP OF THE SCREEN), NEXT TO THE FUEL GAUGE. ANCHOR IS THE TOP-LEFT PIXEL',
 };
 const LOOPS = { loop: 'LOOPS', once: 'PLAYS ONCE', hold: 'PLAYS ONCE, HOLDS THE LAST FRAME', frame: 'DOES NOT ANIMATE' };
 

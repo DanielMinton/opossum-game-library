@@ -18,6 +18,8 @@
   const VEN = 'enemies/enemy-zombie-hot-dog-vendor/';
   const CART = 'props/prop-hot-dog-cart/';
   const LID = 'items/item-powerup-trash-lid-shield/';
+  const SAW = 'items/item-powerup-chainsaw/';
+  const saw = { fw: 64, px: 36 }; // Sammy with the chainsaw: 64x48 cells like tail-whip, so the 28 px saw fits in front
   const ENV = 'environments/environment-central-park-tileset/';
   const cart = { fw: 64, fh: 48, px: 32, py: 47 };
   const small = { fw: 16, fh: 16, px: 8, py: 15 };
@@ -37,6 +39,9 @@
     strip('sammy:play-dead', SAM + 'sammy-play-dead-strip-v01.png', 4, 8, 'hold', sam()),
     strip('sammy:ko', SAM + 'sammy-ko-strip-v01.png', 6, 10, 'once', sam()),
     strip('sammy:victory', SAM + 'sammy-victory-strip-v01.png', 4, 8, 'loop', sam()),
+    strip('sammy:chainsaw-idle', SAM + 'sammy-chainsaw-idle-strip-v01.png', 4, 6, 'loop', saw),
+    strip('sammy:chainsaw-run', SAM + 'sammy-chainsaw-run-strip-v01.png', 8, 12, 'loop', saw),
+    strip('sammy:chainsaw-rev', SAM + 'sammy-chainsaw-rev-strip-v01.png', 4, 15, 'loop', saw),
 
     strip('jogger:walk', JOG + 'zombie-jogger-walk-strip-v01.png', 6, 8, 'loop'),
     strip('jogger:attack', JOG + 'zombie-jogger-attack-strip-v01.png', 4, 10, 'once', { hitFrame: 2 }),
@@ -62,6 +67,9 @@
     strip('overlay:lid', LID + 'trash-lid-held-overlay-strip-v01.png', 3, 1, 'frame', mid),
     strip('hud:lid', LID + 'hud-icon-trash-lid-v01.png', 1, 1, 'hold', { fw: 16, fh: 16, px: 0, py: 0, feet: false }),
 
+    strip('pickup:chainsaw', SAW + 'chainsaw-pickup-strip-v01.png', 4, 8, 'loop', { fw: 32, fh: 16, px: 16, py: 15 }),
+    strip('hud:chainsaw', SAW + 'hud-icon-chainsaw-v01.png', 1, 1, 'hold', { fw: 16, fh: 16, px: 0, py: 0, feet: false }),
+
     // Parallax bands: y = top row on screen, scroll = speed vs. the camera, fw = loop width.
     // Bands must not overlap (rows 80-143, 144-175, 176-207), as in the tileset ASSET.md.
     strip('bg:sky', ENV + 'central-park-bg-sky-v01.png', 1, 1, 'hold', { fw: 320, fh: 224, px: 0, py: 0, feet: false, y: 0, scroll: 0 }),
@@ -82,6 +90,8 @@
     // Extra sounds the prototype uses (see design/DECISIONS.md)
     'sfx-cart-rock', 'sfx-shield-block', 'sfx-shield-break', 'sfx-throw', 'sfx-splat', 'sfx-splash',
     'sfx-checkpoint', 'sfx-gate-open', 'sfx-level-clear', 'sfx-start',
+    // Stage B: chainsaw and gore (sfx-chainsaw-rev loops while the saw revs)
+    'sfx-chainsaw-start', 'sfx-chainsaw-rev', 'sfx-chainsaw-cut', 'sfx-gore-splat',
   ];
   S.SOUND_MANIFEST = SFX_IDS.map((id) => ({ id, kind: 'sfx', dir: 'audio/sfx/' + id + '/' })).concat([
     { id: 'music-level-01-central-park', kind: 'music', dir: 'audio/music/music-level-01-central-park/' },

@@ -53,6 +53,7 @@
       { type: 'hotdog', x: 1504, y: 140 },   // secret: on top of the screen-5 lamp
       { type: 'lid',    x: 2700, y: 172 },   // optional second lid (TBD in LEVEL.md)
       { type: 'hotdog', x: 3364, y: 140 },   // screen 11 lamp top, before the arena (prototype addition)
+      { type: 'chainsaw', x: 3300, y: G },   // screen 11, on the grass: the chainsaw (Stage B, Proposed)
     ],
 
     // Gauntlet arena = last screen. Camera locks; fences block both sides.
@@ -67,6 +68,7 @@
       { x0: 1060, x1: 1160, text: 'TRASH LID: BLOCKS 3 HITS. CLASSY AS SHIT.' },
       { x0: 1620, x1: 1760, text: 'WHIP THE CART TWICE. FREE HOT DOGS. THEY HEAL. DON\'T ASK.' },
       { x0: 1920, x1: 2080, text: 'C: PLAY DEAD. ZOMBIES ARE DUMB AS SHIT.', touch: 'POSSUM BUTTON: PLAY DEAD. ZOMBIES ARE DUMB AS SHIT.' },
+      { x0: 3270, x1: 3380, text: "SOMEBODY LEFT A CHAINSAW. HOLD X. FUCK 'EM UP.", touch: "SOMEBODY LEFT A CHAINSAW. HOLD WHIP. FUCK 'EM UP." },
       { x0: 3380, x1: 3520, text: 'BETHESDA TERRACE AHEAD. SHIT GETS REAL.' },
     ],
   };

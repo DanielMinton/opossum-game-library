@@ -254,6 +254,15 @@
       R(ctx, K.lid, pk.x - 7, pk.y - 14 + bob, 14, 12); R(ctx, K.lid, pk.x - 5, pk.y - 16 + bob, 10, 16);
       R(ctx, K.lidHi, pk.x - 2, pk.y - 15 + bob, 4, 2);
       S.drawText(ctx, 'LID', pk.x - 5, pk.y - 11 + bob, K.black);
+    } else if (pk.type === 'chainsaw') {
+      if (sprite(ctx, 'pickup:chainsaw', pk.t, pk.x, pk.y, 1)) return;
+      const x = Math.round(pk.x), y = Math.round(pk.y);
+      R(ctx, K.black, x - 15, y - 11, 31, 10);                 // outline
+      R(ctx, K.hotdog, x - 14, y - 10, 11, 8);                 // engine
+      R(ctx, K.dark, x - 12, y - 13, 7, 3);                    // handle
+      R(ctx, K.grey, x - 3, y - 8, 18, 4);                     // bar
+      for (let i = 0; i < 4; i++) R(ctx, K.white, x - 1 + i * 4, y - 9, 2, 1); // teeth
+      if (Math.floor(pk.t * 3) % 2 === 0) R(ctx, K.white, x + 10, y - 7, 2, 1); // glint
     }
   }
 
@@ -320,8 +329,13 @@
     if (p.invuln > 0 && p.state !== 'ko' && Math.floor(p.invuln * 15) % 2 === 0) return; // blink while invincible
     const anim = p.anim === 'get-up' ? 'play-dead' : p.anim;
     const flash = p.state === 'hurt';
-    const real = sprite(ctx, 'sammy:' + anim, p.anim === 'get-up' ? p.animT * 2 : p.animT, p.x, p.y, p.face, p.anim === 'get-up', null, flash);
+    const sawArt = anim.startsWith('chainsaw-');
+    let real = sprite(ctx, 'sammy:' + anim, p.anim === 'get-up' ? p.animT * 2 : p.animT, p.x, p.y, p.face, p.anim === 'get-up', null, flash);
+    // No chainsaw strip yet: plain Sammy (idle or run art, or the placeholder) holding a placeholder saw.
+    if (!real && sawArt) real = sprite(ctx, anim === 'chainsaw-run' ? 'sammy:run' : 'sammy:idle', p.animT, p.x, p.y, p.face, false, null, flash);
     if (!real) drawSammyPlaceholder(ctx, s, flash);
+    const lying = p.state === 'playdead' || p.state === 'getup' || p.state === 'ko';
+    if (p.saw && !lying && !(sawArt && S.images['sammy:' + anim])) drawSawPlaceholder(ctx, p, s.t);
     const x = Math.round(p.x), y = Math.round(p.y);
     if (p.state === 'playdead') S.drawTextCentered(ctx, 'Z z', x, y - 26, K.white, 1, K.black);
     if (p.state === 'ko') S.drawTextCentered(ctx, '* * *', x, y - 24 - Math.round(Math.sin(p.t * 8) * 2), K.umbrella, 1, K.black);
@@ -331,6 +345,20 @@
         R(ctx, K.lid, ox - 3, oy - 7, 6, 14); R(ctx, K.lidHi, ox - 1, oy - 5, 2, 4 - (3 - p.shield));
       }
     }
+  }
+
+  // Placeholder chainsaw in Sammy's paws: engine, handle, 16 px bar reaching 28 px in front (the cutting reach).
+  // Revving: it shudders and the teeth run.
+  function drawSawPlaceholder(ctx, p, t) {
+    const x = Math.round(p.x), f = p.face, rev = p.saw.revving;
+    const y = Math.round(p.y) + (rev ? Math.floor(t * 30) % 2 : 0);
+    const at = (a, w) => (f > 0 ? x + a : x - a - w); // a px in front of the feet point, w wide
+    R(ctx, K.black, at(1, 28), y - 21, 28, 10);
+    R(ctx, K.hotdog, at(2, 10), y - 20, 10, 8);
+    R(ctx, K.dark, at(4, 6), y - 23, 6, 3);
+    R(ctx, K.grey, at(12, 16), y - 18, 16, 4);
+    const run = rev ? Math.floor(t * 40) % 4 : 0;
+    for (let i = 0; i < 4; i++) { R(ctx, K.white, at(12 + ((i * 4 + run) % 16), 2), y - 19, 2, 1); R(ctx, K.white, at(12 + ((i * 4 + 16 - run) % 16), 2), y - 14, 2, 1); }
   }
 
   function drawSammyPlaceholder(ctx, s, flash) {
@@ -385,7 +413,8 @@
   function drawHud(ctx, s) {
     const p = s.player;
     // 16 px bar, tall enough for the 16x16 HUD icons. Left to right:
-    // hearts 4-29 | lid icon 34-49, pips 52-61 | PP 66-79, cooldown bar 82-101 | zombies 120 | time 200 | wave 240.
+    // hearts 4-29 | lid icon 34-49, pips 52-61 | PP 66-79, cooldown bar 82-101 | chainsaw icon 104-119, fuel 122-145
+    // | zombies 150 | time 200 | wave 240.
     R(ctx, K.hud, 0, 0, W, 16);
     for (let i = 0; i < C.sammy.maxHp; i++) heart(ctx, 4 + i * 9, 5, i < p.hp);
     if (p.shield > 0) {
@@ -401,7 +430,15 @@
       const frac = p.state === 'playdead' || p.state === 'getup' ? 0 : 1 - p.possumCd / C.possum.cooldown;
       R(ctx, K.dark, 82, 7, 20, 3); R(ctx, K.nose, 82, 7, Math.round(20 * frac), 3);
     }
-    S.drawText(ctx, 'ZOMBIES ' + s.stats.defeated, 120, 6, K.white);
+    // Chainsaw: icon and fuel gauge while carried; the gauge goes red and blinks when nearly empty.
+    if (p.saw) {
+      if (!sprite(ctx, 'hud:chainsaw', 0, 104, 0, 1)) { R(ctx, K.hotdog, 105, 5, 7, 6); R(ctx, K.dark, 106, 3, 4, 2); R(ctx, K.grey, 112, 7, 7, 3); }
+      const frac = Math.max(0, Math.min(1, p.saw.fuel / C.chainsaw.fuel));
+      const low = frac < 0.25;
+      R(ctx, K.dark, 122, 7, 24, 3);
+      if (!low || Math.floor(s.t * 6) % 2 === 0) R(ctx, low ? K.heart : K.hotdog, 122, 7, Math.ceil(24 * frac), 3);
+    }
+    S.drawText(ctx, 'ZOMBIES ' + s.stats.defeated, 150, 6, K.white);
     const secs = Math.floor(s.stats.time);
     S.drawText(ctx, Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0'), 200, 6, K.white);
     if (s.arena.state === 'fight') S.drawText(ctx, 'WAVE ' + (s.arena.wave + 1) + '/' + C.gauntlet.waves.length, 240, 6, K.umbrella);

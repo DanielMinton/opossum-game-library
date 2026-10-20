@@ -23,6 +23,7 @@ For what to send first, see `design/ASSET_REQUEST_CHECKLIST.md`.
 | `enemy-zombie-hot-dog-vendor/` | `ASSET.md` | A brief second enemy — how little you need to write when it reuses the first enemy's layout |
 | `prop-hot-dog-cart/` | `ASSET.md` + `INTERACTION.md` | An interactive object with every visual state and the transitions between them |
 | `item-powerup-trash-lid-shield/` | `ASSET.md` + `ABILITY.md` | A power-up: pickup sprite, "active" look, HUD icon, duration and how it ends |
+| `item-powerup-chainsaw/` | `ASSET.md` | A second power-up (Stage B): pickup strip and HUD icon; Sammy's chainsaw strips are in `character-sammy/` |
 | `ability-play-possum/` | `ABILITY.md` | The proposed signature ability (play dead → nearby zombies lose track of Sammy) — rules, timing, cooldown, feedback |
 | `environment-central-park-tileset/` | `ASSET.md` | An 8×8 / 16×16 tileset with collision notes and a parallax background band list |
 | `audio/` | `AUDIO.md` | A looping music track (`music-level-01-central-park`) that loops end-to-start, a core SFX set, and the extra sounds the game supports |

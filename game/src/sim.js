@@ -24,6 +24,12 @@
   function effect(s, kind, x, y, life, extra) {
     s.effects.push(Object.assign({ kind, x, y, t: 0, life }, extra || {}));
   }
+  // Looping sound (the chainsaw's rev): one event when it starts, one when it stops, never every frame.
+  function sawLoop(s, on) {
+    if (!!s.sawLoop === on) return;
+    s.sawLoop = on;
+    s.events.push({ type: 'sfx-loop', id: 'sfx-chainsaw-rev', on });
+  }
 
   S.makeInput = function () {
     return {
@@ -38,6 +44,7 @@
       x, y, vx: 0, vy: 0, face: 1, grounded: true, groundKind: 'ground',
       hp: P.maxHp, shield: 0, state: 'normal', t: 0, invuln: 0,
       coyote: 0, buffer: 0, landT: 0, possumCd: 0, possumFlash: 0, hitSet: null,
+      saw: null, // chainsaw while carried: { fuel (seconds), revving, tick (s to next cut), slash (s of tap-rev left) }
       anim: 'idle', animT: 0,
     };
   }
@@ -50,6 +57,7 @@
       grounded: true, hp: k.hp, state: isVendor ? 'idle' : 'patrol', t: 0,
       home: def.x, cd: 0, lostT: 0, throwT: 0.5, released: false, attackHit: false,
       confused: false, arena: false, anim: isVendor ? 'idle' : 'walk', animT: 0,
+      defeatStyle: isVendor ? 'deflate' : 'pop', // how it goes down; 'sliced' when the chainsaw does it
     }, extra || {});
   }
   function makeCart(def, idx) {
@@ -81,6 +89,8 @@
     s.stats = { time: 0, defeated: 0, hotdogs: 0, hits: 0, kos: 0 };
     s.lastSafeX = L.start.x;
     s.shake = 0;
+    s.hitstop = 0; // seconds of freeze-frame after a chainsaw kill (effects keep playing)
+    sawLoop(s, false);
     s.clearT = 0;
     s.nextId = 1000;
   }
@@ -185,6 +195,7 @@
     if (p.hp <= 0) {
       p.hp = 0; p.state = 'ko'; p.t = 0; p.vx = 0; p.shield = 0;
       s.stats.kos += 1;
+      sawLoop(s, false);
       sfx(s, 'sfx-ko');
       music(s, 'stop');
       return 'ko';
@@ -198,19 +209,30 @@
   }
   S.hurtPlayer = hurtPlayer;
 
-  function damageEnemy(s, e, fromX) {
+  // opts.source: 'whip' (default), 'chainsaw' or 'cart'. Gore is effect data only; render.js decides how much to show.
+  function damageEnemy(s, e, fromX, opts) {
     if (e.state === 'defeat' || e.state === 'dead') return;
-    e.hp -= 1;
-    sfx(s, 'sfx-hit-zombie');
-    effect(s, 'spark', e.x, e.y - 24, 0.15);
+    const saw = !!opts && opts.source === 'chainsaw';
+    const dir = sign(e.x - fromX) || 1;
+    e.hp -= saw ? C.chainsaw.damage : 1;
+    if (!saw) { sfx(s, 'sfx-hit-zombie'); effect(s, 'spark', e.x, e.y - 24, 0.15); }
+    effect(s, 'blood', e.x, e.y - 24, 0.6, { n: saw ? 8 : 4, dir, power: saw ? 2 : 1 });
     if (e.hp <= 0) {
       e.state = 'defeat'; e.t = 0; e.vx = 0; e.confused = false;
+      e.defeatStyle = saw ? 'sliced' : (e.type === 'vendor' ? 'deflate' : 'pop');
       s.stats.defeated += 1;
       sfx(s, 'sfx-zombie-defeat-comedic');
+      sfx(s, 'sfx-gore-splat');
+      effect(s, 'ichor', e.x, e.y - (saw ? 22 : 36), 0.8, { n: saw ? 10 : 6 });
+      if (saw) {
+        for (let i = 0; i < 3; i++) effect(s, 'chunk', e.x, e.y - 30 + i * 8, 0.9, { dir, i });
+        s.hitstop = Math.max(s.hitstop || 0, 0.06);
+        s.shake = Math.max(s.shake, 0.25);
+      }
       return;
     }
     e.state = 'hitreact'; e.t = 0;
-    e.vx = e.type === 'jogger' ? sign(e.x - fromX) * 120 : 0;
+    e.vx = e.type === 'jogger' ? dir * (saw ? 40 : 120) : 0;
   }
 
   function releaseConfused(s) {
@@ -273,9 +295,10 @@
     }
 
     const canControl = p.state === 'normal' || p.state === 'attack';
+    if (p.saw) updateSaw(s, p, inp, canControl);
     if (canControl) {
       const dir = (h.right ? 1 : 0) - (h.left ? 1 : 0);
-      const slow = p.state === 'attack' && p.grounded ? 0.3 : 1;
+      const slow = (p.state === 'attack' && p.grounded ? 0.3 : 1) * (p.saw && p.saw.revving ? C.chainsaw.slow : 1);
       const target = dir * P.runSpeed * slow;
       const rate = dir !== 0 ? P.accel : P.decel;
       if (p.vx < target) p.vx = Math.min(target, p.vx + rate * DT);
@@ -288,7 +311,7 @@
       }
       if (!h.jump && p.vy < -P.jumpCutSpeed) p.vy = -P.jumpCutSpeed;
 
-      if (inp.pressed.attack && p.state === 'normal') {
+      if (inp.pressed.attack && p.state === 'normal' && !p.saw) { // with the chainsaw, the same button revs it instead
         p.state = 'attack'; p.t = 0; p.hitSet = new Set();
         sfx(s, 'sfx-tail-whip');
       } else if (inp.pressed.possum && p.state === 'normal' && p.grounded && p.possumCd <= 0) {
@@ -347,11 +370,52 @@
     for (const e of s.enemies) {
       if (e.state === 'defeat' || e.state === 'dead' || p.hitSet.has(e.id)) continue;
       const k = e.type === 'vendor' ? C.vendor : C.jogger;
-      if (overlap(r, footBox(e, k.bodyW, k.bodyH))) { p.hitSet.add(e.id); damageEnemy(s, e, p.x); }
+      if (overlap(r, footBox(e, k.bodyW, k.bodyH))) { p.hitSet.add(e.id); damageEnemy(s, e, p.x, { source: 'whip' }); }
     }
     for (const c of s.carts) {
       if (p.hitSet.has(c.id)) continue;
       if (overlap(r, { x: c.x, y: G - C.cart.h, w: C.cart.w, h: C.cart.h })) { p.hitSet.add(c.id); hitCart(s, c); }
+    }
+  }
+
+  // ---------- chainsaw ----------
+  // Holding the attack button revs it (a tap revs for slashTime). Revving burns 1 fuel per second, carrying it burns
+  // carryDrain. While revving it cuts whatever is in reach every `tick` seconds. Empty tank: it's gone, back to the whip.
+  function updateSaw(s, p, inp, canControl) {
+    const K = C.chainsaw, w = p.saw;
+    w.slash = Math.max(0, (w.slash || 0) - DT);
+    if (canControl && inp.pressed.attack) w.slash = K.slashTime;
+    const rev = canControl && (inp.held.attack || w.slash > 0) && w.fuel > 0;
+    if (rev && !w.revving) w.tick = 0; // first cut straight away
+    w.revving = rev;
+    w.fuel = Math.max(0, w.fuel - (rev ? 1 : K.carryDrain) * DT);
+    if (rev) {
+      w.tick -= DT;
+      if (w.tick <= 0) { w.tick += K.tick; sawCut(s, p); }
+    }
+    if (w.fuel <= 0) {
+      p.saw = null;
+      effect(s, 'text', p.x, p.y - 44, 1.2, { text: 'OUT OF GAS. SHIT.' });
+    }
+    sawLoop(s, !!(p.saw && p.saw.revving));
+  }
+
+  function sawCut(s, p) {
+    const K = C.chainsaw;
+    const r = { x: p.face > 0 ? p.x : p.x - K.reach, y: p.y - 24, w: K.reach, h: 18 };
+    s.lastSaw = r;
+    let cut = false;
+    for (const e of s.enemies) {
+      if (e.state === 'defeat' || e.state === 'dead' || e.state === 'spawn') continue;
+      const k = e.type === 'vendor' ? C.vendor : C.jogger;
+      if (overlap(r, footBox(e, k.bodyW, k.bodyH))) { damageEnemy(s, e, p.x, { source: 'chainsaw' }); cut = true; }
+    }
+    for (const c of s.carts) {
+      if ((c.state === 'upright' || c.state === 'rocking') && overlap(r, { x: c.x, y: G - C.cart.h, w: C.cart.w, h: C.cart.h })) { hitCart(s, c); cut = true; }
+    }
+    if (cut) {
+      sfx(s, 'sfx-chainsaw-cut');
+      effect(s, 'sparks', p.x + p.face * Math.round(K.reach * 0.7), p.y - 16, 0.15, { dir: p.face });
     }
   }
 
@@ -554,6 +618,10 @@
         effect(s, 'sparkle', pk.x, pk.y - 8, 0.3);
         if (pk.type === 'hotdog') { p.hp = Math.min(P.maxHp, p.hp + 1); s.stats.hotdogs += 1; }
         if (pk.type === 'lid') p.shield = C.lid.hits;
+        if (pk.type === 'chainsaw') {
+          p.saw = { fuel: C.chainsaw.fuel, revving: false, tick: 0, slash: 0 };
+          sfx(s, 'sfx-chainsaw-start');
+        }
       }
     }
   }
@@ -607,6 +675,7 @@
       }
     } else if (a.state === 'open' && p.x >= A.exitX && p.state !== 'ko') {
       s.mode = 'clear'; s.clearT = 0;
+      sawLoop(s, false);
       p.state = 'victory'; p.vx = 0; setAnim(p, 'victory');
       music(s, 'clear');
       sfx(s, 'sfx-level-clear');
@@ -630,10 +699,11 @@
     if (p.state === 'playdead') return 'play-dead';
     if (p.state === 'getup') return 'get-up';
     if (p.state === 'attack') return 'tail-whip';
+    if (p.saw && p.saw.revving) return 'chainsaw-rev';
     if (!p.grounded) return p.vy < 0 ? 'jump-rise' : 'fall';
     if (p.landT > 0) return 'land';
-    if (Math.abs(p.vx) > 10) return 'run';
-    return 'idle';
+    if (Math.abs(p.vx) > 10) return p.saw ? 'chainsaw-run' : 'run';
+    return p.saw ? 'chainsaw-idle' : 'idle';
   }
 
   function updateEffects(s) {
@@ -665,8 +735,10 @@
       return;
     }
     // playing
-    if (q.start) { s.mode = 'paused'; music(s, 'pause'); return; }
+    if (q.start) { sawLoop(s, false); s.mode = 'paused'; music(s, 'pause'); return; }
     if (q.restart) { resetLevel(s); music(s, 'level'); return; }
+    // Hit-stop after a chainsaw kill: everything holds still for a few frames; effects (and the shake) keep going.
+    if (s.hitstop > 0) { s.hitstop = Math.max(0, s.hitstop - DT); s.t += DT; updateEffects(s); return; }
     s.t += DT;
     s.stats.time += DT;
     updatePlayer(s, inp);

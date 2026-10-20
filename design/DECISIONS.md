@@ -348,3 +348,15 @@ All **Proposed (reversible)** unless marked Confirmed.
 - **Title screen:** "SAMMY THE OPOSSUM" / "ZOMBIE HUNTER" (still marked working title, owner question 3), tagline "HE DOESN'T FUCK AROUND WITH ZOMBIES.", level name "SHEEP MEADOW, AFTER DARK". Browser tab unchanged.
 - **Voice:** tutorial prompts keep the control hint first, then a deadpan line ("X: TAIL-WHIP. SMACK THE DEAD BASTARDS."). Arena banner "BETHESDA TERRACE. NOBODY LEAVES.", exit "EXIT OPEN. GO.", pause "THE DEAD CAN FUCKING WAIT.", level clear "THE PARK IS A LITTLE LESS DEAD." Start, resume and play-again lines stay plain so they're clear.
 - **Tests:** 63 game-rule tests (2 new: palette on the 9-bit grid with gore colours reserved; every title, quip, prompt and banner fits and uses only letters the font has) and 51 browser checks, all passing.
+
+### Chainsaw, HUD and sounds (builder 1)
+
+All **Proposed (reversible)**.
+
+- **Where:** the chainsaw lies on the grass on screen 11 (x 3300), just before the gauntlet. A prompt above it: "SOMEBODY LEFT A CHAINSAW. HOLD X. FUCK 'EM UP." (touch: "HOLD WHIP").
+- **How it works:** while Sammy carries it, the WHIP button revs the saw instead of tail-whipping. Holding it cuts whatever is in front (28 px) every 0.12 s; zombies take two cuts. A quick tap still revs for 0.2 s. Revving slows him to 60% speed. Numbers live in `config.js` `chainsaw`.
+- **Fuel:** 20 seconds of revving. Just carrying it uses a quarter of that rate. Empty: "OUT OF GAS. SHIT." and he's back to the tail-whip. A K.O. loses it; if the last checkpoint is before it, it's back on the grass. Other option: keep it until the end of the level (no fuel), which makes the gauntlet trivial.
+- **Kills:** chainsaw kills are "sliced" (blood, flying chunks, a 0.06 s freeze-frame and a screen shake). Whip kills keep the old looks: joggers pop, vendors deflate. Every hit bleeds. How the gore looks (and the low-gore option) is drawing only; the rules just say what happened.
+- **Top bar:** a chainsaw icon and an orange fuel gauge (red and blinking under a quarter) appear while carrying it; ZOMBIES moved right to make room.
+- **Sounds (beeps until real files arrive):** `sfx-chainsaw-start` (picked up), `sfx-chainsaw-rev` (loops while revving, stops on pause, K.O., restart and level clear), `sfx-chainsaw-cut`, `sfx-gore-splat` (every kill). Folders are ready in `assets/audio/sfx/`.
+- **Art (placeholders until real files arrive):** Sammy with the chainsaw needs idle, run and rev strips (64×48 cells like the tail-whip, so the saw fits), plus a pickup strip and a top-bar icon in `assets/items/item-powerup-chainsaw/`. Until then the game draws a placeholder saw in his paws. Templates are in `templates/art-templates/`.

@@ -95,6 +95,16 @@
 
     lid: { hits: 3 },          // item-powerup-trash-lid-shield ABILITY.md
 
+    chainsaw: {                // Stage B (Proposed): pickup on screen 11; WHIP button (held) revs it instead of whipping
+      fuel: 20,                // seconds of revving in a full tank
+      carryDrain: 0.25,        // fuel per second used just carrying it (not revving); revving uses 1 per second
+      reach: 28,               // cutting box in front of Sammy's feet point, px
+      tick: 0.12,              // one cut every this many seconds while revving
+      damage: 1,               // per cut (joggers and vendors have 2 hp: two cuts)
+      slow: 0.6,               // run speed while revving
+      slashTime: 0.2,          // a quick tap still revs (and cuts) this long
+    },
+
     gauntlet: { waves: [2, 3, 4], waveDelay: 1.0 },
   };
 

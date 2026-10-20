@@ -1,15 +1,14 @@
-Sammy placeholder prototype — code 987edd830b04 (changes only when index.html changes)
+Sammy placeholder prototype — code 4b14162123ea (changes only when index.html changes)
 Open index.html in a browser. Everything is in this folder; nothing is fetched from the internet.
 
 Art included (1):
   characters/character-sammy/sammy-run-strip-v01.png
 Art left out (0):
 Sound files included (0):
-Sound files left out (1):
-  audio/music/music-level-01-central-park/music-level-01-central-park-v01.mp3  (commercial_use is "tbd"; it must be "yes")
+Sound files left out (0):
 
 Still placeholders (no real file yet):
-Still missing — art (33):
+Still missing — art (38):
   assets/characters/character-sammy/
     sammy-idle-strip-v01.png  192×48
     sammy-jump-rise-strip-v01.png  96×48
@@ -20,6 +19,9 @@ Still missing — art (33):
     sammy-play-dead-strip-v01.png  192×48
     sammy-ko-strip-v01.png  288×48
     sammy-victory-strip-v01.png  192×48
+    sammy-chainsaw-idle-strip-v01.png  256×48
+    sammy-chainsaw-run-strip-v01.png  512×48
+    sammy-chainsaw-rev-strip-v01.png  256×48
   assets/enemies/enemy-zombie-jogger/
     zombie-jogger-walk-strip-v01.png  288×48
     zombie-jogger-attack-strip-v01.png  192×48
@@ -44,12 +46,15 @@ Still missing — art (33):
     trash-lid-pickup-strip-v01.png  64×16
     trash-lid-held-overlay-strip-v01.png  48×16
     hud-icon-trash-lid-v01.png  16×16
+  assets/items/item-powerup-chainsaw/
+    chainsaw-pickup-strip-v01.png  128×16
+    hud-icon-chainsaw-v01.png  16×16
   assets/environments/environment-central-park-tileset/
     central-park-bg-sky-v01.png  320×224
     central-park-bg-skyline-v01.png  512×64
     central-park-bg-treeline-v01.png  512×32
     central-park-bg-bushes-v01.png  512×32
-Still missing — sounds (22):
+Still missing — sounds (27):
   assets/audio/sfx/sfx-jump/sfx-jump-v01.ogg
   assets/audio/sfx/sfx-land/sfx-land-v01.ogg
   assets/audio/sfx/sfx-tail-whip/sfx-tail-whip-v01.ogg
@@ -71,6 +76,11 @@ Still missing — sounds (22):
   assets/audio/sfx/sfx-gate-open/sfx-gate-open-v01.ogg
   assets/audio/sfx/sfx-level-clear/sfx-level-clear-v01.ogg
   assets/audio/sfx/sfx-start/sfx-start-v01.ogg
+  assets/audio/sfx/sfx-chainsaw-start/sfx-chainsaw-start-v01.ogg
+  assets/audio/sfx/sfx-chainsaw-rev/sfx-chainsaw-rev-v01.ogg
+  assets/audio/sfx/sfx-chainsaw-cut/sfx-chainsaw-cut-v01.ogg
+  assets/audio/sfx/sfx-gore-splat/sfx-gore-splat-v01.ogg
+  assets/audio/music/music-level-01-central-park/music-level-01-central-park-v01.ogg
   assets/audio/music/music-level-01-gauntlet/music-level-01-gauntlet-v01.ogg
   (.mp3 or .wav also fine instead of .ogg)
 
