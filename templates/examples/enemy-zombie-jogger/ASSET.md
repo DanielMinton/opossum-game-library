@@ -2,7 +2,7 @@
 
 > **EXAMPLE ONLY — planning spec, not a finished asset.** Run the scanner to see which files exist. Don't copy this into assets/ until every TBD is filled in.
 
-How to read this example: **Confirmed** = humans have turned into zombies, with humorous, graphic (cartoon/slapstick) animations. Everything else (this enemy type, its behavior, numbers) is **Proposed** / **Example**. For a real enemy you would copy this file to `assets/enemies/enemy-zombie-jogger/ASSET.md`.
+How to read this example: **Confirmed** = humans have turned into zombies, with humorous, graphic (cartoon/slapstick) animations. Everything else (this enemy type, its behavior, numbers) is **Proposed** / **Example**. For a real enemy you would copy this file to `assets/enemies/enemy-zombie-jogger/ASSET.md`. *(Superseded 2026-10-19 by the owner's "Zombie Hunter" direction: badass action-horror with dark humour, a chainsaw, night-time Central Park, stylized gore with a low-gore option. See `design/DECISIONS.md`.)*
 
 ---
 
@@ -52,7 +52,7 @@ How to read this example: **Confirmed** = humans have turned into zombies, with 
 | defeat | 0–7 | 8 | 12 | one-shot | Comedic gag — see below. Ends on an empty or "pile" frame. |
 | idle (optional) | 0–3 | 4 | 6 | loop | Jogging in place, checking the watch. |
 
-**Comedic defeat (Example):** frames 0–2 the jogger stops and looks at his watch in shock; frame 3 his head pops off with a cartoon "boing"; frames 4–5 the head bounces away (can be the separate 16×16 head sprite) while the body keeps jogging in place; frames 6–7 the body collapses into a pile of sweatsuit and one sneaker. Slapstick, no realistic gore — cartoon "graphic" only.
+**Comedic defeat (Example):** frames 0–2 the jogger stops and looks at his watch in shock; frame 3 his head pops off with a cartoon "boing"; frames 4–5 the head bounces away (can be the separate 16×16 head sprite) while the body keeps jogging in place; frames 6–7 the body collapses into a pile of sweatsuit and one sneaker. Slapstick, no realistic gore — cartoon "graphic" only. *(Superseded 2026-10-19: see the "Zombie Hunter" direction in `design/DECISIONS.md`.)*
 
 ## Behavior
 - What this asset does: Proposed: patrols back and forth; chases Sammy when he gets close.

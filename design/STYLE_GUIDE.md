@@ -1,12 +1,13 @@
 # Style guide: Sammy (draft)
 
-This is Sammy's filled-in copy of `templates/STYLE_GUIDE.md`. **Every answer here is Proposed (not approved).** The answers come from the example `ASSET.md` files in `templates/examples/` and from the 2026-10-19 review. The owner approves or changes them (see `design/OWNER_DECISIONS.md`).
+This is Sammy's filled-in copy of `templates/STYLE_GUIDE.md`. **Every answer here is Proposed (not approved), except the lines marked Confirmed.** The answers come from the example `ASSET.md` files in `templates/examples/` and from the 2026-10-19 review. The owner approves or changes them (see `design/OWNER_DECISIONS.md`).
 
 > These are **aesthetic targets for a browser build** that should look and sound like a classic 16-bit home console game. They are not hardware limits the game enforces. The game's art checker (the scanner: `node tools/scan-assets.mjs`, run from the `game/` folder) warns about breaks from these targets but never blocks a file. The one exception is wrong-size art, which the game doesn't use.
 
 ## Project choices
 
-- Working title: TBD — the owner's call (see `design/OWNER_DECISIONS.md`). Do not use console brand names or trademarks in the title or logo.
+- Working title: TBD — the owner's call (see `design/OWNER_DECISIONS.md`). **Proposed (2026-10-19):** "Sammy the Opossum: Zombie Hunter". Do not use console brand names or trademarks in the title or logo.
+- Mood: **Confirmed by the owner (2026-10-19):** badass action-horror with dark humour, Sammy with a chainsaw, Central Park at night (Bethesda Terrace inspiration), gorier than before. The concept picture is `assets/references/zombie-hunter-concept-v01.jpg` (mood only, never copied or traced). How that turns into pixels is below, all **Proposed**.
 - Camera: **Proposed:** side-view platformer, scrolling left to right (the prototype is built this way).
 - Scale on screen: **Proposed:** whole-number scaling to fit the window (x3 = 960×672, x4 = 1280×896), no smoothing. The prototype already does this.
 - Outline style: **Proposed:** a **1 px dark outline on every sprite and every foreground tile** (Sammy, zombies, props, items, ground and platforms). This is required, not optional, so characters and things you can touch stand out from the background. **No outline on background bands** (sky, skyline, trees, bushes), so they sit back.
@@ -27,6 +28,52 @@ This is Sammy's filled-in copy of `templates/STYLE_GUIDE.md`. **Every answer her
 
 - **Zombie skin colours:** keep zombie skin away from the park's greens (grass, trees, bushes), **or** give each zombie a strong accent colour (like the jogger's neon sweatband) that stands out on grass. The placeholder art shows the problem: the green jogger box (`#6cb46c`) is hard to pick out against the grass (`#48b424`). Greyish or bluish-green skin, plus the 1 px outline, reads better.
 - **Readability test:** at 1× size, each character should be recognisable from its outline shape alone.
+
+
+## Night mood: the Zombie Hunter look (Proposed, 2026-10-19)
+
+The owner's direction (Confirmed) is night-time Central Park, Bethesda Terrace as the inspiration, a ferocious Sammy and a gorier fight. Everything in this section is **Proposed**: a way to draw that direction within the 16-bit rules above.
+
+**Scene and light**
+- **Night sky:** navy at the top, through indigo, to a dusky purple glow just above the skyline. Flat bands with dithered seams, no smooth gradients. A few stars (single pixels).
+- **Full moon:** big and pale, with 2–3 crater shades. The moon is the main light: keep light from the **top-left** (the moon sits upper left or behind the scene).
+- **Amber lamplight:** the park's lamps are warm amber pools. Show the glow with a **dithered halo** (a checkerboard thinning out from the lamp), never see-through pixels.
+- **Wet stone:** the terrace and paths are rain-slick. Show reflections as short **vertical dithered streaks** of lamp amber and moon white under each light source, on dark blue-grey stone. Reflections are part of the tile or background art, not a see-through layer.
+- **Bethesda Terrace nods:** the angel fountain, arched arcade, stone balustrades and staircases, the lake beyond. Draw your own simplified version; don't trace photos.
+- **Autumn accents:** orange, rust and gold leaves on the ground and drifting in the air: a few bright pixels that pop against the cool night colours.
+- **Keep it readable:** the night palette is dark, so sprites need their 1 px dark outline **plus** a lighter rim or highlight on their top-left edges so they don't vanish into the background. Keep the ground lane (where Sammy and the zombies walk) a little lighter than the sky behind it.
+
+**Suggested colours** (all snapped to the 9-bit grid; R, G, B):
+
+| Use | Colours |
+|---|---|
+| Sky, top to horizon | 0,0,36 · 0,0,72 · 36,36,108 · 72,36,108 |
+| Moon (light, mid, craters) and stars | 252,252,216 · 216,216,180 · 180,180,144 · stars 216,216,252 |
+| Lamplight (bulb, glow, halo dither) | 252,216,108 · 252,180,36 · 216,144,0 · 144,72,0 |
+| Wet stone (dark, mid, light) | 36,36,72 · 72,72,108 · 108,108,144 |
+| Night grass and trees (blue-green, dark) | 0,36,36 · 36,72,36 · 36,108,72 |
+| Autumn leaves | 252,180,0 · 216,108,0 · 180,72,0 · 108,36,0 |
+| Skyline silhouettes and lit windows | 0,0,36 · 36,36,72 · windows 252,216,108 |
+
+**Reserved colours** (used **only** for gore, so the player always knows what they mean):
+
+| Reserved for | Dark · base · highlight | Notes |
+|---|---|---|
+| **Blood red** | 72,0,0 · 144,0,0 · 180,0,36 | Deeper and darker than Sammy's bandana (216,36,36 and 252,72,72 in his run strip), so the bandana never reads as blood. |
+| **Zombie ichor green** | 72,108,0 · 144,216,0 · 216,252,72 | An acid yellow-green, brighter than any grass or zombie skin, so ichor never reads as scenery. Zombie skin stays grey-green or grey-blue (see above). |
+
+**Sammy: ferocious, still cartoon**
+- In the game Sammy keeps his **existing cartoon style** with the **red bandana** (the run strip, feet point (28, 47)). The README artwork shows the attitude: narrowed eyes, bared fangs, ears back, a snarl when he attacks.
+- Expressions: a **snarl** (fangs showing) for attacks and the chainsaw, **gritted teeth** when hurt, a **cocky grin** on victory. Play Possum stays comic (X eyes, tongue out); dark humour is welcome.
+- He's an opossum, not a monster: keep him likeable and readable at 1× size.
+
+**Gore rules for artists**
+- **Stylized, never realistic:** chunky pixel blood in the reserved colours (2–3 shades), drawn as solid pixels and short arcs of droplets. No soft sprays, no see-through pixels, no realistic wounds or organs, no lingering close-ups.
+- **What can happen to zombies:** the chainsaw can **cut a zombie in half** (top half falls, legs stagger then drop), with sparks and a burst of blood or ichor. The tail-whip knocks heads off and sends zombies flying. Dark slapstick is still welcome: a jogger checking his watch before he drops.
+- **Sammy never bleeds.** When hurt he flashes and flinches; no wounds on him.
+- **Gore stays brief:** a splat or pool fades within a second or two (blinking, not see-through), so the screen stays readable.
+- **Low-gore version:** every gory picture also needs a **low-gore** version (the planned game option). Blood becomes green ichor or a grey dust puff, and a zombie that would be cut in half instead **crumples into a pile of dust and clothes** in one piece. Name it with `-lowgore` before the version, for example `zombie-jogger-defeat-cut-lowgore-strip-v01.png` (Proposed naming; the game has no slot for these files yet).
+- The exact amount of blood, and whether low gore is on when the game starts, are the owner's call (owner question 1).
 
 ## Screen and grid
 
@@ -181,6 +228,8 @@ Feel target: a classic FM synth chip (6 channels) plus a simple PSG chip (3 squa
 
 - Fill in `templates/AUDIO.md` for every music track and sound.
 - Tracks needed: **Proposed:** level music (`music-level-01-central-park`), optional gauntlet music (`music-level-01-gauntlet`), and a level-clear jingle (`sfx-level-clear`). Title, boss and game-over tracks have no slot in the game yet.
+- **Theme song (2026-10-19):** the owner's song "Sammy the Opossum : Zombie Hunter" (made with Suno, 70 s, MP3) is now the level music (Confirmed as the theme; Proposed as the level track). It is a full produced song, not FM chiptune, so the FM-synth feel above now applies to **sound effects** (and to any future tracks, if the owner wants them to match). It breaks the "loops cleanly, no intro" rule: it has a quiet ~5 s build-in and a fade-out, so for now the whole song simply replays every 70 s. A trimmed loop edit (or loop-point support in the game) can fix that later. It also starts on the title screen's first key press or tap, which starts the game too.
+- **Sound mood (Proposed, 2026-10-19):** sound effects move from "comic" to **punchy and gnarly with dark humour**: meaty hits, wet splats, a chainsaw that sputters, revs and screams. Groans can be creepy now.
 
 ## Nostalgic nods — do and don't
 

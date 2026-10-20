@@ -8,7 +8,7 @@ How to use this example: a filled-in `ASSET.md` for a level tileset and its scro
 - Category: environment
 - Files and purpose: see **Planned files** below
 - Readiness: none supplied — TBD
-- Visual description: **Example:** early-morning Central Park. Bright grass, packed-dirt paths, green benches, black iron lampposts, grey schist rock outcrops, a pond edge, low iron fences. Behind it: a tree line, then the Manhattan skyline as a flat silhouette, then a banded dawn sky. 16-bit era look: bold outlines on foreground, softer (outline-free) background, dithered shading allowed.
+- Visual description: **Example:** early-morning Central Park. Bright grass, packed-dirt paths, green benches, black iron lampposts, grey schist rock outcrops, a pond edge, low iron fences. Behind it: a tree line, then the Manhattan skyline as a flat silhouette, then a banded dawn sky. 16-bit era look: bold outlines on foreground, softer (outline-free) background, dithered shading allowed. *(Superseded 2026-10-19: see the "Zombie Hunter" direction in `design/DECISIONS.md`.)*
 - Intended role in the game: ground, platforms and scenery for `level-01-sheep-meadow` and later park levels
 - Camera/view: **Proposed:** side view, horizontal scrolling
 - Relative size: native screen 320×224 px; Sammy about 32–40 px tall, so a bench is about Sammy's height

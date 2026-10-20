@@ -25,7 +25,7 @@ A shorter second example. It shows how to describe an enemy that **behaves diffe
 | `zombie-vendor-idle-strip-v01.png` | 4 × 48×48 | Idle behind cart |
 | `zombie-vendor-throw-strip-v01.png` | 4 × 48×48 | Throw (release on frame 2) |
 | `zombie-vendor-hit-strip-v01.png` | 2 × 48×48 | Hit-react |
-| `zombie-vendor-defeat-strip-v01.png` | 6 × 48×48 | Comedic defeat |
+| `zombie-vendor-defeat-strip-v01.png` | 6 × 48×48 | Comedic defeat *(Superseded 2026-10-19: see the "Zombie Hunter" direction in `design/DECISIONS.md`.)* |
 | `hot-dog-projectile-strip-v01.png` | 4 × 16×16 | **Extra required:** spinning hot dog |
 | `hot-dog-splat-strip-v01.png` | 4 × 16×16 | **Extra required:** mustard splat when it lands or hits |
 

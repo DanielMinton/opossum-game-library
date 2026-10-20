@@ -1,6 +1,6 @@
 # Sammy: placeholder prototype (level 1, Sheep Meadow)
 
-This is a playable first level that uses **placeholder art and sound**. The first real art is in: Sammy's run animation. Otherwise Sammy is a grey box with ears and a pink nose, zombies are green boxes, and every sound is a code-generated beep. The on-screen label "PLACEHOLDER ART – NOT FINAL" stays visible the whole time. Your real art and sound replace the placeholders automatically, one file at a time, as you add them (see **Adding art** and **Adding sound** below).
+This is a playable first level that uses **placeholder art and sound**. The first real art is in: Sammy's run animation. The level music is real too: the owner's theme song "Sammy the Opossum : Zombie Hunter" (made with Suno; it plays here but is left out of `dist/` until its license is confirmed, owner question 21). Otherwise Sammy is a grey box with ears and a pink nose, zombies are green boxes, and every sound effect is a code-generated beep. The new "Zombie Hunter" direction (chainsaw, night-time park, stylized gore; see `design/DECISIONS.md`) isn't in the game yet; the chainsaw comes next. The on-screen label "PLACEHOLDER ART – NOT FINAL" stays visible the whole time. Your real art and sound replace the placeholders automatically, one file at a time, as you add them (see **Adding art** and **Adding sound** below).
 
 Every gameplay value comes from the examples in `templates/examples/`, which are **proposals, not approved design**. Changes the prototype made are listed in `design/DECISIONS.md`. The questions only you can answer (title, art style, how gory, and more) are in `design/OWNER_DECISIONS.md`, each with a suggested answer.
 
@@ -93,7 +93,7 @@ To try every planned file without scanning, add `?probe=1` to the address. Missi
 
 **Which sounds are planned:** the scanner's "Still missing — sounds" list shows every planned sound that has no file yet (the full list is `S.SOUND_MANIFEST` in `game/src/assets.js`).
 
-**Music:** `music-level-01-central-park` plays during the level. `music-level-01-gauntlet` plays during the gauntlet; without it, the level music keeps playing there without restarting. Real music also carries on (rather than restarting) after a checkpoint respawn or **R**; a K.O. starts it over. Pausing keeps the music's place, for both real music and the placeholder tune.
+**Music:** `music-level-01-central-park` plays during the level. Today that is the owner's theme song (`music-level-01-central-park-v01.mp3`, 70 s). It starts with the key press or tap that starts the game (browsers keep the title screen silent until then), so nobody presses twice. It loops whole, so its quiet ~5 s build-in and its fade-out replay every 70 s until a trimmed loop edit or loop points exist. `music-level-01-gauntlet` plays during the gauntlet; without it, the level music keeps playing there without restarting. Real music also carries on (rather than restarting) after a checkpoint respawn or **R**; a K.O. starts it over. Pausing keeps the music's place, for both real music and the placeholder tune.
 
 **Formats:**
 - Use `.ogg` (what `AUDIO.md` asks for). `.mp3` and `.wav` also work. If a sound has more than one format, the game uses the first one the browser can play, in the order ogg → mp3 → wav. Adding an `.mp3` next to each `.ogg` covers older Safari, which can't play `.ogg`.
@@ -114,7 +114,7 @@ node tools/build.mjs
 
 This makes `game/dist/`. You only need it for the shareable copy; `game/index.html` picks up new files after the scanner runs.
 - `index.html`: the game's code in one file.
-- `assets/`: the cleared real art and sound (today: Sammy's run animation). Share the whole `dist/` folder.
+- `assets/`: the cleared real art and sound (today: Sammy's run animation; the theme song isn't cleared yet). Share the whole `dist/` folder.
 - `BUILD_INFO.txt`: what art and sound was included, and why anything was left out. Its "Still placeholders (no real file yet):" section lists every planned picture and sound that has no real file yet. Its first line has a 12-character code that only changes when the game itself changes, so building again with nothing new leaves `dist/` exactly as it was.
 - `CREDITS.txt`: the credit line for every included file that needs one.
 
@@ -131,7 +131,7 @@ This makes `game/dist/`. You only need it for the shareable copy; `game/index.ht
 | `attribution_required` | `yes` or `no`. `yes` adds it to `CREDITS.txt` |
 | `notes` | Anything else |
 
-A file is copied **only if** `commercial_use` is `yes` **and** the license is filled in (not blank, TBD or unknown) **and** the license isn't non-commercial (NC) or reference-only. Anything else is left out, with the reason in `BUILD_INFO.txt`. Nothing from `assets/references/` is ever copied. Today the only real file is Sammy's run animation (cleared, so it is in the build); everything else is a placeholder.
+A file is copied **only if** `commercial_use` is `yes` **and** the license is filled in (not blank, TBD or unknown) **and** the license isn't non-commercial (NC) or reference-only. Anything else is left out, with the reason in `BUILD_INFO.txt`. Nothing from `assets/references/` is ever copied. Today the real files are Sammy's run animation (cleared, so it is in the build) and the theme song (left out: its `commercial_use` is "tbd" until the owner confirms the Suno plan); everything else is a placeholder.
 
 **Publishing (not done; needs your go-ahead).** The `dist/` folder is a static website, so it can be zipped and uploaded as an HTML game to itch.io, or hosted with GitHub Pages or Netlify. Before any public release:
 - Replace the placeholders.
@@ -144,7 +144,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | 58 game-rule checks (see the list below) |
+| `node --test tests/sim.test.mjs` | 61 game-rule checks (see the list below) |
 | `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 51 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 | `index.html?test=touch&touch=1` | The touch-button check by hand (it taps the real buttons for you) |
@@ -171,6 +171,7 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - the "turn your phone sideways" message: shown only on an upright phone (not a tablet) with touch buttons and until put away; its card is sharp, big enough and clear of notches
 - starting sound on phones (with a pretend sound engine and sound files): every kind of tap tries, a refused try is retried, a silent sample plays, every file and copy is primed without a sound and gets its volume back, files are primed only when a finger lifts, a click or a key press (a pretend phone that, like a real one, lets muted files play any time but unlocks them only then: a finger going down must not count), it stops listening once sound is on, it restarts after a call or the lock screen but never while hidden, music waits for the unpause, and mute reaches every copy
 - the drawing templates: one for every planned picture at its exact size, kept outside `assets/`; their guide marks are part see-through, so the scanner warns about a guide left in; making them again gives the same files
+- the "Zombie Hunter" files: the theme song is found by the scanner, is the level track (and the gauntlet's fallback), starts with the first press on the title screen, and its license row keeps it out of the build with a clear reason; the concept picture stays reference-only; the three README pictures are self-contained and the cast's numbers (3 lid hits, 3 hot dogs) match the game
 
 **Browser checks** cover:
 - the shareable copy is up to date: `dist/index.html` has the current code from `src/`, and `BUILD_INFO.txt` has the matching code. If not, it says "run node tools/build.mjs". (So after changing anything in `src/`, build before running this test.)
@@ -179,14 +180,14 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 - every screen the autopilot never reaches draws without errors: hurt, K.O., play-dead, shield, confused zombies, pause and mute
 - art scanning: the newest version of a strip is picked, and a wrong-size file is warned about
 - art loading: correct test images load and are drawn, the hit flash works on real art, and a wrong-size test image is reported and not drawn
-- sound loading: a test sound effect and test music load, and real key presses play them instead of the beeps
+- sound loading: a test sound effect and test music load, and real key presses play them instead of the beeps; the source game loads every real sound file in `assets/` (today the theme song), and the built game loads none until one is cleared
 - touch buttons at a sideways phone (source and built game) and an upright phone: real touch events on the real buttons start the game, move (and turn by sliding), jump higher when held, tail-whip, move and jump with two fingers, pause, mute and restart; every way a finger can be lost (lifted, cancelled, the page losing focus or being hidden) lets go of the button; the first tap unlocks sound
 - phone layout: upright (393×852), the "turn your phone sideways" message covers the buttons and keeps the game paused, and PLAY UPRIGHT ANYWAY (at least 48×48 points) puts it away without un-pausing; an upright iPad (820×1180) shows no message; sideways, no message and a full-screen button; on computers (1920×1080, 1440×900, a tall 500×900 window) no message and no buttons
 - auto-pause: hiding the page or leaving the window pauses the game and lets go of keys and touch buttons (keys and touch, source and built game); it doesn't resume by itself
 - sound on phones (`?test=audio`, with the two test sounds): every kind of tap, click and key press tries to start sound; a refused try is retried; a tap on a touch button starts the real sound engine on the finger going down but primes no file until the finger lifts, then primes all 5 files silently (music plus 4 copies of the jump sound) and stops listening; stopped while hidden, it keeps listening and a tap on the sideways message's button restarts it; after a pretend lock screen, music stays paused until unpause; mute silences every copy. A second run uses the normal browser rule (no real tap possible): no errors, sound stays off, and it keeps listening
 - screen size at a sideways phone (852×393, 3 real pixels per point) and a laptop (1366×768): the picture is the size `layout.js` works out, fills the phone's height (95%), the page doesn't scroll, a screenshot shows every game pixel as one solid square (sharp, not blurred), and no touch buttons show
 
-The art and sound checks use a temporary copy of the library, never your `assets/` folder.
+The test art and test sounds live in a temporary copy of the library, never your `assets/` folder.
 
 **Not tested by machine:**
 - how the controls feel in human hands

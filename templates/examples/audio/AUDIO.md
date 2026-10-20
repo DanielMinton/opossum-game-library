@@ -23,7 +23,7 @@ How to use this example: real copies go in `assets/audio/music/<asset-id>/` and 
 - File: `music-level-01-central-park-v01.ogg` (planned — not yet supplied)
 - Music / sound effect / voice: music
 - Trigger or scene: starts after Sammy's wake-up intro in `level-01-sheep-meadow`; plays until the end-of-level gauntlet, which switches to `music-level-01-gauntlet` if that file exists
-- Style (Example): upbeat, a little spooky-silly; FM slap bass, bright lead, noise-channel hi-hats. BPM: TBD (suggest 130–150 for a run-and-fight level)
+- Style (Example): upbeat, a little spooky-silly; FM slap bass, bright lead, noise-channel hi-hats. BPM: TBD (suggest 130–150 for a run-and-fight level) *(Superseded 2026-10-19: the level track is now the owner's theme song "Sammy the Opossum : Zombie Hunter", made with Suno; see `design/DECISIONS.md`.)*
 - Length (Proposed): one loop of 60–90 s, no separate intro
 - Loop: the whole file loops end-to-start. It must be seamless — no click or gap at the seam. (Loop points are not supported yet. If you want an intro later, write the loop start and end in seconds **and** sample number here, and ask for loop-point support.)
 - Volume intent: background — about −14 LUFS integrated (Proposed); SFX must stay audible over it
@@ -38,11 +38,11 @@ How to use this example: real copies go in `assets/audio/music/<asset-id>/` and 
 | sfx-land | Sammy lands (after a fall, not every tiny step) | 0.1 s | 2 | Soft thud |
 | sfx-tail-whip | Tail-whip starts (frame 0) | 0.15–0.2 s | 2 | Whoosh |
 | sfx-hit-zombie | Tail-whip connects (hit frame 2) | 0.1–0.2 s | 3 | Cartoon smack/bonk |
-| sfx-zombie-groan | Zombie notices Sammy; random idle groans | 0.5–1.0 s | 3+ | Comic, not scary; keep it short so groans don't pile up |
+| sfx-zombie-groan | Zombie notices Sammy; random idle groans | 0.5–1.0 s | 3+ | Comic, not scary; keep it short so groans don't pile up *(Superseded 2026-10-19: see the "Zombie Hunter" direction in `design/DECISIONS.md`.)* |
 | sfx-pickup | Collect hot dog / power-up | 0.2–0.3 s | 1 | Bright rising arpeggio |
 | sfx-hurt | Sammy takes damage | 0.2–0.3 s | 2 | Squeak + noise hit |
 | sfx-play-dead | Sammy starts Play Possum | 0.4–0.6 s | 1 | Thud + comic wheeze |
-| sfx-zombie-defeat-comedic | Zombie's humorous defeat animation | 0.5–1.0 s | 3 (one per defeat gag: head-pop, deflate, clothes-pile) | Slapstick: pop, slide-whistle, kazoo-like fizzle |
+| sfx-zombie-defeat-comedic | Zombie's humorous defeat animation | 0.5–1.0 s | 3 (one per defeat gag: head-pop, deflate, clothes-pile) | Slapstick: pop, slide-whistle, kazoo-like fizzle *(Superseded 2026-10-19: see the "Zombie Hunter" direction in `design/DECISIONS.md`.)* |
 | sfx-cart-crash | Prop breaks (hot dog cart tips over) | 0.3–0.5 s | 1 | Metal clang + rattle |
 | sfx-ko | Sammy is defeated (KO) | 0.8–1.5 s | 1 | Short comic "wah-wah" fall |
 

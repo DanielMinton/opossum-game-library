@@ -3,13 +3,13 @@
 
 > **Where the real copy goes:** `design/levels/level-01-sheep-meadow.md` (per `templates/LEVEL.md`) — **not** `assets/`. Level docs describe layout, not artwork.
 
-**Confirmed by the user:** Sammy (an opossum, "he") wakes up in Central Park with no memory of how he got there; humans have become zombies with humorous, slapstick-graphic animations; Sammy fights through levels using interactive objects, power-ups and special abilities; 16-bit console presentation. **Everything below is Proposed / Example.**
+**Confirmed by the user:** Sammy (an opossum, "he") wakes up in Central Park with no memory of how he got there; humans have become zombies with humorous, slapstick-graphic animations; Sammy fights through levels using interactive objects, power-ups and special abilities; 16-bit console presentation. **Everything below is Proposed / Example.** *(Superseded 2026-10-19: see the "Zombie Hunter" direction in `design/DECISIONS.md`.)*
 
 ## Overview
 
 - Level ID: `level-01-sheep-meadow`
 - Display name: TBD (e.g., "Sheep Meadow" or "Wake-Up Call")
-- Location: Sheep Meadow, Central Park, early morning
+- Location: Sheep Meadow, Central Park, early morning *(Superseded 2026-10-19: now night-time; see the "Zombie Hunter" direction in `design/DECISIONS.md`.)*
 - Order in game: first (also the tutorial — teaches move, jump, tail-whip, props, power-up, and Play Possum one at a time)
 - Story beat: Sammy wakes on the grass with no memory, finds the park full of zombies, and fights his way to the park exit.
 - Length in screens: **12** (3840×224 px = 240×14 metatiles of 16×16)

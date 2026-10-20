@@ -32,6 +32,7 @@ import vm from 'node:vm';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { scan } from '../tools/scan-assets.mjs';
+import { parseCsv, cleared } from '../tools/licenses.mjs';
 import { png } from './png-writer.mjs';
 import { readChunks, decodePixels } from '../tools/png.mjs';
 
@@ -108,6 +109,16 @@ if (!fs.existsSync(distHtml)) {
     info.includes('code ' + hash + ' ') ? hash : 'expected ' + hash + ' — run node tools/build.mjs');
 }
 
+// How many real sound files the scanner found in assets/ (from the generated src/asset-files.js);
+// onlyCleared: just those whose design/ASSET_SOURCES.csv row lets them ship.
+function presentSoundCount(onlyCleared) {
+  const box = {};
+  vm.runInNewContext(fs.readFileSync(path.join(gameDir, 'src', 'asset-files.js'), 'utf8'), box);
+  const rows = parseCsv(fs.readFileSync(path.join(gameDir, '..', 'design', 'ASSET_SOURCES.csv'), 'utf8'));
+  const ok = (f) => !onlyCleared || cleared(rows.find((r) => r.path === 'assets/' + f));
+  return Object.values(box.SAMMY.PRESENT_SOUND_FILES || {}).reduce((n, list) => n + list.filter(ok).length, 0);
+}
+
 const chrome = findChrome();
 if (!chrome) { console.error('No Chromium-based browser found. Set CHROME_PATH.'); process.exit(2); }
 console.log('Browser: ' + chrome);
@@ -132,7 +143,12 @@ for (const [label, file] of [['source game (game/index.html)', path.join(gameDir
   // Real art in assets/ (if any) must all load, at the right size.
   check(label + ': every real art file loads with no size warnings', r.assets && r.assets.loaded.length === r.assets.tried && r.assets.warnings.length === 0,
     `tried ${r.assets && r.assets.tried}, loaded ${JSON.stringify(r.assets && r.assets.loaded)}, warnings ${JSON.stringify(r.assets && r.assets.warnings)}`);
-  check(label + ': no sound files expected yet, so none loaded', r.sounds && r.sounds.tried === 0, 'tried ' + (r.sounds && r.sounds.tried));
+  // Real sound files: the source game loads every one the scanner listed (today the theme song); the built game only
+  // the cleared ones (none yet: the theme song waits on its license, owner question 21).
+  const wantSounds = presentSoundCount(!label.startsWith('source'));
+  check(label + ': ' + (wantSounds ? 'every real sound file loads (' + wantSounds + ')' : 'no cleared sound files, so none loaded'),
+    r.sounds && r.sounds.tried === wantSounds && r.sounds.loaded.length === wantSounds && r.sounds.failed.length === 0,
+    `tried ${r.sounds && r.sounds.tried}, loaded ${JSON.stringify(r.sounds && r.sounds.loaded)}, failed ${JSON.stringify(r.sounds && r.sounds.failed)}`);
 }
 
 // 3: real-art loading in a temporary copy of the library

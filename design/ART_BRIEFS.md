@@ -1,10 +1,12 @@
 # Art and sound briefs
 
-> **Proposed (not approved).** Everything on this page is a suggestion for an artist or composer to work from. Only these facts are Confirmed by the owner: Sammy is an opossum ("he"), he wakes up in Central Park with no memory, the humans are cartoon zombies with funny, slapstick deaths, and the game should look and sound like a 16-bit console game from that era. Sizes, frame counts and speeds below are what the game uses **today**; changing them means changing the game too.
+> **Proposed (not approved).** Everything on this page is a suggestion for an artist or composer to work from. Only these facts are Confirmed by the owner: Sammy is an opossum ("he"), he wakes up in Central Park with no memory, the humans are zombies, and the game should look and sound like a 16-bit console game from that era. **New direction, Confirmed 2026-10-19:** badass action-horror with dark humour: a ferocious Sammy with a **chainsaw**, Central Park **at night** (Bethesda Terrace inspiration), gorier than before, and the owner's theme song. Mood picture: `assets/references/zombie-hunter-concept-v01.jpg` (reference only). *(Superseded: this line used to say "cartoon zombies with funny, slapstick deaths".)* Sizes, frame counts and speeds below are what the game uses **today**; changing them means changing the game too.
 >
-> **How gory?** This page assumes the suggested answer to question 1 in `design/OWNER_DECISIONS.md`: **cartoon slapstick, no blood** (heads pop off and bounce, zombies deflate, hot dogs splat). That question is still open. If the owner chooses differently, the defeat and splat pictures below change.
+> **How gory?** This page now assumes the new suggested answer to question 1 in `design/OWNER_DECISIONS.md`: **stylized 16-bit gore** (chunky pixel blood and green ichor in the reserved colours, zombies cut in half by the chainsaw, sparks; never realistic; Sammy never bleeds), plus a **low-gore version** of every gory picture. Gore rules and colours: `design/STYLE_GUIDE.md`, "Night mood". The exact level is still the owner's call. *(Superseded 2026-10-19: this page used to assume "cartoon slapstick, no blood".)*
+>
+> **Tone for every brief below (2026-10-19):** zombies are **rotting and menacing**, not cute: torn clothes, grey-green or grey-blue skin, exposed teeth, a few dark wounds, but still readable cartoons with a streak of dark humour. Sammy is **ferocious**: snarling, fangs, the red bandana. Where a brief below still says "funny, not scary" or "no blood", read it with this tone; those words are marked superseded.
 
-*Last updated 2026-10-19.*
+*Last updated 2026-10-19 (new "Zombie Hunter" tone, chainsaw brief).*
 
 ---
 
@@ -69,7 +71,7 @@ A contact sheet is an enlarged, labelled preview of the templates, for looking a
 
 Folder: `assets/characters/character-sammy/`. Templates: `templates/art-templates/characters/character-sammy/`.
 
-**Look (example, change freely):** grey-white fur, white face with dark eye patches, pink nose, rounded black ears, black legs, long bare pink tail. Scruffy, wide-eyed and confused, but scrappy. About 32–40 px tall. Uses the Sammy + top-bar colour set (palette line 0).
+**Look (example, change freely):** grey-white fur, white face with dark eye patches, pink nose, rounded black ears, black legs, long bare pink tail, **red bandana** (as in his run strip). ~~Scruffy, wide-eyed and confused, but scrappy.~~ *(Superseded 2026-10-19.)* **Ferocious:** narrowed eyes, bared fangs, ears back when he attacks; a cocky grin when he wins. Same cartoon style as his run strip, not the painted concept picture. About 32–40 px tall (his run strip is about 43 with ears). Uses the Sammy + top-bar colour set (palette line 0).
 
 **Feet point (28, 47)** in every 48×48 frame. That's 4 px right of centre, so his tail has room behind him. The tail-whip uses a wider 64×48 box with the feet point at **(36, 47)**, so his body lands in the same place. Every Sammy strip must use these points, or he will jump sideways when the animation changes.
 
@@ -188,7 +190,7 @@ Folder: `assets/characters/character-sammy/`. Templates: `templates/art-template
 
 Folder: `assets/enemies/enemy-zombie-jogger/`. Templates: `templates/art-templates/enemies/enemy-zombie-jogger/`.
 
-**Look (example):** a morning jogger turned zombie. Neon sweatband, headphones dangling from one ear, sweat-stained tank top, one sneaker untied, step-counter watch. Grey-blue or grey-green skin (keep it away from the grass greens, see `design/STYLE_GUIDE.md`), droopy eyes, tongue out. Funny, not scary. About 40–46 px tall, a little taller than Sammy. Uses the zombie colour set (palette line 1), shared by all zombies.
+**Look (example):** a morning jogger turned zombie. Neon sweatband, headphones dangling from one ear, sweat-stained tank top, one sneaker untied, step-counter watch. Grey-blue or grey-green skin (keep it away from the grass greens, see `design/STYLE_GUIDE.md`), droopy eyes, tongue out. ~~Funny, not scary.~~ *(Superseded 2026-10-19:)* **rotting and menacing**: torn tracksuit, sunken glowing eyes, exposed teeth, a few dark wounds; the dark joke is that he's still out jogging. About 40–46 px tall, a little taller than Sammy. Uses the zombie colour set (palette line 1), shared by all zombies.
 
 **Feet point (24, 47)** in every 48×48 frame.
 
@@ -234,7 +236,8 @@ Folder: `assets/enemies/enemy-zombie-jogger/`. Templates: `templates/art-templat
 - Size: **384×48** (8 frames of 48×48)
 - Speed: 12 fps; total time 0.67 s. Plays: **once**, then the zombie **disappears** straight away (frame 8 is on screen for only 1/12 s). Feet point (24, 47).
 - The game writes "BOING" above him for the first 0.3 s. Keep everything, including the bouncing head, inside this 48×48 box. A separate head picture isn't used yet.
-- Frames (cartoon gag, no blood, pending the gore decision):
+- **Which attack:** this strip is the **tail-whip** defeat. The chainsaw's cut-in-half defeat is a separate strip, planned for step B (see "Chainsaw power-up" below).
+- Frames (dark gag; ~~no blood~~ *superseded 2026-10-19*: a little stylized blood or ichor when the head comes off, in the reserved colours; low-gore version: dust puff instead):
   1. Stops, glances at his watch.
   2. Shocked, eyes bulging at the watch.
   3. Freezes stiff.
@@ -262,7 +265,7 @@ Folder: `assets/enemies/enemy-zombie-jogger/`. Templates: `templates/art-templat
 
 Folder: `assets/enemies/enemy-zombie-hot-dog-vendor/`. Templates: `templates/art-templates/enemies/enemy-zombie-hot-dog-vendor/`.
 
-**Look (example):** paper hat, stained apron, mustache, tongs in one hand. He stays in one place and lobs hot dogs. About Sammy's height plus a bit, in a 48×48 box (the game is set up for 48×48, not 64×64). Zombie colour set (palette line 1).
+**Look (example):** paper hat, ~~stained~~ **blood-stained** apron, mustache, tongs in one hand, rotting grey skin, a nasty grin (2026-10-19 tone: menacing, not cute). He stays in one place and lobs hot dogs. About Sammy's height plus a bit, in a 48×48 box (the game is set up for 48×48, not 64×64). Zombie colour set (palette line 1).
 
 **Feet point (24, 47)** for the vendor. The thrown hot dog and the splat are centred on **(8, 8)** and have no ground line.
 
@@ -306,7 +309,8 @@ Folder: `assets/enemies/enemy-zombie-hot-dog-vendor/`. Templates: `templates/art
 - Size: **288×48** (6 frames of 48×48)
 - Speed: 12 fps; total time 0.5 s. Plays: **once**, then he **disappears** straight away. Feet point (24, 47).
 - The game writes "PFFFT" above him. Keep it inside his own box (the cart is a separate picture).
-- Frames (he deflates like a balloon, no blood):
+- **2026-10-19:** this is still his tail-whip defeat (Proposed: keep the deflate gag as dark humour, with a little ichor hissing out instead of plain air; low-gore version: plain air). The chainsaw's cut-in-half defeat is a separate strip, planned for step B.
+- Frames (he deflates like a balloon; ~~no blood~~ *superseded 2026-10-19*, see above):
   1. Surprised, puffed up round.
   2. Starting to sag, air escaping.
   3. Half size, hat slipping.
@@ -446,11 +450,53 @@ Folder: `assets/items/item-powerup-trash-lid-shield/`. Templates: `templates/art
 
 ---
 
+## Chainsaw power-up (planned for step B; not in the game yet)
+
+**All Proposed (2026-10-19).** The owner confirmed that Sammy fights with a chainsaw. The game doesn't have it yet: step B adds it. **These files have no slot in the game today** (they aren't in `game/src/assets.js`, the scanner doesn't list them, and there are no templates yet), so the names and sizes below may change when step B is built. Wait for step B before drawing final art; rough sketches are welcome now.
+
+**Proposed rules:** the chainsaw is a **power-up** lying in the level. Sammy picks it up and, for a limited time (or a limited amount of fuel), his attack button revs and cuts with the chainsaw instead of the tail-whip. The cut **slices zombies in half**. When it runs out, he's back to the tail-whip, which always stays his basic attack.
+
+**Look (example):** a rusty orange chainsaw with a scuffed engine, a pull cord and a long grey bar with a chunky chain, like the concept picture, but drawn in the game's own 16-bit cartoon style. Sammy holds it in both front paws, bar pointing forward.
+
+### Chainsaw pickup: `chainsaw-pickup-strip-v01.png`
+- Folder: `assets/items/item-powerup-chainsaw/` (new)
+- Size: about **128×16** (4 frames of **32×16**). Feet point (16, 15), resting on its bottom row. Never flipped.
+- Speed: 8 fps; **loops**. The game bobs it like the trash lid, so don't draw a bob.
+- Frames: 1 resting · 2 a glint runs along the bar · 3 a small puff of exhaust · 4 resting.
+
+### Sammy with the chainsaw: two ways to draw it (pick one; Proposed: **A**)
+- **A. Full strips (Proposed):** Sammy drawn holding the saw, in the same boxes and feet point as his other strips. Best look; more drawing. **64×48** frames, feet point **(36, 47)** (like the tail-whip, so the bar fits in front of him):
+  - `sammy-chainsaw-idle-strip-v01.png`: 4 frames, 6 fps, loops (engine idling: the saw shakes 1 px, a puff of smoke).
+  - `sammy-chainsaw-run-strip-v01.png`: 8 frames, 12 fps, loops (same leg timing as his run strip, saw held forward).
+  - `sammy-chainsaw-rev-strip-v01.png`: 2 frames, 15 fps, loops (revving before the cut: snarl, saw lifted, chain blurred).
+  - `sammy-chainsaw-cut-strip-v01.png`: 4 frames, 15 fps, plays once, **hit frame 3** (a big forward sweep; sparks at the tip).
+- **B. Overlay:** the saw drawn alone, placed on top of Sammy's normal strips at a hand point (like the trash lid he holds). Much less drawing, but the saw can't change his pose.
+  - `chainsaw-held-overlay-strip-v01.png`: about 4 frames of **32×16**, chosen by the game (idle, rev, cut, cut with sparks).
+
+### Effects and defeats
+- **Zombie cut in half:** a new defeat strip per zombie, for example `zombie-jogger-defeat-cut-strip-v01.png` and `zombie-vendor-defeat-cut-strip-v01.png` (48×48 frames, about 6–8 frames, 12 fps, plays once): the top half slides off and falls, the legs take a step and drop, a burst of blood or ichor in the reserved colours. Ends on a small pile.
+- **Low-gore versions** of each: `...-defeat-cut-lowgore-strip-v01.png`, the zombie crumpling into a pile of dust and clothes in one piece (rules: `design/STYLE_GUIDE.md`, "Gore rules for artists").
+- **Sparks and splats:** a small spark burst and a blood splat, about 16×16 frames, centred (8, 8); plus a green ichor version.
+- **Top-bar icon:** a 16×16 chainsaw icon, with the game drawing a fuel or time bar beside it.
+
+### Chainsaw sounds (planned for step B)
+
+| Sound | When | Feel | Loops? |
+|---|---|---|---|
+| `sfx-chainsaw-start` | Sammy picks up the saw (pull-cord start) | 0.5–1 s, pull-cord rasp, sputter, catch | no |
+| `sfx-chainsaw-rev` | While the saw is running or revving | 1–2 s, engine buzz that loops cleanly | **yes** (the first looping sound effect; needs a small game change) |
+| `sfx-chainsaw-cut` | The saw hits a zombie | 0.3–0.6 s, the chain biting: a scream of the engine plus a crunch | no (2–3 variations) |
+| `sfx-gore-splat` | A zombie is cut in half or bursts | 0.2–0.4 s, wet, chunky splat (low gore: a dry thud) | no (2–3 variations) |
+
+These sound names aren't in the game's sound list yet, so the scanner doesn't ask for them. Step B adds them.
+
+---
+
 ## Central Park background (4 layers)
 
 Folder: `assets/environments/environment-central-park-tileset/`. Templates: `templates/art-templates/environments/environment-central-park-tileset/`.
 
-**Look (example):** early-morning Central Park. A banded dawn sky, a flat Manhattan skyline silhouette (recognisable, but not copied from a photo or logo), a tree line, then near bushes just behind the grass. **No outlines** on background layers, and only a few colours each. All layers share the background colour set (palette line 3). No see-through haze; use dithering instead.
+**Look (example):** ~~early-morning Central Park. A banded dawn sky,~~ *(Superseded 2026-10-19: the owner chose night.)* **Central Park at night**, inspired by Bethesda Terrace: a navy-to-indigo night sky with a full moon, amber lamps with dithered halos, rain-slick stone with dithered reflections, autumn leaves (colours: `design/STYLE_GUIDE.md`, "Night mood"). Original (not copied) details: a flat Manhattan skyline silhouette (recognisable, but not copied from a photo or logo), a tree line, then near bushes just behind the grass. **No outlines** on background layers, and only a few colours each. All layers share the background colour set (palette line 3). No see-through haze; use dithering instead.
 
 All layers are placed by their top-left corner, with no feet point. They are single pictures (no animation). The bar at the top of the screen covers rows 0–15.
 
@@ -468,32 +514,32 @@ All layers are placed by their top-left corner, with no feet point. They are sin
 - Template: `templates/art-templates/environments/environment-central-park-tileset/central-park-bg-sky-TEMPLATE.png`
 - Size: **320×224** (1 picture). Fully solid: no see-through pixels.
 - **Paint all 224 rows.** The sky shows clearly in rows 16–79, but it also shows through every gap in the skyline and trees below, so carry it down to the bottom.
-- Picture: 6–8 flat colour bands, dark blue at the top, through lighter blue and lavender, to pink and peach near the horizon. Dithered seams between bands are fine; smooth gradients are not.
+- Picture: 6–8 flat colour bands, ~~dark blue at the top, through lighter blue and lavender, to pink and peach near the horizon~~ *(superseded 2026-10-19)* navy at the top, through indigo, to a dusky purple city glow near the horizon, with a big pale **full moon** in the upper left and a few single-pixel stars. Dithered seams between bands are fine; smooth gradients are not.
 
 ### Skyline: `central-park-bg-skyline-v01.png`
 - Save as `assets/environments/environment-central-park-tileset/central-park-bg-skyline-v01.png`
 - Template: `templates/art-templates/environments/environment-central-park-tileset/central-park-bg-skyline-TEMPLATE.png`
 - Size: **512×64** (1 picture). See-through above the buildings, so the sky shows.
-- Picture: a flat silhouette of tall Manhattan buildings in 2–3 colours, with a few lit windows if you like. Seamless left-to-right loop.
+- Picture: a flat silhouette of tall Manhattan buildings in 2–3 dark colours, with scattered amber lit windows (night). Seamless left-to-right loop.
 
 ### Tree line: `central-park-bg-treeline-v01.png`
 - Save as `assets/environments/environment-central-park-tileset/central-park-bg-treeline-v01.png`
 - Template: `templates/art-templates/environments/environment-central-park-tileset/central-park-bg-treeline-TEMPLATE.png`
 - Size: **512×32** (1 picture). See-through above the treetops; fill the bottom rows solid.
-- Picture: rounded tree canopies of different heights, 2–3 greens. Seamless loop.
+- Picture: rounded tree canopies of different heights, 2–3 dark blue-greens at night, with a few autumn orange and rust clumps. Seamless loop.
 
 ### Bushes: `central-park-bg-bushes-v01.png`
 - Save as `assets/environments/environment-central-park-tileset/central-park-bg-bushes-v01.png`
 - Template: `templates/art-templates/environments/environment-central-park-tileset/central-park-bg-bushes-TEMPLATE.png`
 - Size: **512×32** (1 picture). Only the **top 16 rows** are ever seen (the grass covers the rest).
 - **Fill it solid, with no see-through pixels.** Only the sky is behind this layer, so any gap would look like a hole. Fill the spaces between bushes with a darker tree or shadow colour.
-- Picture: round bushes just behind the grass, a bit brighter than the tree line. Seamless loop.
+- Picture: round bushes just behind the grass, a bit brighter than the tree line. Optional (Proposed): a stone balustrade in front of them, like Bethesda Terrace's, lit amber here and there. Seamless loop.
 
 ---
 
 ## Sounds
 
-**Feel (Proposed):** 16-bit era console sound: FM-synth bass and bright leads plus simple chip beeps and noise drums. Original sounds only: don't sample or imitate sounds or tunes from commercial games.
+**Feel (Proposed):** 16-bit era console sound: FM-synth bass and bright leads plus simple chip beeps and noise drums. Original sounds only: don't sample or imitate sounds or tunes from commercial games. **2026-10-19:** sound effects are now **punchy and gnarly with dark humour** rather than comic (meaty hits, wet splats, creepy groans); where a line below says "comic" or "not scary", it's superseded by this. Music: the owner's theme song is now the level track (below).
 
 **How to deliver:** each sound has its own folder. Save it as `<id>-v01.ogg` (an `.mp3` beside it helps older Safari, and `.wav` also works). Or send WAV masters (44.1 kHz, 16-bit) and Claude converts them with `node tools/convert-audio.mjs`. Trim silence from the start. **Variations:** save extra versions as `<id>-v01-a.ogg`, `<id>-v01-b.ogg`, and so on. The game picks **one at random** each time. Until a file arrives, each sound plays a placeholder beep.
 
@@ -505,8 +551,8 @@ Music **loops whole**: the end must flow straight back into the start with no cl
 
 | Sound | Save in | When it plays | Suggested length and feel |
 |---|---|---|---|
-| `music-level-01-central-park` | `assets/audio/music/music-level-01-central-park/` | From pressing Start, through the level. Pauses with the game. Stops when Sammy is KO'd, then starts again from the top when he comes back at the checkpoint. A restart from the pause menu keeps it playing. Stops when the level is cleared. | 60–90 s loop. Upbeat and a little spooky-silly, about 130–150 beats a minute: slap bass, bright lead, noise hi-hats. |
-| `music-level-01-gauntlet` (optional) | `assets/audio/music/music-level-01-gauntlet/` | The final zombie fight (3 waves), until the exit opens; then the level music comes back. Without this file, the level music just keeps playing. | 30–60 s loop. Faster and more urgent, the same mood and instruments. |
+| `music-level-01-central-park` | `assets/audio/music/music-level-01-central-park/` | **Supplied 2026-10-19:** the owner's theme song "Sammy the Opossum : Zombie Hunter" (`music-level-01-central-park-v01.mp3`, 70 s, made with Suno; plays in your own copy, left out of the shareable copy until owner question 21 is answered). It loops whole, so its quiet intro and fade-out replay every 70 s; a trimmed loop edit could come later. From the first key press or tap on the title screen (which also starts the game), through the level. Pauses with the game. Stops when Sammy is KO'd, then starts again from the top when he comes back at the checkpoint. A restart from the pause menu keeps it playing. Stops when the level is cleared. | ~~60–90 s loop. Upbeat and a little spooky-silly, about 130–150 beats a minute: slap bass, bright lead, noise hi-hats.~~ *(Superseded by the theme song.)* A loop edit, if made: cut the quiet build-in and the fade so the end flows straight back into the start. |
+| `music-level-01-gauntlet` (optional) | `assets/audio/music/music-level-01-gauntlet/` | The final zombie fight (3 waves), until the exit opens; then the level music comes back. Without this file, the level music just keeps playing. | 30–60 s loop. Faster and more urgent, in the theme song's mood (heavy, driving). |
 
 ### Sound effects (21)
 
@@ -517,12 +563,12 @@ All play once (none loop). Save each in `assets/audio/sfx/<id>/`, for example `a
 | `sfx-jump` | Sammy leaves the ground | 0.15–0.25 s, rising chip "boing" | 1 |
 | `sfx-land` | Sammy lands after a real fall (not small hops) | about 0.1 s, soft thud | 2 |
 | `sfx-tail-whip` | The tail-whip starts | 0.15–0.2 s, whoosh | 2 |
-| `sfx-hit-zombie` | The whip hits a zombie | 0.1–0.2 s, cartoon smack or bonk | 3 |
-| `sfx-zombie-groan` | A jogger first notices Sammy (at most once every 1.5 s), and when each wave of the final fight drops in | 0.5–1 s, comic groan, not scary; short so groans don't pile up | 3 or more |
+| `sfx-hit-zombie` | The whip hits a zombie | 0.1–0.2 s, meaty smack or crunch | 3 |
+| `sfx-zombie-groan` | A jogger first notices Sammy (at most once every 1.5 s), and when each wave of the final fight drops in | 0.5–1 s, rotten, creepy groan (~~comic, not scary~~, superseded 2026-10-19); short so groans don't pile up | 3 or more |
 | `sfx-pickup` | Sammy grabs a hot dog or a trash lid | 0.2–0.3 s, bright rising notes | 1 |
 | `sfx-hurt` | Sammy loses a heart (also plays with the splash when he falls in the pond) | 0.2–0.3 s, squeak plus a noise hit | 2 |
 | `sfx-play-dead` | Sammy starts playing dead | 0.4–0.6 s, thud plus a comic wheeze | 1 |
-| `sfx-zombie-defeat-comedic` | Any zombie is defeated (jogger or vendor) | 0.5–1 s, slapstick: pop, slide whistle, kazoo-like fizzle | up to 3, but see "Needs direction" |
+| `sfx-zombie-defeat-comedic` | Any zombie is defeated (jogger or vendor) | 0.5–1 s, wet splat or crunch with a darkly funny tail (~~slapstick: pop, slide whistle, kazoo-like fizzle~~, superseded 2026-10-19). The id keeps its old name ("comedic") because the game uses it. | up to 3, but see "Needs direction" |
 | `sfx-cart-crash` | The cart tips over (the screen also shakes) | 0.3–0.5 s, metal clang and rattle | 1 |
 | `sfx-ko` | Sammy runs out of hearts (the music stops) | 0.8–1.5 s, comic "wah-wah" fall | 1 |
 | `sfx-cart-rock` | The first whip on the cart makes it wobble | about 0.1–0.2 s, creak and small clunk | 1 |

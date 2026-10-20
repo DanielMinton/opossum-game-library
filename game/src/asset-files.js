@@ -5,5 +5,9 @@
   S.PRESENT_ASSET_FILES = {
     "characters/character-sammy/sammy-run-strip-v01.png": "characters/character-sammy/sammy-run-strip-v01.png"
   };
-  S.PRESENT_SOUND_FILES = {};
+  S.PRESENT_SOUND_FILES = {
+    "music-level-01-central-park": [
+      "audio/music/music-level-01-central-park/music-level-01-central-park-v01.mp3"
+    ]
+  };
 })(globalThis.SAMMY = globalThis.SAMMY || {});

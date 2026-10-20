@@ -6,6 +6,8 @@
 
 To see which planned files exist and which are still missing, run the scanner (see "Adding real art" in the main `README.md`).
 
+**Tone update (2026-10-19):** these examples were written for a cute, comedic, no-blood game. The owner has since chosen a badass action-horror direction with dark humour: a chainsaw, night-time Central Park and stylized gore with a low-gore option (see `design/DECISIONS.md`, "New direction — Zombie Hunter", and `design/ART_BRIEFS.md`). Lines that say "comedic", "not scary", "no blood" or "early morning" are marked superseded; sizes, frame counts and names still apply.
+
 This README is the index of the examples folder; it is itself not an asset.
 
 These are **filled-in examples** of the templates in `templates/`, written for Sammy's Central Park game. They show what "good enough" metadata looks like so you can copy the pattern. All details (sizes, frame counts, ability names, enemy types, level names) are **Proposed / Example** — not decisions, and not real assets.

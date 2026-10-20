@@ -1284,3 +1284,62 @@ test('art templates: making them again gives the same pictures; old ones are cle
   }
   assert.ok(!fs.existsSync(path.join(libRoot, 'assets', 'templates')));
 });
+
+// ---------- the "Zombie Hunter" direction: theme song, concept picture, README art ----------
+test('theme song: found in the real library as the level music (started by the first press on the title screen, kept through the gauntlet), but held out of the build until its Suno plan is confirmed', async () => {
+  const { scan } = await import('../tools/scan-assets.mjs');
+  const { parseCsv, excludeReason, cleared } = await import('../tools/licenses.mjs');
+  const song = 'audio/music/music-level-01-central-park/music-level-01-central-park-v01.mp3';
+  assert.ok(fs.existsSync(path.join(libRoot, 'assets', song)), 'song file is in assets/');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sammy-song-'));
+  try {
+    const r = scan(libRoot, path.join(tmp, 'asset-files.js')); // reads the real library, writes only to the temp folder
+    assert.deepEqual(r.sounds['music-level-01-central-park'], [song], 'the scanner lists it, so the game loads it');
+    assert.ok(!r.unusedSounds.includes(song), 'its name is recognised');
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  assert.equal(S.MUSIC_TRACKS.level[0], 'music-level-01-central-park', 'level track');
+  assert.ok(S.MUSIC_TRACKS.arena.includes('music-level-01-central-park'), 'the gauntlet falls back to it');
+  // Starting the game from the title screen asks for the level track on that same key press (one press: sound unlock + start + song).
+  const s = S.newGame();
+  step(s, { pressed: { jump: true } });
+  assert.equal(s.mode, 'playing');
+  assert.ok(events(s).includes('level'), 'first press starts the level music');
+  const rows = parseCsv(fs.readFileSync(path.join(libRoot, 'design', 'ASSET_SOURCES.csv'), 'utf8'));
+  const row = rows.find((x) => x.path === 'assets/' + song);
+  assert.ok(row, 'has a license row');
+  assert.equal(row.creator, 'themodernopossum');
+  assert.match(row.source_url, /Suno/);
+  // Until the owner confirms a paid Suno plan (question 21), the row keeps it out of the build and says why.
+  if (!cleared(row)) assert.match(excludeReason(row), /commercial_use/, 'the build says why');
+  else assert.equal(row.commercial_use.toLowerCase(), 'yes');
+});
+
+test('concept picture: kept in assets/references (never shipped), explained in its README, and not cleared by any license row', async () => {
+  const { parseCsv, cleared } = await import('../tools/licenses.mjs');
+  const ref = path.join(libRoot, 'assets', 'references');
+  const jpg = fs.readFileSync(path.join(ref, 'zombie-hunter-concept-v01.jpg'));
+  assert.equal(jpg[0], 0xff); assert.equal(jpg[1], 0xd8, 'a JPEG');
+  const readme = fs.readFileSync(path.join(ref, 'README.md'), 'utf8');
+  assert.match(readme, /zombie-hunter-concept-v01\.jpg/);
+  assert.match(readme, /mood and direction only/i);
+  const rows = parseCsv(fs.readFileSync(path.join(libRoot, 'design', 'ASSET_SOURCES.csv'), 'utf8'));
+  for (const r of rows.filter((x) => x.path.startsWith('assets/references/'))) assert.equal(cleared(r), false, r.path);
+  assert.match(fs.readFileSync(path.join(here, '..', 'tools', 'build.mjs'), 'utf8'), /startsWith\('references\/'\)/, 'the build skips references/');
+});
+
+test('README art: three self-contained pixel-art SVGs with a title and description, and cast captions that match the game', () => {
+  const dir = path.join(libRoot, '.github', 'readme');
+  const sizes = { 'banner.svg': [1280, 420], 'cast.svg': [1280, 320], 'play-possum.svg': [1280, 160] };
+  for (const [f, [w, h]] of Object.entries(sizes)) {
+    const svg = fs.readFileSync(path.join(dir, f), 'utf8');
+    assert.ok(svg.includes(`viewBox="0 0 ${w} ${h}"`), f + ' size');
+    assert.ok(svg.includes('<title') && svg.includes('<desc'), f + ' has a title and description');
+    for (const bad of ['<text', '<image', '<script', 'href', 'url(', 'opacity']) assert.ok(!svg.includes(bad), f + ' has no ' + bad);
+    assert.ok(svg.length < 300 * 1024, f + ' stays small');
+  }
+  const cast = fs.readFileSync(path.join(dir, 'cast.svg'), 'utf8').toLowerCase();
+  for (const who of ['Sammy', 'Zombie Jogger', 'Hot Dog Vendor', 'Chainsaw', 'Hot Dog Cart', 'Trash Lid Shield']) assert.ok(cast.includes(who.toLowerCase()), 'cast description names ' + who);
+  // The captions are drawn as outlines, so check the generator's numbers against the game's instead.
+  assert.equal(C.lid.hits, 3, 'README says the lid blocks 3 hits');
+  assert.equal(C.cart.spillCount, 3, 'README says the cart spills 3 hot dogs');
+});

@@ -1,15 +1,22 @@
 # Open tasks: what's waiting on you
 
-*Dated 2026-10-19.* A short list of everything that needs your answer or your go-ahead. Details of each question are in `design/OWNER_DECISIONS.md`. Nothing here is decided until you say so.
+*Dated 2026-10-19 (updated for the "Zombie Hunter" direction).* A short list of everything that needs your answer or your go-ahead. Details of each question are in `design/OWNER_DECISIONS.md`. Nothing here is decided until you say so.
 
 To reply, tell Claude in plain words, for example "go with the suggestions for 1, 2 and 6" or "yes to go-ahead items 1 and 3".
+
+## New direction (2026-10-19): Zombie Hunter
+
+You chose a new direction: a badass opossum who doesn't mess around with zombies, with a chainsaw, at night in Central Park (Bethesda Terrace), gorier, with your theme song. What's done and what's waiting:
+- **Done (step A):** the design docs now follow it (old "comedic, not scary" and "no blood" lines are marked superseded), your song is the level music in your own copy, your concept picture is saved as a reference, and the README has new artwork. Details: `design/DECISIONS.md`, "New direction — Zombie Hunter".
+- **Next (step B):** the chainsaw power-up in the game, with its gore and a low-gore option.
+- **Waiting on you:** which Suno plan the song was made on ([21](OWNER_DECISIONS.md#21-which-suno-plan-was-the-theme-song-made-on)), the exact gore level and age ([1](OWNER_DECISIONS.md#1-how-gory-and-who-is-it-for)), and the title ([3](OWNER_DECISIONS.md#3-what-is-the-game-called); suggested: "Sammy the Opossum: Zombie Hunter").
 
 ## Suggested first five
 
 This order follows the library review and the "What's next" list in `design/DECISIONS.md`.
 
 1. ~~**Save today's changes** (go-ahead item 1).~~ *Done 2026-10-19: saved into the project history together with the phone work (mobile steps 3 and 4).*
-2. **Answer the art questions before more art is drawn:** gore level ([1](OWNER_DECISIONS.md#1-how-gory-and-who-is-it-for)), art style and palettes ([2](OWNER_DECISIONS.md#2-do-you-approve-the-art-style)), Sammy's size ([6](OWNER_DECISIONS.md#6-how-big-is-sammy-and-how-far-does-his-tail-reach)).
+2. **Answer the art questions before more art is drawn:** gore level ([1](OWNER_DECISIONS.md#1-how-gory-and-who-is-it-for); *2026-10-19: you chose "gorier"; the exact level and age are left*), art style and palettes ([2](OWNER_DECISIONS.md#2-do-you-approve-the-art-style)), Sammy's size ([6](OWNER_DECISIONS.md#6-how-big-is-sammy-and-how-far-does-his-tail-reach)).
 3. **Check the drawing tool's terms** for Sammy's run art ([13](OWNER_DECISIONS.md#13-do-the-drawing-tools-terms-let-you-sell-the-game-with-sammys-run-art)).
 4. **Pick who makes the art and music** ([4](OWNER_DECISIONS.md#4-who-makes-the-art-and-the-music)), then hand them `design/ART_BRIEFS.md` and the picture templates (see "Art and sound to make").
 5. **Choose where the game goes online** ([14](OWNER_DECISIONS.md#14-where-should-the-game-go-online-and-should-it-start-private)), so it can be tried on real phones with `design/MOBILE_TEST_CHECKLIST.md`. The phone layout is already built (go-ahead item 2, done).
@@ -18,9 +25,9 @@ This order follows the library review and the "What's next" list in `design/DECI
 
 Each line links to the full question, its suggested answer and why it matters.
 
-1. [How gory, and who is it for?](OWNER_DECISIONS.md#1-how-gory-and-who-is-it-for)
+1. [How gory, and who is it for?](OWNER_DECISIONS.md#1-how-gory-and-who-is-it-for) (direction set: gorier; exact level and age still open)
 2. [Do you approve the art style (and its palette plan)?](OWNER_DECISIONS.md#2-do-you-approve-the-art-style)
-3. [What is the game called?](OWNER_DECISIONS.md#3-what-is-the-game-called)
+3. [What is the game called?](OWNER_DECISIONS.md#3-what-is-the-game-called) (new suggestion: "Sammy the Opossum: Zombie Hunter")
 4. [Who makes the art and the music?](OWNER_DECISIONS.md#4-who-makes-the-art-and-the-music)
 5. [What's in the first release?](OWNER_DECISIONS.md#5-whats-in-the-first-release)
 6. [How big is Sammy? (His run art is taller than planned.)](OWNER_DECISIONS.md#6-how-big-is-sammy-and-how-far-does-his-tail-reach)
@@ -38,6 +45,7 @@ Each line links to the full question, its suggested answer and why it matters.
 18. [A faster way to play sound files](OWNER_DECISIONS.md#18-a-faster-way-to-play-sound-files-later-only-if-needed) (later, only if needed)
 19. [Naming choices](OWNER_DECISIONS.md#19-optional-naming-choices) (optional)
 20. [Confirm the basics the playable level already uses](OWNER_DECISIONS.md#20-confirm-the-basics-the-playable-level-already-uses) (side view, controls, Play Possum, nods, player options, release date)
+21. [Which Suno plan was the theme song made on?](OWNER_DECISIONS.md#21-which-suno-plan-was-the-theme-song-made-on) (added 2026-10-19; decides whether the song can go in the shareable copy)
 
 ## Needs your go-ahead
 
@@ -47,12 +55,13 @@ Work Claude can do as soon as you say "go". None of it needs a decision from you
 2. **Phone layout (step 3 of the desktop-and-mobile plan):** a "turn your phone sideways" message (see question 12), stop accidental zoom when the picture is double-tapped, and a test for notches on the left or right side, changing the code only if the test fails. Full screen waits (question 17). *Done 2026-10-19 (mobile step 3), built in parallel with this list: the sideways message (with a PLAY UPRIGHT ANYWAY button, phones only), no accidental zoom, notch tests on every side, auto-pause, and a full-screen button where the browser allows it (see question 17).*
 3. **Look into 3 browser checks that fail on this computer.** On a laptop-size screen (1366×768) and a phone held sideways (852×393), the picture comes out a different size than expected, and on the sideways phone it fills only 57% of the screen height, where the check wants 90%. The test browser's window also came out smaller than asked for (for example 834×297 instead of 852×393), so the problem may be in the test set-up rather than the game. That isn't confirmed yet. These checks also failed before today's changes. All 30 other browser checks pass. *Update 2026-10-19: after merging with mobile steps 3 and 4, all 51 browser checks pass on the owner's Mac, including these three. Nothing more to do unless they fail again.*
 4. **Fix the background widths in three docs.** `design/STYLE_GUIDE.md` (the line above the background table), `templates/STYLE_GUIDE.md` (the blank template: that line and the table) and row 1.6 of `design/ASSET_REQUEST_CHECKLIST.md` still say background bands can be "256 or 512" pixels wide. The game only accepts 512 (and 320 for the sky).
-5. **Update one out-of-date line in `CLAUDE.md`** (Claude's own guide to this project). It says `assets/` holds only empty folders, but Sammy's run art is there now. Claude won't change that file without your OK.
+5. **Update `CLAUDE.md`** (Claude's own guide to this project). Claude won't change that file without your OK. (a) It says `assets/` holds only empty folders, but Sammy's run art and the theme song are there now. (b) *Added 2026-10-19:* it still describes "cartoon zombies" and has no gore rule. The proposed new lines (the new tone, "stylized gore only; Sammy never bleeds; every gory picture needs a low-gore version") are written out in `design/DECISIONS.md`, "New direction — Zombie Hunter".
 6. **Wake up sound on the first tap,** once the first real sound files arrive, then test on a real iPhone. (Today's beeps don't need it.) *Done 2026-10-19 (mobile step 4), built in parallel with this list: the first tap now starts sound and readies every sound file. Still to do: the real-iPhone test, with `design/MOBILE_TEST_CHECKLIST.md`.*
 
 ## Art and sound to make
 
-- **Still missing today:** 33 of 34 planned pictures and all 23 planned sounds. Only Sammy's run is real.
+- **Still missing today:** 33 of 34 planned pictures and 22 of 23 planned sounds. Only Sammy's run and the level music (your theme song) are real.
+- **Coming with step B:** the chainsaw's pictures and its four sounds (`sfx-chainsaw-start`, `sfx-chainsaw-rev`, `sfx-chainsaw-cut`, `sfx-gore-splat`). They aren't in these counts or the templates yet; the brief is in `design/ART_BRIEFS.md`, "Chainsaw power-up".
 - **Not in those counts:** art the game has no place to show yet, such as the 8×8 font, the hearts, the Play Possum icon and the park tile sheet (full list in `game/README.md`, "Requested art the game can't show yet"). Also the four palette sheets, which set the colours rather than appear on screen.
 - **What each one should look and sound like:** `design/ART_BRIEFS.md` (all Proposed).
 - **Picture templates:** `templates/art-templates/` has a see-through template for each planned picture, at the exact size the game needs, with faint guide marks (box edges, feet point, ground line, hit frame). Erase every guide mark before saving the real art. Contact sheets (`contact-sheet-*.png`) show each group enlarged and labelled. To make the templates again, go into the `game` folder and run `node tools/make-art-templates.mjs`.

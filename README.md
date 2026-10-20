@@ -1,11 +1,11 @@
-<p align="center"><img src=".github/readme/banner.svg" alt="Pixel-art banner: &quot;Sammy — An opossum vs. the zombie joggers of Central Park · working title · 16-bit platformer · prototype&quot;. At night in the park, Sammy the opossum tail-whips a zombie jogger whose head boings off on a spring, while hot dogs fly from a tipped hot dog cart and another zombie reaches out of the bushes." width="100%"></p>
+<p align="center"><img src=".github/readme/banner.svg" alt="Pixel-art banner: &quot;Sammy the Opossum — ZOMBIE HUNTER · 16-bit action platformer · prototype · working title&quot;. At night on a rain-slick Central Park terrace, Sammy the opossum, snarling in a red bandana, rips a rusty orange chainsaw through a zombie jogger in a spray of sparks and blood, while a zombie hot dog vendor and a horde of zombies close in past lamps, the bronze angel fountain, a full moon and the city skyline." width="100%"></p>
 
-# Sammy
+# Sammy the Opossum: Zombie Hunter
 
-**Sammy** is a small 2D platformer in the style of a 16-bit home console game. You play Sammy, an opossum who wakes up in Central Park with no memory of how he got there. Everyone in the city has turned into a zombie. Sammy fights his way through with his tail, a trash-can lid, a tipped-over hot dog cart, and his secret move: playing dead. The zombies are funny, not scary: heads pop off and bounce, and vendors deflate like balloons.
+**Sammy the Opossum: Zombie Hunter** (working title) is a small 2D action platformer in the style of a 16-bit home console game. You play Sammy, an opossum who wakes up in Central Park with no memory of how he got there. Everyone in the city has turned into a zombie, and Sammy doesn't mess around with zombies. In a night-time Central Park (inspired by Bethesda Terrace), he fights his way through with a vicious tail-whip, a trash-can lid, a tipped-over hot dog cart and his secret move: playing dead, then getting back up swinging. **Coming next: a chainsaw.** It's badass action-horror with dark humour, with stylized 16-bit pixel gore planned (plus a low-gore option).
 
 > [!NOTE]
-> **Status: playable placeholder prototype.** One level (level 1, Sheep Meadow) can be played from start to finish today. Almost all art is placeholder boxes and all sound is computer-made beeps. The first real art is in: **Sammy's run animation**. "Sammy" is a working title.
+> **Status: playable placeholder prototype.** One level (level 1, Sheep Meadow) can be played from start to finish today. Almost all art is placeholder boxes (still the old daytime look) and the sound effects are computer-made beeps. Real so far: **Sammy's run animation** and the level music, **the theme song "Sammy the Opossum : Zombie Hunter"** (in your own copy; see [Credits](#credits)). The chainsaw, the night-time park and the gore are the new direction (2026-10-19) and aren't in the game yet: the chainsaw comes next. "Sammy the Opossum: Zombie Hunter" is a working title.
 
 Every gameplay number and rule in the game is a **proposal**, not an approved decision. They can all be changed.
 
@@ -80,6 +80,8 @@ The game draws at 320×224 pixels, like a classic console, and scales up by whol
 
 (Down is read too, but nothing uses it yet.)
 
+**Sound and the theme song:** browsers keep a page silent until you press a key or tap, so the title screen is silent. The press (or tap) that starts the game also turns sound on, and the theme song starts with it, so you only press once.
+
 Gamepads have not been tested by a real person yet.
 
 **Phones and tablets:** looking great and playing well on mobile as well as desktop is a **major priority**. Two steps are done: the game is bigger and sharper on phones and tablets (held sideways, in our checks it fills 90–95% of an iPhone's height instead of under 60%; with the touch buttons on, iPhones with a notch get a picture one step smaller, about 76% of the height, to make room for them), and it now has **on-screen touch buttons**. They appear only on touch screens, never on a normal computer. Sideways, they sit in the black space beside the picture and may just cover the brown dirt strip at its bottom corners (never the top bar or the grass where Sammy and the zombies walk); upright, below it. The whole level can be played by touch in our automatic checks, but **nobody has tried it on a real phone yet**, and phones still need the game put on a website to open it. See the roadmap below.
@@ -93,7 +95,7 @@ Gamepads have not been tested by a real person yet.
 
 **Sound on phones (step 4, done):**
 - **Sound starts on your first tap** (phones stay silent until you touch the screen; on a computer, the first key press). Any tap counts, including on the touch buttons.
-- **iPhone silent switch:** today's computer-made beeps may stay silent on an iPhone with the silent switch on. Flip the switch off to hear them. No switch (newer iPhones)? Swipe down from the top-right corner to open Control Center and tap the bell to turn Silent mode on or off. Real sound files, once added, should play either way.
+- **iPhone silent switch:** today's computer-made beeps may stay silent on an iPhone with the silent switch on. Flip the switch off to hear them. No switch (newer iPhones)? Swipe down from the top-right corner to open Control Center and tap the bell to turn Silent mode on or off. Real sound files (like the theme song) should play either way.
 - **After a phone call, locking the phone or switching apps,** the game is paused; sound comes back when you unpause. If it doesn't, one more tap brings it back.
 - **MUTE** silences everything, including a sound that is already playing.
 - Not yet heard on a real phone. To check it on real phones, follow **[design/MOBILE_TEST_CHECKLIST.md](design/MOBILE_TEST_CHECKLIST.md)** once the game is on a website.
@@ -116,22 +118,24 @@ For the full screen-by-screen guide, see **[game/README.md](game/README.md)**.
 
 ## Meet the cast
 
-<p align="center"><img src=".github/readme/cast.svg" alt="Pixel-art lineup of the cast, left to right: Sammy, Zombie Jogger, Hot Dog Vendor, Hot Dog Cart and Trash Lid Shield, each with a short caption." width="100%"></p>
+<p align="center"><img src=".github/readme/cast.svg" alt="Pixel-art cast lineup at night, left to right, each with a caption: Sammy with a bloody chainsaw (&quot;the opossum hero, does not mess around&quot;), a rotting Zombie Jogger (&quot;never skips leg day, still dead&quot;), a zombie Hot Dog Vendor in a bloody apron (&quot;lobs hot dogs, then bites&quot;), the Chainsaw (&quot;power-up, rip and tear&quot;), the Hot Dog Cart (&quot;two whips tip it, 3 healing hot dogs&quot;) and the Trash Lid Shield (&quot;power-up, blocks 3 hits&quot;)." width="100%"></p>
 
 | Who or what | What it does in the game |
 |---|---|
-| **Sammy** | The opossum hero. Runs, jumps, tail-whips and plays possum. |
+| **Sammy** | The opossum hero, and he doesn't mess around. Runs, jumps, tail-whips and plays possum. |
 | **Zombie Jogger** | The main enemy. Patrols, chases Sammy and lunges at him. Two whips knock its head off. |
 | **Hot Dog Vendor** | A zombie that lobs hot dogs at Sammy from a distance. Deflates when defeated. |
+| **Chainsaw** | **Coming next.** A power-up: Sammy picks it up and, for a while, revs and cuts through zombies. The tail-whip stays his basic attack. Not in the game yet. |
 | **Hot Dog Cart** | Whip it twice to tip it. It spills 3 hot dogs that heal Sammy, and knocks zombies back. |
 | **Trash Lid Shield** | A power-up. Once Sammy picks it up, it blocks the next 3 hits from zombies or thrown hot dogs. It doesn't help if he falls in the pond. |
 
-These drawings were made for this page only. They are not the game's art. In the game itself, everyone is still a placeholder box, except Sammy while he runs (his real run animation).
+These drawings were made for this page only. They are not the game's art, and they show the proposed gore level; the game itself has no gore yet. In the game, everyone is still a placeholder box, except Sammy while he runs (his real run animation, cartoon style with the red bandana).
 
 ## Project status and roadmap
 
 **Done:**
 - A complete, playable level 1 with placeholder art and sound.
+- **New direction (2026-10-19): Zombie Hunter.** Badass action-horror with dark humour, a chainsaw, Central Park at night. The design docs, art briefs and style guide follow it; your theme song is the level music; the concept picture is saved as a reference (`assets/references/`).
 - The first real art: **Sammy's run animation**.
 - Bigger, sharper scaling on phones and tablets, and **on-screen touch buttons** (shown only on touch screens).
 - The phone layout: a "turn your phone sideways" message, a full-screen button (Android), room for notches, no accidental zoom, and auto-pause when you leave the page.
@@ -143,11 +147,12 @@ These drawings were made for this page only. They are not the game's art. In the
 - Design docs, templates and worked examples for every kind of art and sound.
 
 **Next:**
-1. **Desktop and mobile (major priority):** the game now fills phone and tablet screens crisply, has on-screen touch buttons, the phone layout (sideways message, full screen, notches, no accidental zoom, auto-pause) and sound that starts on the first tap. Still to do: tests on a real iPhone and Android phone with **[design/MOBILE_TEST_CHECKLIST.md](design/MOBILE_TEST_CHECKLIST.md)**. The game must be put on a website first, which needs your go-ahead (suggested: itch.io or GitHub Pages). The plan is in [design/DECISIONS.md](design/DECISIONS.md).
-2. **You (the owner) answer the open questions** in **[design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)**. There are 20, each with a suggested answer. The short version is in **[design/OPEN_TASKS.md](design/OPEN_TASKS.md)**. Examples: the final title, how gory it gets, who makes the art and music, and what goes in the first release.
-3. You review the draft style guide, [design/STYLE_GUIDE.md](design/STYLE_GUIDE.md).
-4. Real art and sound arrive, starting with the most important files ("Tier 1") in [design/ASSET_REQUEST_CHECKLIST.md](design/ASSET_REQUEST_CHECKLIST.md).
-5. A playtest by real people, mainly of the final gauntlet. It may be too hard.
+1. **The chainsaw (step B):** the chainsaw power-up in the game, with stylized gore and a low-gore option.
+2. **Desktop and mobile (major priority):** the game now fills phone and tablet screens crisply, has on-screen touch buttons, the phone layout (sideways message, full screen, notches, no accidental zoom, auto-pause) and sound that starts on the first tap. Still to do: tests on a real iPhone and Android phone with **[design/MOBILE_TEST_CHECKLIST.md](design/MOBILE_TEST_CHECKLIST.md)**. The game must be put on a website first, which needs your go-ahead (suggested: itch.io or GitHub Pages). The plan is in [design/DECISIONS.md](design/DECISIONS.md).
+3. **You (the owner) answer the open questions** in **[design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)**. There are 21, each with a suggested answer. The short version is in **[design/OPEN_TASKS.md](design/OPEN_TASKS.md)**. Examples: the final title, exactly how gory it gets, which Suno plan the theme song was made on, who makes the art, and what goes in the first release.
+4. You review the draft style guide, [design/STYLE_GUIDE.md](design/STYLE_GUIDE.md) (now with the night look and the gore rules).
+5. Real art and sound arrive, starting with the most important files ("Tier 1") in [design/ASSET_REQUEST_CHECKLIST.md](design/ASSET_REQUEST_CHECKLIST.md).
+6. A playtest by real people, mainly of the final gauntlet. It may be too hard.
 
 There is no release date. Publishing (for example on itch.io) has not been done and needs your go-ahead.
 
@@ -164,10 +169,10 @@ opossum-game-library/
 │   ├── tools/           ← build, art/sound scanner, audio converter, license rules, drawing-template maker
 │   ├── tests/           ← automatic checks
 │   └── dist/            ← ready-to-share copy (index.html, BUILD_INFO.txt, CREDITS.txt and an assets/ folder with the cleared real art)
-├── assets/              ← real art and sound go here (so far only Sammy's run animation)
+├── assets/              ← real art and sound go here (so far Sammy's run animation and the theme song)
 │   ├── characters/  enemies/  props/  items/  environments/  npcs/  ui/
 │   ├── audio/           ← sfx/ (sound effects) and music/
-│   └── references/      ← reference pictures only; never shipped
+│   └── references/      ← reference pictures only (the Zombie Hunter concept picture); never shipped
 ├── design/              ← game brief, owner questions, decisions log, style guide, asset checklist, license list
 ├── templates/           ← blank forms for describing art, sound, levels and abilities
 │   ├── art-templates/   ← blank drawing templates (exact size, with guide marks) and contact sheets
@@ -227,7 +232,7 @@ As with art, run `node tools/build.mjs` only when you want to refresh the sharea
   ```
   It makes an `.ogg` next to each `.wav` that doesn't have one yet (add `--mp3` for `.mp3` copies too). It needs a free program called ffmpeg (on a Mac with Homebrew, a free installer for tools like this: `brew install ffmpeg`). It never deletes or overwrites anything. Without ffmpeg, it prints the exact commands to run instead.
 - **Versions and variations:** to update a sound, save `sfx-jump-v02.ogg` beside `v01`; the highest number wins. For variety, save `sfx-land-v01-a.ogg`, `sfx-land-v01-b.ogg` and so on; the game picks one at random each time.
-- **Music loops whole.** Each track plays from start to end, then starts over. A separate intro that plays only once is not supported yet, so make each track loop cleanly from its end back to its start.
+- **Music loops whole.** Each track plays from start to end, then starts over. A separate intro that plays only once is not supported yet, so make each track loop cleanly from its end back to its start. (The theme song is the exception for now: its quiet intro and fade-out replay every 70 seconds. A trimmed loop version can come later.)
 
 More details (which format plays first, volume, when music restarts): **[game/README.md → Adding sound](game/README.md#adding-sound)**.
 
@@ -244,7 +249,7 @@ This refreshes `game/dist/`. You only need it for the shareable copy; your own c
 
 | File | What it is |
 |---|---|
-| `index.html` | The game's code in one file. Cleared art and sound are copied into `dist/assets/` beside it (today: Sammy's run animation), so share the whole `dist/` folder. |
+| `index.html` | The game's code in one file. Cleared art and sound are copied into `dist/assets/` beside it (today: Sammy's run animation; the theme song waits on owner question 21), so share the whole `dist/` folder. |
 | `assets/` | The cleared real art and sound. |
 | `BUILD_INFO.txt` | Which art and sound went in, and why any were left out. Its "Still placeholders (no real file yet):" section is your to-do list: every planned picture and sound that has no real file yet. |
 | `CREDITS.txt` | A credit line for every included file whose license asks for one. |
@@ -258,7 +263,7 @@ This refreshes `game/dist/`. You only need it for the shareable copy; your own c
 
 Anything else is left out, and `BUILD_INFO.txt` says why. Files in `assets/references/` are never included. Your own copy of the game still uses every file.
 
-Today the only real art is Sammy's run animation (licensed in `design/ASSET_SOURCES.csv`, so it goes into the build); everything else is a placeholder. The `dist/` folder is saved in the project history for now (this is open question 9 in [design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)).
+Today the only real art is Sammy's run animation (licensed in `design/ASSET_SOURCES.csv`, so it goes into the build). The theme song is real too, but its row says `commercial_use` is "tbd" until you confirm your Suno plan (owner question 21), so the build leaves it out and plays the placeholder tune. Everything else is a placeholder. The `dist/` folder is saved in the project history for now (this is open question 9 in [design/OWNER_DECISIONS.md](design/OWNER_DECISIONS.md)).
 
 ## Tests
 
@@ -272,8 +277,8 @@ node tests/browser-smoke.mjs
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | **58 game-rule tests:** every move, enemy and item in level 1, a full autopilot run, the screen-size, notch, touch-button and "turn sideways" message maths, starting sound on phones, the art, sound and license checks, the "still missing" lists, the suggested license rows and the drawing templates. |
-| `node tests/browser-smoke.mjs` | **51 browser checks:** opens the game in a hidden Chromium browser, plays the whole level in both the normal and the shareable copy, presses real keys, taps the real touch buttons at phone sizes, draws every screen, loads test art and sound, checks the picture is big and sharp at a phone size and a laptop size, checks the "turn your phone sideways" message (upright phones only, not tablets), auto-pause and starting sound on phones, and checks the touch buttons and the message stay hidden on a computer. Needs Chrome, Edge or another Chromium browser. |
+| `node --test tests/sim.test.mjs` | **61 game-rule tests:** every move, enemy and item in level 1, a full autopilot run, the screen-size, notch, touch-button and "turn sideways" message maths, starting sound on phones, the art, sound and license checks, the "still missing" lists, the suggested license rows, the drawing templates, the theme song (found, used as the level music, kept out of the build until its license is confirmed), the concept picture (reference only) and the README pictures. |
+| `node tests/browser-smoke.mjs` | **51 browser checks:** opens the game in a hidden Chromium browser, plays the whole level in both the normal and the shareable copy, presses real keys, taps the real touch buttons at phone sizes, draws every screen, loads the theme song (and, in the shareable copy, no sound until it's cleared), loads test art and sound, checks the picture is big and sharp at a phone size and a laptop size, checks the "turn your phone sideways" message (upright phones only, not tablets), auto-pause and starting sound on phones, and checks the touch buttons and the message stay hidden on a computer. Needs Chrome, Edge or another Chromium browser. |
 | `?test=full` | Open `game/index.html`, click the address bar, type `?test=full` at the very end and press Enter. The game then plays itself ("autopilot") so you can watch a full run. |
 
 If you changed the game's code, run the build (see [Building a shareable copy](#building-a-shareable-copy)) before the browser check. Otherwise the check fails and asks you to run `node tools/build.mjs`.
@@ -292,7 +297,7 @@ If you changed the game's code, run the build (see [Building a shareable copy](#
 | [design/MOBILE_TEST_CHECKLIST.md](design/MOBILE_TEST_CHECKLIST.md) | Step-by-step list for trying the game on a real iPhone and Android phone (once it's on a website). |
 | [design/STYLE_GUIDE.md](design/STYLE_GUIDE.md) | Draft art and sound rules: sizes, colors, outlines, light. All Proposed. |
 | [design/ASSET_REQUEST_CHECKLIST.md](design/ASSET_REQUEST_CHECKLIST.md) | What art and sound to send, in order of priority. |
-| [design/ASSET_SOURCES.csv](design/ASSET_SOURCES.csv) | One row per art or sound file: who made it and its license. One row so far (Sammy's run). |
+| [design/ASSET_SOURCES.csv](design/ASSET_SOURCES.csv) | One row per art or sound file: who made it and its license. Two rows so far (Sammy's run, and the theme song, waiting on owner question 21). |
 | [templates/](templates/) | Blank forms for describing art (`ASSET.md`), interactive objects (`INTERACTION.md`), sound (`AUDIO.md`), levels (`LEVEL.md`), abilities (`ABILITY.md`) and the style guide. |
 | [templates/art-templates/](templates/art-templates/) | Blank, see-through drawing templates at the exact size of each planned picture, plus enlarged, labelled contact sheets (`contact-sheet-*.png`). Made by `game/tools/make-art-templates.mjs`. |
 | [templates/examples/README.md](templates/examples/README.md) | Filled-in examples of every form, and the planning specs for every planned file. Proposals only. Run the scanner to see which files exist. |
@@ -303,7 +308,8 @@ If you changed the game's code, run the build (see [Building a shareable copy](#
 
 - **Original work only.** The game nods to 16-bit classics through feel, gameplay ideas, colors and humor. It never copies or traces sprites, music, sound effects, logos or characters from other games.
 - **No "Sega" or "Genesis"** (or other company or console names) in the title, logo or branding.
-- **References never ship.** Pictures in `assets/references/` are for inspiration only and are never put in the shareable copy.
+- **References never ship.** Pictures in `assets/references/` (today, the Zombie Hunter concept picture) are for inspiration only and are never put in the shareable copy.
+- **Gore stays stylized.** Chunky 16-bit pixel gore in reserved colours, never realistic, and every gory picture gets a low-gore version (Proposed; see [design/STYLE_GUIDE.md](design/STYLE_GUIDE.md)).
 - **Unknown rights can't ship.** Every art and sound file needs a row in `design/ASSET_SOURCES.csv`. If the license is missing, unknown, non-commercial or reference-only, the file stays out of the build.
 - **Examples are planning specs.** Files in `templates/examples/` are proposals. Never copy an example into `assets/` until every TBD is filled in.
 
@@ -311,8 +317,9 @@ If you changed the game's code, run the build (see [Building a shareable copy](#
 
 ## Credits
 
-- The artwork on this page (banner, cast lineup and footer) is original pixel art made for this project.
+- The artwork on this page (banner, cast lineup and footer) is original pixel art made for this project, inspired by the owner's Zombie Hunter concept picture.
 - The lettering in that artwork uses the **Ubuntu** font (Light) by Dalton Maag, under the Ubuntu Font Licence. The letters were converted to outlines inside the pictures. (GitHub pages can't change fonts, so the font appears only in the artwork.)
-- The game itself uses no outside art, sound, fonts or code today. Its letters come from a small placeholder font drawn in code.
+- **Theme song:** "Sammy the Opossum : Zombie Hunter" by **themodernopossum** (the project's owner), made with **Suno**. Whether it can be sold with the game depends on the Suno plan it was made on (owner question 21); until then it plays only in your own copy, not the shareable one.
+- Apart from the theme song, the game uses no outside art, sound, fonts or code today. Its letters come from a small placeholder font drawn in code.
 
-<p align="center"><img src=".github/readme/play-possum.svg" alt="Pixel-art footer: Sammy lies on his back on the grass with his feet in the air, playing dead, with an X for an eye, his tongue out and a &quot;Z z&quot; above him. A zombie jogger peers over a bush with a question mark over its head. Text on the left reads &quot;Play Possum&quot; and, below it, &quot;he's fine. probably.&quot; A hot dog lies in the grass on the right." width="100%"></p>
+<p align="center"><img src=".github/readme/play-possum.svg" alt="Pixel-art footer at night: Sammy the opossum plays dead on the wet terrace with an X for an eye and his tongue out, his chainsaw lying beside him, while a confused zombie jogger bends to sniff him under a question mark. Text on the left reads &quot;Play Possum&quot; and, below it, &quot;…then the chainsaw starts.&quot;" width="100%"></p>

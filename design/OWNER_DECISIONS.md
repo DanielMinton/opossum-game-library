@@ -4,13 +4,16 @@ These are open questions about Sammy's game that only you, the owner, can answer
 
 To answer, edit this file, or just tell Claude (for example, "go with the suggestions for 1, 3 and 7"). Claude then records your answer in `design/DECISIONS.md` and changes the game and docs to match.
 
-*Last updated 2026-10-19.*
+*Last updated 2026-10-19 (new "Zombie Hunter" direction: questions 1, 3 and 21).*
 
 ---
 
 ### 1. How gory, and who is it for?
-- **Suggested:** cartoon slapstick with no blood. Heads pop off and bounce, zombies deflate like balloons, hot dogs splat. Aimed at players about 10 and up.
-- **Why it matters:** it changes what the artist draws, which websites and stores will take the game, and who can play it. It's much easier to add splatter later than to take it out.
+- **Your new direction (2026-10-19):** a badass opossum who doesn't mess around with zombies: action-horror with dark humour, a chainsaw, sparks and gore, at night in Central Park. So the game is going **gorier**; that part is decided.
+- **Suggested now:** **stylized 16-bit gore.** Chunky pixel blood in a few solid colours, zombies cut in half by the chainsaw, green zombie ichor, sparks. Not realistic, no lingering close-ups, and Sammy himself never bleeds. Plus a **"low gore" option** in the game that swaps blood for green ichor and dust and keeps bodies in one piece. Aimed at players **13 and up**.
+- *(Earlier suggestion, superseded 2026-10-19 by your new direction: cartoon slapstick with no blood, heads popping off and bouncing, zombies deflating like balloons, aimed at about 10 and up.)*
+- **Still your call:** exactly how much blood, whether the low-gore option is on or off when the game starts, and the age you aim for.
+- **Why it matters:** it changes what the artist draws, which websites and stores will take the game, and who can play it. Some stores and sites ask for an age rating, and gore raises it.
 
 ### 2. Do you approve the art style?
 - **Update (2026-10-19):** the four palette sheets (the colour swatches each kind of art draws from) have not been made yet. Approving the style guide includes its palette plan: which palette is used for what. The sheets go in `assets/ui/palettes/` when they arrive.
@@ -18,7 +21,9 @@ To answer, edit this file, or just tell Claude (for example, "go with the sugges
 - **Why it matters:** the artist needs this before drawing anything. Changing it after art arrives means redrawing.
 
 ### 3. What is the game called?
-- **Suggested:** keep "Sammy" as a working name for now. Avoid "Sega", "Genesis" and other company or console names.
+- **Suggested now (2026-10-19):** **"Sammy the Opossum: Zombie Hunter"**, taken from your theme song's title, as the working title. The README banner already uses it, marked "working title". Avoid "Sega", "Genesis" and other company or console names.
+- *(Earlier suggestion, superseded 2026-10-19: keep "Sammy" as a working name for now.)*
+- **Still your call:** the final name. The browser tab and the game's title screen still say "Sammy" until you decide.
 - **Why it matters:** the title screen, the logo art and any store or website page all need it.
 
 ### 4. Who makes the art and the music?
@@ -99,3 +104,9 @@ To answer, edit this file, or just tell Claude (for example, "go with the sugges
   - (e) Options for players who need them (for example, bigger text or no screen flashing): none for now, add later if asked.
   - (f) A target date to release the game: none yet.
 - **Why it matters:** `design/GAME_BRIEF.md` still marks these "TBD". A "yes" lets Claude mark them settled. A "no" on (a), (b) or (c) would mean big changes, so it's best to say early.
+
+### 21. Which Suno plan was the theme song made on?
+- **Added 2026-10-19.** Your theme song "Sammy the Opossum : Zombie Hunter" was made with Suno. Suno lets you use songs commercially (for example, in a game you sell) only if they were made while you had a **paid plan** (Pro or Premier). Songs made on the **free plan** are for non-commercial use only. It's worth checking Suno's current terms too, since they can change.
+- **Suggested:** tell Claude which plan you were on when you made it. If it was a paid plan, Claude marks the song's row in `design/ASSET_SOURCES.csv` as cleared and it goes into the shareable copy. If it was the free plan, the song can stay for testing, and you can re-make it on a paid plan or choose other music before release.
+- **What the game does now:** the song plays as the level music in your own copy (`game/index.html`), but the shareable copy (`game/dist/`) leaves it out ("commercial_use is tbd") and plays the placeholder tune instead.
+- **Why it matters:** without commercial rights, the song can't go into a game you sell or put on a public store page.

@@ -15,8 +15,8 @@ Turn the phone's volume up first. Tick each line, or write what went wrong in th
 - [ ] Tap **JUMP** (or tap the picture) to start. **Sound plays from that first tap**: the start sound, then the music.
 - [ ] **iPhone silent switch** (the small switch on the side): try it both ways.
   - No switch? On newer iPhones (iPhone 15 Pro and later), open Control Center (swipe down from the top-right corner) and tap the bell to turn Silent mode on and off. Silent mode on shows a bell with a line through it.
-  - Today all sound is computer-made beeps. With the silent switch **on** (orange showing, or the crossed-out bell), an iPhone may play **no sound at all**. That's how iPhones treat this kind of sound, not a game fault. Turn Silent mode off to hear it.
-  - Once real sound files are added, they should play even with the silent switch on. Note what you hear.
+  - Today the sound effects are computer-made beeps. So is the music on the website copy: the owner's theme song plays only in the owner's own copy until its license is confirmed (owner question 21). With the silent switch **on** (orange showing, or the crossed-out bell), an iPhone may play **no sound at all**. That's how iPhones treat this kind of sound, not a game fault. Turn Silent mode off to hear it.
+  - Real sound files (such as the theme song, once it's in the website copy) should play even with the silent switch on. Note what you hear.
 - [ ] Sound effects play when you jump and whip, and they don't cut out after a while.
 
 ## 3. Playing
