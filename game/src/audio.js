@@ -25,6 +25,10 @@
     'sfx-gate-open': ['triangle', 200, 800, 0.6, 0.3],
     'sfx-level-clear': ['square', 523, 1046, 0.6, 0.25],
     'sfx-start': ['square', 440, 880, 0.2, 0.2],
+    'sfx-chainsaw-start': ['sawtooth', 60, 180, 0.35, 0.25],
+    'sfx-chainsaw-rev': ['sawtooth', 90, 150, 0.06, 0.12], // loop: pitch wobbles between the two Hz, 0.06 s per wobble
+    'sfx-chainsaw-cut': ['noise', 2400, 900, 0.08, 0.2],
+    'sfx-gore-splat': ['noise', 400, 60, 0.25, 0.35],
   };
   const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
   const TRACKS = {
@@ -380,6 +384,37 @@
       if (sounds()[id] && sounds()[id].length) { playFile(id); return; }
       const d = SFX[id]; if (d && ctx) tone(d[0], d[1], d[2], d[3], d[4]);
     };
+    // Looping sound effects (the chainsaw's rev), started and stopped by 'sfx-loop' events from sim.js.
+    // A real file loops whole; otherwise a buzzing placeholder. Mute silences both (master gain / el.muted).
+    const loops = new Map(); // id -> stop()
+    api.sfxLoop = function (id, on) {
+      try {
+        const stop = loops.get(id);
+        if (!on) { if (stop) { stop(); loops.delete(id); } return; }
+        if (stop) return;
+        const list = sounds()[id];
+        if (list && list.length) {
+          const el = list[0];
+          S.soundPlays[id] = (S.soundPlays[id] || 0) + 1;
+          el.loop = true; el.volume = V.sfxVolume; el.muted = api.muted;
+          try { el.currentTime = 0; } catch (e) { /* not seekable yet */ }
+          quiet(el.play());
+          loops.set(id, () => { el.pause(); el.loop = false; });
+          return;
+        }
+        const d = SFX[id];
+        if (!d || !ctx) return;
+        const o = ctx.createOscillator(), g = ctx.createGain(), lfo = ctx.createOscillator(), depth = ctx.createGain();
+        o.type = d[0] === 'noise' ? 'sawtooth' : d[0];
+        o.frequency.value = (d[1] + d[2]) / 2;
+        lfo.frequency.value = 1 / d[3]; depth.gain.value = (d[2] - d[1]) / 2;
+        lfo.connect(depth); depth.connect(o.frequency);
+        g.gain.value = d[4]; o.connect(g); g.connect(master);
+        o.start(); lfo.start();
+        loops.set(id, () => { try { o.stop(); lfo.stop(); g.disconnect(); } catch (e) { /* already stopped */ } });
+      } catch (e) { /* never let sound break the game */ }
+    };
+    api.loopsPlaying = () => Array.from(loops.keys());
     api.music = function (cmd) {
       if (cmd === 'stop') { stopMusic(); current = null; return; }
       if (cmd === 'pause') { stopMusic(true); return; }

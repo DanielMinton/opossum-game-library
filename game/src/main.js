@@ -87,6 +87,7 @@
     for (const ev of state.events) {
       if (ev.type === 'sfx') audio.sfx(ev.id);
       else if (ev.type === 'music') audio.music(ev.id);
+      else if (ev.type === 'sfx-loop') audio.sfxLoop(ev.id, ev.on);
     }
     state.events.length = 0;
   }

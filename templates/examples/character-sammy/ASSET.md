@@ -40,9 +40,12 @@ How to read this example:
 | `sammy-ko-strip-v01.png` | Production strip | 6 frames, 288×48 px |
 | `sammy-victory-strip-v01.png` | Production strip | 4 frames, 192×48 px |
 | `sammy-wake-up-strip-v01.png` | Production strip (polish tier) | 6 frames, 288×48 px |
+| `sammy-chainsaw-idle-strip-v01.png` | Production strip (Stage B, Proposed) | 4 frames, 256×48 px (64×48 cells, holding the chainsaw) |
+| `sammy-chainsaw-run-strip-v01.png` | Production strip (Stage B, Proposed) | 8 frames, 512×48 px (64×48 cells) |
+| `sammy-chainsaw-rev-strip-v01.png` | Production strip (Stage B, Proposed) | 4 frames, 256×48 px (64×48 cells, saw revving and shaking) |
 | `sammy-source-v01.aseprite` (or .psd / .kra) | Layered source | Your working file. Kept as the original; never overwritten. |
 
-Strip width = frame count × 48 px (with no padding). The one exception is tail-whip: its cells are 64×48, so the strip is 4 × 64 = 256 px wide.
+Strip width = frame count × 48 px (with no padding). The exceptions are tail-whip and the three chainsaw strips: their cells are 64×48 (pivot (36, 47)), so tail-whip is 4 × 64 = 256 px wide. The chainsaw bar reaches 28 px in front of Sammy's feet point, which a 48 px cell can't hold.
 
 ## Reference vs production
 

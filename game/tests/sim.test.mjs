@@ -421,6 +421,188 @@ test('the game is deterministic: two identical runs give identical results', () 
   assert.equal(run(), run());
 });
 
+// ---------- chainsaw (Stage B) ----------
+function withSaw(x = 600) {
+  const s = start();
+  place(s, x);
+  s.enemies = []; s.pickups = [];
+  s.player.saw = { fuel: C.chainsaw.fuel, revving: false, tick: 0, slash: 0 };
+  events(s);
+  return s;
+}
+function jogAt(s, x, extra = {}) {
+  const e = Object.assign({ id: 'j' + x, type: 'jogger', x, y: G, vx: 0, vy: 0, face: -1, dir: -1, grounded: true, hp: C.jogger.hp,
+    state: 'confused', t: 0, home: x, cd: 9, lostT: 0, confused: true, arena: false, anim: 'idle', animT: 0, defeatStyle: 'pop', def: { x } }, extra);
+  s.enemies.push(e); return e;
+}
+const loopEvents = (s) => s.events.filter((e) => e.type === 'sfx-loop');
+
+test('chainsaw: lies on the grass on screen 11; grabbing it gives a full tank and plays the start sound', () => {
+  const s = start();
+  const pk = s.pickups.find((p) => p.type === 'chainsaw');
+  assert.ok(pk && pk.x > 3200 && pk.x < 3520 && pk.y === G, 'placed on screen 11 before the arena');
+  assert.ok(S.isSupported(s, pk.x, G));
+  assert.ok(s.level.prompts.some((p) => p.x0 <= pk.x && p.x1 > pk.x && /CHAINSAW/.test(p.text) && /HOLD X/.test(p.text) && /HOLD WHIP/.test(p.touch)));
+  s.enemies = [];
+  place(s, pk.x - 20); events(s);
+  step(s, { held: { right: true } }, 20);
+  assert.ok(pk.collected);
+  assert.deepEqual([s.player.saw.fuel > C.chainsaw.fuel - 1, s.player.saw.revving], [true, false]);
+  assert.ok(events(s).includes('sfx-chainsaw-start'));
+  const f0 = s.player.saw.fuel;
+  step(s, {}, 60);
+  assert.ok(Math.abs(f0 - s.player.saw.fuel - C.chainsaw.carryDrain) < 0.02, 'carrying burns carryDrain per second');
+  assert.equal(s.player.anim, 'chainsaw-idle');
+  step(s, { held: { right: true } }, 20);
+  assert.equal(s.player.anim, 'chainsaw-run');
+});
+
+test('chainsaw: holding the attack button revs it instead of whipping; it slows Sammy, burns 1 fuel/s, and loops its sound', () => {
+  const s = withSaw();
+  step(s, { pressed: { attack: true }, held: { attack: true } });
+  assert.equal(s.player.state, 'normal', 'no tail-whip while carrying the saw');
+  assert.ok(s.player.saw.revving);
+  assert.deepEqual(loopEvents(s), [{ type: 'sfx-loop', id: 'sfx-chainsaw-rev', on: true }]);
+  events(s);
+  const f0 = s.player.saw.fuel, x0 = s.player.x;
+  step(s, { held: { attack: true, right: true } }, 60);
+  assert.equal(loopEvents(s).length, 0, 'no repeat loop events while it keeps revving');
+  assert.ok(Math.abs(f0 - s.player.saw.fuel - 1) < 0.02, 'revving burns 1 fuel per second');
+  assert.equal(s.player.anim, 'chainsaw-rev');
+  const revDist = s.player.x - x0;
+  assert.ok(revDist < C.sammy.runSpeed * C.chainsaw.slow + 2 && revDist > C.sammy.runSpeed * C.chainsaw.slow - 15, 'slowed: ' + revDist);
+  events(s);
+  step(s, {});
+  assert.ok(!s.player.saw.revving);
+  assert.deepEqual(loopEvents(s), [{ type: 'sfx-loop', id: 'sfx-chainsaw-rev', on: false }]);
+  // A quick tap still revs for slashTime.
+  events(s);
+  step(s, { pressed: { attack: true } });
+  step(s, {}, sec(C.chainsaw.slashTime) - 2);
+  assert.ok(s.player.saw.revving, 'tap keeps revving for slashTime');
+  step(s, {}, 4);
+  assert.ok(!s.player.saw.revving);
+});
+
+test('chainsaw: cuts a jogger in two quick cuts; it goes down "sliced" with blood, chunks, ichor, sparks, hit-stop and shake', () => {
+  const s = withSaw();
+  const e = jogAt(s, s.player.x + 18);
+  step(s, { pressed: { attack: true }, held: { attack: true } });
+  assert.equal(e.hp, C.jogger.hp - C.chainsaw.damage, 'first cut lands straight away');
+  const ids = events(s);
+  assert.ok(ids.includes('sfx-chainsaw-cut'));
+  assert.ok(s.effects.some((f) => f.kind === 'blood' && f.n > 0 && f.dir === 1 && f.power > 0));
+  assert.ok(s.effects.some((f) => f.kind === 'sparks' && f.dir === 1));
+  const n = runUntil(s, () => e.state === 'defeat', 30, { held: { attack: true } });
+  assert.ok(n >= 0 && n <= sec(C.chainsaw.tick) + 1, 'second cut after one tick: ' + n);
+  assert.equal(e.defeatStyle, 'sliced');
+  assert.equal(s.stats.defeated, 1);
+  assert.ok(s.effects.filter((f) => f.kind === 'chunk' && f.dir === 1).length >= 2, 'chunks fly');
+  assert.ok(s.effects.some((f) => f.kind === 'ichor' && f.n > 0));
+  assert.ok(s.hitstop > 0 && s.hitstop <= 0.1, 'short hit-stop');
+  assert.ok(s.shake > 0);
+  assert.ok(events(s).includes('sfx-gore-splat'));
+});
+
+test('chainsaw: hit-stop freezes Sammy and the zombies but effects keep playing', () => {
+  const s = withSaw();
+  const far = jogAt(s, s.player.x + 200, { state: 'chase', confused: false, cd: 0 });
+  s.hitstop = 0.05;
+  const before = [s.player.x, far.x, far.t];
+  const fx = s.effects.length ? null : (s.effects.push({ kind: 'blood', x: 0, y: 0, t: 0, life: 1, n: 1, dir: 1, power: 1 }), s.effects[0]);
+  step(s, { held: { right: true } }, 2);
+  assert.deepEqual([s.player.x, far.x, far.t], before, 'nothing moves');
+  assert.ok(fx.t > 0, 'effects age');
+  step(s, { held: { right: true } }, 4);
+  assert.equal(s.hitstop, 0);
+  assert.ok(s.player.x > before[0], 'moving again');
+});
+
+test('defeat styles: whip kills pop a jogger and deflate a vendor; every hit bleeds, only chainsaw kills throw chunks', () => {
+  const s = start();
+  place(s, 600); s.enemies = []; s.pickups = [];
+  const e = jogAt(s, 616);
+  assert.equal(S.newGame().enemies.find((x) => x.type === 'jogger').defeatStyle, 'pop');
+  assert.equal(S.newGame().enemies.find((x) => x.type === 'vendor').defeatStyle, 'deflate');
+  for (let i = 0; i < 2 && e.state !== 'defeat'; i++) { step(s, { pressed: { attack: true } }); step(s, {}, 20); }
+  assert.equal(e.state === 'defeat' || e.state === 'dead', true);
+  assert.equal(e.defeatStyle, 'pop');
+  assert.equal(s.effects.filter((f) => f.kind === 'chunk').length, 0);
+  // vendor
+  const s2 = start();
+  place(s2, 1760); s2.enemies = s2.enemies.filter((x) => x.type === 'vendor'); s2.carts = [];
+  const v = s2.enemies[0]; v.x = 1776; events(s2);
+  let blood = 0;
+  for (let i = 0; i < 4 && v.state !== 'defeat' && v.state !== 'dead'; i++) {
+    step(s2, { pressed: { attack: true } });
+    for (let k = 0; k < 20; k++) { step(s2, {}); if (s2.effects.some((f) => f.kind === 'blood' && f.t < 0.02)) blood++; }
+  }
+  assert.equal(v.state === 'defeat' || v.state === 'dead', true);
+  assert.equal(v.defeatStyle, 'deflate');
+  assert.equal(blood, 2, 'one fresh blood effect per hit');
+});
+
+test('chainsaw: an empty tank takes it away and the button whips again', () => {
+  const s = withSaw();
+  s.player.saw.fuel = 0.05;
+  step(s, { pressed: { attack: true }, held: { attack: true } });
+  runUntil(s, () => !s.player.saw, 10, { held: { attack: true } });
+  assert.equal(s.player.saw, null);
+  assert.ok(s.effects.some((f) => f.kind === 'text' && /OUT OF GAS/.test(f.text)));
+  const loops = loopEvents(s);
+  assert.deepEqual(loops[loops.length - 1], { type: 'sfx-loop', id: 'sfx-chainsaw-rev', on: false });
+  step(s, {}, 2); events(s);
+  step(s, { pressed: { attack: true } });
+  assert.equal(s.player.state, 'attack');
+  assert.ok(events(s).includes('sfx-tail-whip'));
+});
+
+test('chainsaw: the rev sound stops on pause, KO and restart; KO drops the saw and it can be picked up again', () => {
+  const s = withSaw();
+  step(s, { pressed: { attack: true }, held: { attack: true } });
+  events(s); s.events.length = 0;
+  step(s, { pressed: { start: true }, held: { attack: true } });
+  assert.equal(s.mode, 'paused');
+  assert.deepEqual(loopEvents(s), [{ type: 'sfx-loop', id: 'sfx-chainsaw-rev', on: false }]);
+  s.events.length = 0;
+  step(s, { pressed: { start: true }, held: { attack: true } });
+  step(s, { held: { attack: true } });
+  assert.deepEqual(loopEvents(s), [{ type: 'sfx-loop', id: 'sfx-chainsaw-rev', on: true }], 'back on after unpause while still held');
+  s.events.length = 0;
+  step(s, { pressed: { restart: true } });
+  assert.deepEqual(loopEvents(s), [{ type: 'sfx-loop', id: 'sfx-chainsaw-rev', on: false }]);
+  assert.equal(s.player.saw, null);
+  // KO after the second checkpoint: saw gone, pickup back.
+  const s2 = start();
+  const pk = s2.pickups.find((p) => p.type === 'chainsaw');
+  s2.enemies = []; place(s2, pk.x - 10, { cp: 2576 });
+  s2.checkpoint = s2.cps[1];
+  step(s2, { held: { right: true } }, 10);
+  assert.ok(s2.player.saw && pk.collected);
+  step(s2, { pressed: { attack: true }, held: { attack: true } });
+  s2.events.length = 0;
+  s2.player.hp = 1; s2.player.invuln = 0;
+  S.hurtPlayer(s2, { hazard: true });
+  assert.deepEqual(loopEvents(s2), [{ type: 'sfx-loop', id: 'sfx-chainsaw-rev', on: false }]);
+  step(s2, {}, sec(C.sammy.koTime + C.sammy.koWait) + 2);
+  assert.equal(s2.player.saw, null);
+  assert.equal(s2.pickups.find((p) => p.type === 'chainsaw').collected, false, 'saw is back on the grass');
+});
+
+test('chainsaw: the autopilot picks it up and still clears the level', () => {
+  const s = S.newGame(); s.god = true;
+  const bot = S.makeBot();
+  let had = false, sliced = 0;
+  for (let f = 0; f < sec(120) && s.mode !== 'clear'; f++) {
+    S.update(s, S.botInput(s, bot)); s.events.length = 0;
+    if (s.player.saw) had = true;
+    sliced = Math.max(sliced, s.enemies.filter((e) => e.defeatStyle === 'sliced').length);
+  }
+  assert.equal(s.mode, 'clear');
+  assert.ok(had, 'picked up the chainsaw');
+  assert.ok(sliced > 0, 'used it in the gauntlet');
+});
+
 // ---------- asset list matches the documented plan ----------
 test('asset manifest: every planned file name appears in the example docs, with matching sizes', () => {
   const ex = path.join(here, '..', '..', 'templates', 'examples');
@@ -477,7 +659,20 @@ test('tail-whip art cell is wide enough for the whip hitbox', () => {
   assert.ok(m.px + reach <= m.fw, 'reach ' + reach + ' px fits right of the pivot');
   assert.ok(m.px - reach >= 0, 'and left of it when mirrored');
   assert.equal(m.fh, 48); assert.equal(m.py, 47);
-  for (const a of S.ASSET_MANIFEST) if (a.key.startsWith('sammy:') && a !== m) assert.equal(a.fw, 48, a.key + ' stays 48 wide');
+  for (const a of S.ASSET_MANIFEST) if (a.key.startsWith('sammy:') && a !== m && !a.key.startsWith('sammy:chainsaw-')) assert.equal(a.fw, 48, a.key + ' stays 48 wide');
+});
+
+test('chainsaw art cells are wide enough for the saw reach, with the same pivot as tail-whip', () => {
+  for (const k of ['idle', 'run', 'rev']) {
+    const m = S.ASSET_MANIFEST.find((a) => a.key === 'sammy:chainsaw-' + k);
+    assert.deepEqual([m.fw, m.fh, m.px, m.py], [64, 48, 36, 47], m.key);
+    assert.ok(m.px + C.chainsaw.reach <= m.fw && m.px - C.chainsaw.reach >= 0, m.key + ' holds the reach both ways');
+    assert.equal(m.loop, 'loop');
+  }
+  const pk = S.ASSET_MANIFEST.find((a) => a.key === 'pickup:chainsaw');
+  assert.deepEqual([pk.fw, pk.fh, pk.frames, pk.px, pk.py], [32, 16, 4, 16, 15]);
+  const hud = S.ASSET_MANIFEST.find((a) => a.key === 'hud:chainsaw');
+  assert.deepEqual([hud.fw, hud.fh, hud.px, hud.py, hud.feet], [16, 16, 0, 0, false]);
 });
 
 test('placeholder font: M, W, H and N look different, and text width matches drawing', () => {
@@ -532,7 +727,8 @@ test('sound manifest: every sound the game triggers has a planned file name and 
   const audioSrc = fs.readFileSync(path.join(src, 'audio.js'), 'utf8');
   const ids = new Set(S.SOUND_MANIFEST.map((m) => m.id));
   assert.equal(ids.size, S.SOUND_MANIFEST.length, 'no duplicate sound ids');
-  const used = [...new Set([...simSrc.matchAll(/'(sfx-[a-z0-9-]+)'/g)].map((m) => m[1]))];
+  // 'sfx-loop' is an event type (start/stop a looping sound), not a sound id.
+  const used = [...new Set([...simSrc.matchAll(/'(sfx-[a-z0-9-]+)'/g)].map((m) => m[1]))].filter((id) => id !== 'sfx-loop');
   assert.ok(used.length > 15, 'found the sound calls in sim.js');
   for (const id of used) {
     assert.ok(ids.has(id), id + ' is in SOUND_MANIFEST');
@@ -1215,7 +1411,7 @@ const listPngs = (dir) => {
 test('art templates: every planned picture has a template of the exact size, outside assets/, and in a contact sheet', async () => {
   const T = await import('../tools/make-art-templates.mjs');
   const { readChunks } = await import('../tools/png.mjs');
-  assert.equal(S.ASSET_MANIFEST.length, 34);
+  assert.equal(S.ASSET_MANIFEST.length, 39);
   for (const m of S.ASSET_MANIFEST) {
     const rel = T.templatePath(m);
     assert.match(rel, /-TEMPLATE\.png$/);

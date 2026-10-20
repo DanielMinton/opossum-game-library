@@ -12,6 +12,17 @@ Record date, decision, supporting asset or requirement, and unresolved questions
 - **Decisions only the owner can make:** `design/OWNER_DECISIONS.md`. *(Added 2026-10-19:)* the short list of everything waiting on the owner is `design/OPEN_TASKS.md`.
 - **Confirmed major priority, being built:** the game must look beautiful and play well on desktop **and** on phones and tablets. Steps 1 (sharper, bigger scaling), 2 (on-screen touch buttons), 3 (phone layout) and 4 (reliable sound on phones) are done; nothing has been tried on a real phone yet. The checklist for that is `design/MOBILE_TEST_CHECKLIST.md`. See "Desktop and mobile confirmed" below.
 
+## 2026-10-19: Stage B — chainsaw, gore, night park
+
+**Builder 1 (gameplay: chainsaw, HUD, sounds).** Choices below are **Proposed (reversible)**.
+- **Where:** the chainsaw lies on the grass on screen 11 (x 3300), just before the gauntlet. A prompt above it: "SOMEBODY LEFT A CHAINSAW. HOLD X. FUCK 'EM UP." (touch: "HOLD WHIP").
+- **How it works:** while Sammy carries it, the WHIP button revs the saw instead of tail-whipping. Holding it cuts whatever is in front (28 px) every 0.12 s; zombies take two cuts. A quick tap still revs for 0.2 s. Revving slows him to 60% speed. Numbers live in `config.js` `chainsaw`.
+- **Fuel:** 20 seconds of revving. Just carrying it uses a quarter of that rate. Empty: "OUT OF GAS. SHIT." and he's back to the tail-whip. A K.O. loses it; if the last checkpoint is before it, it's back on the grass. Other option: keep it until the end of the level (no fuel), which makes the gauntlet trivial.
+- **Kills:** chainsaw kills are "sliced" (blood, flying chunks, a 0.06 s freeze-frame and a screen shake). Whip kills keep the old looks: joggers pop, vendors deflate. Every hit bleeds. How the gore looks (and the low-gore option) is drawing only; the rules just say what happened.
+- **Top bar:** a chainsaw icon and an orange fuel gauge (red and blinking under a quarter) appear while carrying it; ZOMBIES moved right to make room.
+- **Sounds (beeps until real files arrive):** `sfx-chainsaw-start` (picked up), `sfx-chainsaw-rev` (loops while revving, stops on pause, K.O., restart and level clear), `sfx-chainsaw-cut`, `sfx-gore-splat` (every kill). Folders are ready in `assets/audio/sfx/`.
+- **Art (placeholders until real files arrive):** Sammy with the chainsaw needs idle, run and rev strips (64×48 cells like the tail-whip, so the saw fits), plus a pickup strip and a top-bar icon in `assets/items/item-powerup-chainsaw/`. Until then the game draws a placeholder saw in his paws. Templates are in `templates/art-templates/`.
+
 ## 2026-10-19: Desktop and mobile confirmed as a major priority
 
 **Decision (Confirmed by the owner):** the game must render beautifully and be fully playable on desktop and on mobile devices (phones and tablets). The owner says this was intended from the start; earlier docs had wrongly proposed "touch later, if at all" and listed touch controls as excluded. Those lines are corrected in `design/GAME_BRIEF.md`.
