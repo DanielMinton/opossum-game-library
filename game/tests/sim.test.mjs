@@ -662,11 +662,12 @@ test('tail-whip art cell is wide enough for the whip hitbox', () => {
 
 test("Sammy's cells and feet points: one table, so he never hops when the animation changes", () => {
   // Rebuilt from the master sheets on 2026-10-20 (design/DECISIONS.md): most strips are 48 wide with the feet at (28, 47);
-  // the crawl run, play-dead, ko, tail-whip and the chainsaw strips are wider, each with its own feet column; land's feet are at 17.
+  // the crawl run, play-dead, ko, tail-whip and the chainsaw strips are wider, each with its own feet column. Since v03 (same day)
+  // the chainsaw rev is 76 wide (the lifted saw reaches 47 px in front) and land is back on the plain 48/28 cell.
   const want = {
-    'sammy:idle': [48, 28], 'sammy:run': [64, 36], 'sammy:jump-rise': [48, 28], 'sammy:fall': [48, 28], 'sammy:land': [48, 17],
+    'sammy:idle': [48, 28], 'sammy:run': [64, 36], 'sammy:jump-rise': [48, 28], 'sammy:fall': [48, 28], 'sammy:land': [48, 28],
     'sammy:tail-whip': [64, 36], 'sammy:hurt': [48, 28], 'sammy:play-dead': [64, 32], 'sammy:ko': [76, 38], 'sammy:victory': [48, 28],
-    'sammy:chainsaw-idle': [64, 26], 'sammy:chainsaw-run': [64, 26], 'sammy:chainsaw-rev': [64, 26],
+    'sammy:chainsaw-idle': [64, 26], 'sammy:chainsaw-run': [64, 26], 'sammy:chainsaw-rev': [76, 26],
   };
   const sammy = S.ASSET_MANIFEST.filter((a) => a.key.startsWith('sammy:'));
   assert.deepEqual(sammy.map((a) => a.key).sort(), Object.keys(want).sort(), 'every Sammy slot is in the table');
@@ -680,9 +681,10 @@ test("Sammy's cells and feet points: one table, so he never hops when the animat
 test('chainsaw art cells are wide enough for the saw reach', () => {
   for (const k of ['idle', 'run', 'rev']) {
     const m = S.ASSET_MANIFEST.find((a) => a.key === 'sammy:chainsaw-' + k);
-    assert.deepEqual([m.fw, m.fh, m.px, m.py], [64, 48, 26, 47], m.key);
+    assert.deepEqual([m.fw, m.fh, m.px, m.py], [k === 'rev' ? 76 : 64, 48, 26, 47], m.key);
     // The saw bar reaches 28 px in front of the feet point; the cell must hold it. Facing left needs no room on the other side:
-    // render.js mirrors the whole cell around the feet column, so the same 37 px lie in front either way.
+    // render.js mirrors the whole cell around the feet column, so the same 37 px (49 while revving) lie in front either way.
+    // The feet column is the same in all three, so the body never hops between idle, run and rev; only the cell is wider.
     assert.ok(m.px + C.chainsaw.reach <= m.fw, m.key + ' holds the reach in front of the feet');
     assert.equal(m.loop, 'loop');
   }
@@ -690,6 +692,35 @@ test('chainsaw art cells are wide enough for the saw reach', () => {
   assert.deepEqual([pk.fw, pk.fh, pk.frames, pk.px, pk.py], [32, 16, 4, 16, 15]);
   const hud = S.ASSET_MANIFEST.find((a) => a.key === 'hud:chainsaw');
   assert.deepEqual([hud.fw, hud.fh, hud.px, hud.py, hud.feet], [16, 16, 0, 0, false]);
+});
+
+test('drawing Sammy: the code-made saw is never painted over real art (only in the placeholder Sammy\'s paws)', () => {
+  // A pretend canvas that accepts every drawing call, and a pretend loaded strip for one animation.
+  const ctx = new Proxy({}, { get: (o, k) => (k in o ? o[k] : () => {}), set: (o, k, v) => { o[k] = v; return true; } });
+  const fake = (key) => Object.assign({ img: {}, file: key, flash: null }, S.ASSET_MANIFEST.find((a) => a.key === key));
+  const saved = S.images;
+  const s = S.newGame();
+  const draws = (anim, state, withArt) => {
+    S.images = withArt ? Object.fromEntries(withArt.map((k) => ['sammy:' + k, fake('sammy:' + k)])) : {};
+    S.sawPlaceholderDraws = 0;
+    Object.assign(s.player, { state, anim, animT: 0.1, t: 0.1, invuln: 0, saw: { fuel: 10, revving: anim === 'chainsaw-rev', tick: 0, slash: 0 } });
+    S.drawSammy(ctx, s);
+    return S.sawPlaceholderDraws;
+  };
+  try {
+    // Real art for the current animation, with or without a saw variant: nothing extra is drawn (the top bar shows the saw).
+    for (const [anim, state] of [['victory', 'victory'], ['hurt', 'hurt'], ['jump-rise', 'normal'], ['fall', 'normal'], ['land', 'normal'], ['tail-whip', 'attack']]) {
+      assert.equal(draws(anim, state, [anim]), 0, anim + ' with real art');
+    }
+    for (const anim of ['chainsaw-idle', 'chainsaw-run', 'chainsaw-rev']) assert.equal(draws(anim, 'normal', [anim]), 0, anim + ' with real art');
+    // No chainsaw strip, but plain idle/run art stands in: still nothing extra.
+    assert.equal(draws('chainsaw-idle', 'normal', ['idle']), 0, 'idle art stands in for the chainsaw idle');
+    assert.equal(draws('chainsaw-run', 'normal', ['run']), 0, 'run art stands in for the chainsaw run');
+    // No art at all: the placeholder Sammy holds the placeholder saw (not while lying down).
+    assert.equal(draws('chainsaw-idle', 'normal', null), 1, 'placeholder Sammy gets the placeholder saw');
+    assert.equal(draws('victory', 'victory', null), 1, 'placeholder victory with the saw');
+    assert.equal(draws('ko', 'ko', null), 0, 'lying down: no saw');
+  } finally { S.images = saved; S.sawPlaceholderDraws = 0; }
 });
 
 test('scenery: slots have sizes and pivots that fit, level data only names real pieces, and the rules never read it', () => {

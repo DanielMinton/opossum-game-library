@@ -33,7 +33,7 @@ How to read this example:
 | `sammy-run-strip-v01.png` | Production strip | 8 frames, 512×48 px (64×48 cells, feet (36, 47): the run is a four-legged crawl, long and low; v02 is the real one) |
 | `sammy-jump-rise-strip-v01.png` | Production strip | 2 frames, 96×48 px |
 | `sammy-fall-strip-v01.png` | Production strip | 2 frames, 96×48 px |
-| `sammy-land-strip-v01.png` | Production strip | 2 frames, 96×48 px (feet (17, 47): both landing frames lunge forward) |
+| `sammy-land-strip-v01.png` | Production strip | 2 frames, 96×48 px (feet (28, 47) again since v03; v02's frames lunged forward with the feet at (17, 47)) |
 | `sammy-tail-whip-strip-v01.png` | Production strip | 4 frames, 256×48 px (wider 64×48 cells, see below) |
 | `sammy-hurt-strip-v01.png` | Production strip | 2 frames, 96×48 px |
 | `sammy-play-dead-strip-v01.png` | Production strip | 4 frames, 256×48 px (64×48 cells, feet (32, 47): lying down is long) |
@@ -42,10 +42,10 @@ How to read this example:
 | `sammy-wake-up-strip-v01.png` | Production strip (polish tier) | 6 frames, 288×48 px |
 | `sammy-chainsaw-idle-strip-v01.png` | Production strip (Stage B, Proposed) | 4 frames, 256×48 px (64×48 cells, feet (26, 47), holding the chainsaw) |
 | `sammy-chainsaw-run-strip-v01.png` | Production strip (Stage B, Proposed) | 8 frames, 512×48 px (64×48 cells, feet (26, 47)) |
-| `sammy-chainsaw-rev-strip-v01.png` | Production strip (Stage B, Proposed) | 4 frames, 256×48 px (64×48 cells, feet (26, 47), saw revving and shaking) |
+| `sammy-chainsaw-rev-strip-v01.png` | Production strip (Stage B, Proposed) | 4 frames, 304×48 px (76×48 cells, feet (26, 47): the lifted saw reaches 47 px in front; saw revving and shaking) |
 | `sammy-source-v01.aseprite` (or .psd / .kra) | Layered source | Your working file. Kept as the original; never overwritten. |
 
-Strip width = frame count × cell width (with no padding). Most cells are 48×48 with the feet point at (28, 47). The wider cells, each with its own feet point so Sammy's body stays in the same place on screen (updated 2026-10-20 when every strip was rebuilt from the master sheets): run 64×48, feet (36, 47) (the four-legged crawl is long and low); tail-whip 64×48, feet (36, 47); play-dead 64×48, feet (32, 47); ko 76×48, feet (38, 47); the three chainsaw strips 64×48, feet (26, 47), because the saw bar reaches 28 px in front of the feet. Land keeps 48×48 but its feet point is (17, 47): both landing frames lunge forward.
+Strip width = frame count × cell width (with no padding). Most cells are 48×48 with the feet point at (28, 47). The wider cells, each with its own feet point so Sammy's body stays in the same place on screen (updated 2026-10-20 when every strip was rebuilt from the master sheets): run 64×48, feet (36, 47) (the four-legged crawl is long and low); tail-whip 64×48, feet (36, 47); play-dead 64×48, feet (32, 47); ko 76×48, feet (38, 47); chainsaw idle and run 64×48, feet (26, 47), because the saw bar reaches 37 px in front of the feet (the cutting reach is 28); chainsaw rev 76×48 with the same feet column (26, 47), because the lifted saw reaches 47 px in front (since v03, 2026-10-20; it was 64 wide and two frames had to slide). Land is a plain 48×48 cell with the feet at (28, 47) again since v03 (v02's two frames lunged forward and had them at (17, 47)).
 
 ## Reference vs production
 

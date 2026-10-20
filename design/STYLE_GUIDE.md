@@ -134,7 +134,7 @@ The owner's direction (Confirmed) is night-time Central Park, Bethesda Terrace a
 
 | Asset type | Cell size | Character height in cell |
 |---|---|---|
-| Sammy | 48×48 px, feet at **(28, 47)**. Wider cells with their own feet column (since the 2026-10-20 rebuild from the master sheets): run and tail-whip **64×48**, feet (36, 47); play-dead **64×48**, feet (32, 47); K.O. **76×48**, feet (38, 47); the three chainsaw strips **64×48**, feet (26, 47); land 48×48 with the feet at (17, 47) | about 42 px standing (idle, with ears); the run is a four-legged crawl about 30 px tall (owner's choice) |
+| Sammy | 48×48 px, feet at **(28, 47)**. Wider cells with their own feet column (since the 2026-10-20 rebuild from the master sheets): run and tail-whip **64×48**, feet (36, 47); play-dead **64×48**, feet (32, 47); K.O. **76×48**, feet (38, 47); chainsaw idle and run **64×48**, feet (26, 47); chainsaw rev **76×48**, feet (26, 47) (v03: the lifted saw reaches 47 px); land 48×48 with the feet at (28, 47) like idle (v03; v02 had 17) | about 42 px standing (idle, with ears); the run is a four-legged crawl about 30 px tall (owner's choice) |
 | Standard zombie | 48×48 px | about 40–46 px (a little taller than Sammy) |
 | Large zombie / boss | 64×64 px | TBD |
 | Items / power-ups | 16×16 px (pickups: feet at (8, 15)) | — |

@@ -144,6 +144,10 @@ for (const [label, file] of [['source game (game/index.html)', path.join(gameDir
   // Real art in assets/ (if any) must all load, at the right size.
   check(label + ': every real art file loads with no size warnings', r.assets && r.assets.loaded.length === r.assets.tried && r.assets.warnings.length === 0,
     `tried ${r.assets && r.assets.tried}, loaded ${JSON.stringify(r.assets && r.assets.loaded)}, warnings ${JSON.stringify(r.assets && r.assets.warnings)}`);
+  // Sammy is real art (all 13 strips): the code-made placeholder saw must never be painted over it (v03 render fix, 2026-10-20).
+  const sammyArt = (r.assets && r.assets.loaded || []).filter((f) => /sammy-.*-strip-v\d+\.png$/.test(f)).length;
+  check(label + ': the placeholder saw is never drawn over real Sammy art (full run and every screen)', sammyArt === 13 && r.sawPlaceholderDraws === 0,
+    `Sammy strips loaded ${sammyArt}, placeholder saw draws ${r.sawPlaceholderDraws}`);
   // Real sound files: the source game loads every one the scanner listed (today the theme song); the built game only
   // the cleared ones (none yet: the theme song waits on its license, owner question 21).
   const wantSounds = presentSoundCount(!label.startsWith('source'));

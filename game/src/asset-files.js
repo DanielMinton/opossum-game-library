@@ -3,19 +3,19 @@
 // Art: planned name -> the newest version found. Sound: id -> files.
 (function (S) {
   S.PRESENT_ASSET_FILES = {
-    "characters/character-sammy/sammy-idle-strip-v01.png": "characters/character-sammy/sammy-idle-strip-v02.png",
-    "characters/character-sammy/sammy-run-strip-v01.png": "characters/character-sammy/sammy-run-strip-v02.png",
-    "characters/character-sammy/sammy-jump-rise-strip-v01.png": "characters/character-sammy/sammy-jump-rise-strip-v02.png",
-    "characters/character-sammy/sammy-fall-strip-v01.png": "characters/character-sammy/sammy-fall-strip-v02.png",
-    "characters/character-sammy/sammy-land-strip-v01.png": "characters/character-sammy/sammy-land-strip-v02.png",
-    "characters/character-sammy/sammy-tail-whip-strip-v01.png": "characters/character-sammy/sammy-tail-whip-strip-v02.png",
-    "characters/character-sammy/sammy-hurt-strip-v01.png": "characters/character-sammy/sammy-hurt-strip-v02.png",
-    "characters/character-sammy/sammy-play-dead-strip-v01.png": "characters/character-sammy/sammy-play-dead-strip-v02.png",
-    "characters/character-sammy/sammy-ko-strip-v01.png": "characters/character-sammy/sammy-ko-strip-v02.png",
-    "characters/character-sammy/sammy-victory-strip-v01.png": "characters/character-sammy/sammy-victory-strip-v02.png",
-    "characters/character-sammy/sammy-chainsaw-idle-strip-v01.png": "characters/character-sammy/sammy-chainsaw-idle-strip-v02.png",
-    "characters/character-sammy/sammy-chainsaw-run-strip-v01.png": "characters/character-sammy/sammy-chainsaw-run-strip-v02.png",
-    "characters/character-sammy/sammy-chainsaw-rev-strip-v01.png": "characters/character-sammy/sammy-chainsaw-rev-strip-v02.png",
+    "characters/character-sammy/sammy-idle-strip-v01.png": "characters/character-sammy/sammy-idle-strip-v03.png",
+    "characters/character-sammy/sammy-run-strip-v01.png": "characters/character-sammy/sammy-run-strip-v03.png",
+    "characters/character-sammy/sammy-jump-rise-strip-v01.png": "characters/character-sammy/sammy-jump-rise-strip-v03.png",
+    "characters/character-sammy/sammy-fall-strip-v01.png": "characters/character-sammy/sammy-fall-strip-v03.png",
+    "characters/character-sammy/sammy-land-strip-v01.png": "characters/character-sammy/sammy-land-strip-v03.png",
+    "characters/character-sammy/sammy-tail-whip-strip-v01.png": "characters/character-sammy/sammy-tail-whip-strip-v03.png",
+    "characters/character-sammy/sammy-hurt-strip-v01.png": "characters/character-sammy/sammy-hurt-strip-v03.png",
+    "characters/character-sammy/sammy-play-dead-strip-v01.png": "characters/character-sammy/sammy-play-dead-strip-v03.png",
+    "characters/character-sammy/sammy-ko-strip-v01.png": "characters/character-sammy/sammy-ko-strip-v03.png",
+    "characters/character-sammy/sammy-victory-strip-v01.png": "characters/character-sammy/sammy-victory-strip-v03.png",
+    "characters/character-sammy/sammy-chainsaw-idle-strip-v01.png": "characters/character-sammy/sammy-chainsaw-idle-strip-v03.png",
+    "characters/character-sammy/sammy-chainsaw-run-strip-v01.png": "characters/character-sammy/sammy-chainsaw-run-strip-v03.png",
+    "characters/character-sammy/sammy-chainsaw-rev-strip-v01.png": "characters/character-sammy/sammy-chainsaw-rev-strip-v03.png",
     "items/item-powerup-chainsaw/chainsaw-pickup-strip-v01.png": "items/item-powerup-chainsaw/chainsaw-pickup-strip-v01.png",
     "items/item-powerup-chainsaw/hud-icon-chainsaw-v01.png": "items/item-powerup-chainsaw/hud-icon-chainsaw-v01.png"
   };

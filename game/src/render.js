@@ -46,6 +46,7 @@
   const gravity = 300; // px/s² for flying bits (looks only)
   S.spriteDraws = {};
   S.flashDraws = {};
+  S.sawPlaceholderDraws = 0; // how often the code-made saw was drawn (only ever in the placeholder Sammy's paws)
 
   // ---------- background (parallax) ----------
   // Band rows, scroll speeds and loop widths come from the bg:* entries in assets.js.
@@ -328,20 +329,26 @@
     };
     if (lidOn && p.saw) drawLid();
     let real = sprite(ctx, 'sammy:' + anim, p.anim === 'get-up' ? p.animT * 2 : p.animT, p.x, p.y, p.face, p.anim === 'get-up', null, flash);
-    // No chainsaw strip yet: plain Sammy (idle or run art, or the placeholder) holding a placeholder saw.
+    // No chainsaw strip yet: plain Sammy (idle or run art) stands in for it.
     if (!real && sawArt) real = sprite(ctx, anim === 'chainsaw-run' ? 'sammy:run' : 'sammy:idle', p.animT, p.x, p.y, p.face, false, null, flash);
     if (!real) drawSammyPlaceholder(ctx, s, flash);
     const lying = p.state === 'playdead' || p.state === 'getup' || p.state === 'ko';
-    if (p.saw && !lying && !(sawArt && S.images['sammy:' + anim])) drawSawPlaceholder(ctx, p, s.t);
+    // The code-made saw goes only in the placeholder Sammy's paws. Real art without a saw variant (victory, hurt, jump, fall,
+    // land, tail-whip while carrying it) is drawn as it is: the top bar already shows the saw. (Fixed 2026-10-20: it used to be
+    // painted over those real frames.)
+    if (p.saw && !lying && !real) drawSawPlaceholder(ctx, p, s.t);
     const x = Math.round(p.x), y = Math.round(p.y);
     if (p.state === 'playdead') S.drawTextCentered(ctx, 'Z z', x, y - 26, K.white, 1, K.black);
     if (p.state === 'ko') S.drawTextCentered(ctx, '* * *', x, y - 24 - Math.round(Math.sin(p.t * 8) * 2), K.umbrella, 1, K.black);
     if (lidOn && !p.saw) drawLid();
   }
 
+  S.drawSammy = drawSammy; // for the tests
+
   // Placeholder chainsaw in Sammy's paws: engine, handle, 16 px bar reaching 28 px in front (the cutting reach).
   // Revving: it shudders and the teeth run.
   function drawSawPlaceholder(ctx, p, t) {
+    S.sawPlaceholderDraws = (S.sawPlaceholderDraws || 0) + 1; // counted for the tests: never over real art
     const x = Math.round(p.x), f = p.face, rev = p.saw.revving;
     const y = Math.round(p.y) + (rev ? Math.floor(t * 30) % 2 : 0);
     const at = (a, w) => (f > 0 ? x + a : x - a - w); // a px in front of the feet point, w wide

@@ -549,12 +549,17 @@
       result.stats = state.stats;
       result.realArtDraws = S.spriteDraws;
       result.flashDraws = S.flashDraws;
+      result.sawPlaceholderDraws = S.sawPlaceholderDraws;
       result.player = { x: Math.round(state.player.x), hp: state.player.hp, state: state.player.state, anim: state.player.anim, grounded: !!state.player.grounded };
-      // ?test=shot&pose=hurt|ko|playdead|attack: put Sammy in that state for a screenshot of art the autopilot rarely shows
+      // ?test=shot&pose=hurt|ko|playdead|attack|victory|jump|fall|land|sawidle|sawrun|sawrev: put Sammy in that state for a screenshot of art the autopilot rarely shows
       if (name === 'shot' && params.has('pose')) {
         const pose = params.get('pose'), p = state.player;
-        const anims = { hurt: 'hurt', ko: 'ko', playdead: 'play-dead', attack: 'tail-whip' };
-        if (anims[pose]) { p.state = pose; p.t = pose === 'ko' ? 0.5 : 0.1; p.anim = anims[pose]; p.invuln = 0; }
+        const anims = { hurt: 'hurt', ko: 'ko', playdead: 'play-dead', attack: 'tail-whip', victory: 'victory' };
+        if (anims[pose]) { p.state = pose; p.t = pose === 'ko' ? 0.5 : 0.1; p.anim = anims[pose]; p.animT = 0.1; p.invuln = 0; }
+        // Air and landing frames the autopilot only shows for a moment: keep the state, just pick the strip (drawing only).
+        else if (pose === 'jump' || pose === 'fall' || pose === 'land') { p.state = 'normal'; p.anim = pose === 'jump' ? 'jump-rise' : pose; p.animT = 0.1; p.invuln = 0; }
+        // sawidle | sawrun | sawrev: the chainsaw strips (only once he carries it, from frame ~2218).
+        else if (p.saw && (pose === 'sawidle' || pose === 'sawrun' || pose === 'sawrev')) { p.state = 'normal'; p.anim = 'chainsaw-' + pose.slice(3); p.animT = 0.1; p.saw.revving = pose === 'sawrev'; p.invuln = 0; }
       }
       if (name === 'full') {
         result.reachedClear = state.mode === 'clear';

@@ -14,9 +14,10 @@
   // Sammy's feet point sits at x 28 (not the usual 24) in his 48 px cells: his tail needs the extra room behind him.
   // Since the rebuild from the owner's master sheets (2026-10-20, v02 strips) a few of his strips use wider cells with their own
   // feet column, so his body lands in the same place on screen in every animation: run 64 wide, feet (36, 47) (the four-legged
-  // crawl is long); play-dead 64 wide, feet (32, 47); ko 76 wide, feet (38, 47); tail-whip 64 wide, feet (36, 47); the three
-  // chainsaw strips 64 wide, feet (26, 47) so the saw bar fits in front. Land keeps 48 wide but its feet column is 17: those two
-  // frames lunge forward. Everything else is 48 x 48 with feet (28, 47).
+  // crawl is long); play-dead 64 wide, feet (32, 47); ko 76 wide, feet (38, 47); tail-whip 64 wide, feet (36, 47); chainsaw idle
+  // and run 64 wide, feet (26, 47) so the saw bar fits in front; chainsaw rev 76 wide, feet (26, 47), because the lifted saw reaches
+  // 47 px in front (v03, 2026-10-20: no frame needs sliding any more). Everything else is 48 x 48 with feet (28, 47); since v03 that
+  // includes land again (v02's land frames lunged forward and had their feet at x 17).
   const sam = (extra) => Object.assign({ px: 28 }, extra || {});
   const JOG = 'enemies/enemy-zombie-jogger/';
   const VEN = 'enemies/enemy-zombie-hot-dog-vendor/';
@@ -24,6 +25,7 @@
   const LID = 'items/item-powerup-trash-lid-shield/';
   const SAW = 'items/item-powerup-chainsaw/';
   const saw = { fw: 64, px: 26 }; // Sammy with the chainsaw: 64x48 cells; feet at x 26 leave 37 px in front for the saw bar (the cutting reach is 28)
+  const sawRev = { fw: 76, px: 26 }; // revving lifts the saw: the bar tip reaches 47 px in front of the feet, so the cell is 76 wide (same feet column)
   const ENV = 'environments/environment-central-park-tileset/';
   const cart = { fw: 64, fh: 48, px: 32, py: 47 };
   const small = { fw: 16, fh: 16, px: 8, py: 15 };
@@ -36,7 +38,7 @@
     strip('sammy:run', SAM + 'sammy-run-strip-v01.png', 8, 12, 'loop', sam({ fw: 64, px: 36 })), // crawl run: 64 wide, feet (36, 47)
     strip('sammy:jump-rise', SAM + 'sammy-jump-rise-strip-v01.png', 2, 10, 'hold', sam()),
     strip('sammy:fall', SAM + 'sammy-fall-strip-v01.png', 2, 10, 'loop', sam()),
-    strip('sammy:land', SAM + 'sammy-land-strip-v01.png', 2, 15, 'once', sam({ px: 17 })), // the landing frames lunge forward: feet (17, 47)
+    strip('sammy:land', SAM + 'sammy-land-strip-v01.png', 2, 15, 'once', sam()), // v03: the fall crouch held, feet (28, 47) like idle (v02's lunging frames had them at 17)
     // Wider 64x48 cell, pivot (36, 47) (Sammy's 28 plus 8): the whip reaches 26 px in front of Sammy, more than a 48 px cell allows.
     strip('sammy:tail-whip', SAM + 'sammy-tail-whip-strip-v01.png', 4, 15, 'once', { fw: 64, px: 36, hitFrame: 2 }),
     strip('sammy:hurt', SAM + 'sammy-hurt-strip-v01.png', 2, 10, 'once', sam()),
@@ -45,7 +47,7 @@
     strip('sammy:victory', SAM + 'sammy-victory-strip-v01.png', 4, 8, 'loop', sam()),
     strip('sammy:chainsaw-idle', SAM + 'sammy-chainsaw-idle-strip-v01.png', 4, 6, 'loop', saw),
     strip('sammy:chainsaw-run', SAM + 'sammy-chainsaw-run-strip-v01.png', 8, 12, 'loop', saw),
-    strip('sammy:chainsaw-rev', SAM + 'sammy-chainsaw-rev-strip-v01.png', 4, 15, 'loop', saw),
+    strip('sammy:chainsaw-rev', SAM + 'sammy-chainsaw-rev-strip-v01.png', 4, 15, 'loop', sawRev),
 
     strip('jogger:walk', JOG + 'zombie-jogger-walk-strip-v01.png', 6, 8, 'loop'),
     strip('jogger:attack', JOG + 'zombie-jogger-attack-strip-v01.png', 4, 10, 'once', { hitFrame: 2 }),

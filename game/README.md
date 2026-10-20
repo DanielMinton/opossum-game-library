@@ -168,13 +168,13 @@ From the `game/` folder (needs Node 18 or newer; no packages to install):
 
 | Command | What it checks |
 |---|---|
-| `node --test tests/sim.test.mjs` | 77 game-rule checks (see the list below) |
-| `node --test tests/import-art.test.mjs` | 22 art-importer checks (`npm test` runs both test files: 99 in all) |
-| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 55 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
+| `node --test tests/sim.test.mjs` | 78 game-rule checks (see the list below) |
+| `node --test tests/import-art.test.mjs` | 22 art-importer checks (`npm test` runs both test files: 100 in all) |
+| `node tools/build.mjs` then `node tests/browser-smoke.mjs` | 57 browser checks (see the list below). Add `--shots <folder>` to save screenshots. Needs a Chromium-based browser; set `CHROME_PATH` if it isn't found. |
 | `index.html?test=full` | The same autopilot check by hand, in your own browser |
 | `index.html?test=touch&touch=1` | The touch-button check by hand (it taps the real buttons for you) |
 | `index.html?test=audio&touch=1` | The phone-sound check by hand (result appears as text in the top left) |
-| `index.html?test=shot&frames=N` | Stops after N frames for a screenshot. Add `&god=0` to let the autopilot take hits, or `&pose=hurt`, `ko`, `playdead` or `attack` to put Sammy in that state at the end (art the autopilot rarely shows) |
+| `index.html?test=shot&frames=N` | Stops after N frames for a screenshot. Add `&god=0` to let the autopilot take hits, or `&pose=hurt`, `ko`, `playdead`, `attack`, `victory`, `jump`, `fall`, `land`, `sawidle`, `sawrun` or `sawrev` to put Sammy in that state at the end (art the autopilot rarely shows) |
 
 **Game-rule checks** cover:
 - startup, level layout, movement, jumping, one-way platforms and rocks
